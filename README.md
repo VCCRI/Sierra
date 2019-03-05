@@ -12,6 +12,7 @@ scPolya also requires a junctions file as a mandatory input into the peak caller
 
 3. Reference annotation file 
 
+4. Whitelist of cell barcodes 
 
 ## Required packages 
 
@@ -30,7 +31,21 @@ The following R packages are required to run scPolyA:
 * bamfile: bam file of your data, it is essential this bam file contains the UMI and barcode information in the tags 
 * junctions.file: file made with `regtools` using the same bamfile as your input 
 
-```R
+```{r}
 find.polyA(output.file, reference.file, bamfile, junctions.file) 
 
+```
+
+## Counting per peak 
+
+After you finish peak calling, you will have a file with the peak location information and we can now recount the data to create a per peak counts table. 
+
+* polyA.sites.file: name of the output file from the `find.poly()` function
+* reference.file: file with the gene annotations 
+* bamfile: bam file of your data, it is essential this bam file contains the UMI and barcode information in the tags 
+* whitelist.file: file with a whitelist of the barcodes used 
+* output.file: name of the file with the resulting counts data 
+
+```{r} 
+count_polyA(polyA.sites.file, reference.file, bamfile, whitelist.file, output.file) 
 ```
