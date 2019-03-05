@@ -25,10 +25,10 @@ The following R packages are required to run scPolyA:
 
 ## Peak calling 
 
-*output.file*: name of the output file which will contain the location of the peaks 
-*reference.file*: file with the gene annotations 
-*bamfile*: bam file of your data, it is essential this bam file contains the UMI and barcode information in the tags 
-*junctions.file*: file made with `regtools` using the same bamfile as your input 
+* output.file: name of the output file which will contain the location of the peaks 
+* reference.file: file with the gene annotations 
+* bamfile: bam file of your data, it is essential this bam file contains the UMI and barcode information in the tags 
+* junctions.file: file made with `regtools` using the same bamfile as your input 
 
 ```R
 find.polyA(output.file, reference.file, bamfile, junctions.file) 
