@@ -32,7 +32,7 @@ The following R packages are required to run scPolyA:
 * junctions.file: file made with `regtools` using the same bamfile as your input 
 
 ```{r}
-find.polyA(output.file, reference.file, bamfile, junctions.file) 
+find_polyA(output.file, reference.file, bamfile, junctions.file) 
 
 ```
 
@@ -40,7 +40,7 @@ find.polyA(output.file, reference.file, bamfile, junctions.file)
 
 After you finish peak calling, you will have a file with the peak location information and we can now recount the data to create a per peak counts table. 
 
-* polyA.sites.file: name of the output file from the `find.poly()` function
+* polyA.sites.file: name of the output file from the `find_polyA()` function
 * reference.file: file with the gene annotations 
 * bamfile: bam file of your data, it is essential this bam file contains the UMI and barcode information in the tags 
 * whitelist.file: file with a whitelist of the barcodes used 
@@ -49,3 +49,5 @@ After you finish peak calling, you will have a file with the peak location infor
 ```{r} 
 count_polyA(polyA.sites.file, reference.file, bamfile, whitelist.file, output.file) 
 ```
+
+
