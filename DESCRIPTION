@@ -1,0 +1,22 @@
+Package: scpolya
+Type: Package
+Title: PolyA counting and analysis for scRNA-seq data
+Version: 0.1.0
+Author: Who wrote it
+Maintainer: The package maintainer <yourself@somewhere.net>
+Description: More about what it does (maybe more than one line)
+    Use four spaces when indenting paragraphs within the Description.
+License: What license is it under?
+Encoding: UTF-8
+LazyData: true
+Imports:
+    GenomicRanges,
+    GenomicAlignments,
+    reshape2,
+    plyr,
+    dplyr,
+    doParallel,
+    Matrix,
+    progress,
+    ggplot2
+RoxygenNote: 6.1.1
