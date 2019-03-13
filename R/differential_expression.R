@@ -2,9 +2,9 @@
 
 ################################################################################################
 #' 
-#' Apply MAST differential expression test to polyA sites.
+#' Apply a differential expression test to polyA sites.
 #' 
-#' Apply a MAST differential expression test to polyA sites, i.e. treats polyA sites as independent. 
+#' Apply a differential expression test to polyA sites, i.e. treats polyA sites as independent. 
 #' 
 #' 
 #' @param apa.seurat.object a polyA Seurat object
@@ -13,15 +13,22 @@
 #' @param exp.thresh threshold \% of cells expressing a peak to consider in
 #' @param fc.thresh threshold log2 fold-change difference for testing a peak
 #' @param adj.pval.thresh adjusted P-value threshold for retaining a peak 
-#' @return a list of P-values
+#' @param test.use statistical test to use. Either MAST (default) or t-test. 
+#' @return a data-frame of results.
 #' @examples 
 #' find_MAST_de_polya(apa.seurat, cluster1 = "1", cluster2 = "2")
 #' 
-de_polya_MAST <- function(apa.seurat.object, cluster1, cluster2, exp.thresh = 0.05,
-                                    fc.thresh = 0.25, adj.pval.thresh = 1e-05) {
+find_de_polya <- function(apa.seurat.object, cluster1, cluster2, exp.thresh = 0.05,
+                                    fc.thresh = 0.25, adj.pval.thresh = 1e-05, test.use = "MAST") {
   
-  if (!'MAST' %in% rownames(x = installed.packages())) {
-    stop("Please install MAST before using this function  (https://github.com/RGLab/MAST)")
+  if (!(test.use %in% c("MAST", "t-test"))) {
+    stop("Invalid test option: please choose either MAST or t-test")
+  }
+  
+  if (test.use == "MAST") {
+    if (!'MAST' %in% rownames(x = installed.packages())) {
+      stop("Please install MAST before using this function  (https://github.com/RGLab/MAST)")
+    }
   }
   
   ## Pull out the set of cells for performing the comparison
@@ -34,11 +41,11 @@ de_polya_MAST <- function(apa.seurat.object, cluster1, cluster2, exp.thresh = 0.
   
   ## Determine the APA expressed above provided threshold proportion of cells
   print("Detecting expressed APA in each cluster...")
-  high.expressed.peaks = getHighlyExpressedPeaks(apa.seurat.object, cluster1, cluster2, threshold = exp.thresh)
+  high.expressed.peaks = get_highly_expressed_peaks(apa.seurat.object, cluster1, cluster2, threshold = exp.thresh)
   print(paste(length(high.expressed.peaks), "expressed peaks"))
   
   ## Calculate fold-changes for transcripts between the two populations
-  all.fcs = getLog2FCList(apa.seurat.object, high.expressed.peaks, cluster1 = cluster1, cluster2 = cluster2)
+  all.fcs = get_log2FC_list(apa.seurat.object, high.expressed.peaks, cluster1 = cluster1, cluster2 = cluster2)
   
   ## Get the APAs and corresponding genes that pass a fold-change threshold
   fcs.pass = all.fcs[which(abs(all.fcs) >= fc.thresh)]
@@ -46,8 +53,8 @@ de_polya_MAST <- function(apa.seurat.object, cluster1, cluster2, exp.thresh = 0.
   print(paste(length(apas.pass), " peaks pass LFC threshold"))
   
   clusters = as.character(apa.seurat.object@ident)
-  p.values = getPvalueList(apa.seurat.object@data[apas.pass, ], identities = clusters, 
-                           cluster1 = cluster1, cluster2 = cluster2)
+  p.values = get_pvalue_list(apa.seurat.object@data[apas.pass, ], identities = clusters, 
+                           cluster1 = cluster1, cluster2 = cluster2, test.use = test.use)
   p.adj = p.adjust(p.values, method = "bonferroni", n = nrow(apa.seurat@data))
   
   gene.name = apa.seurat.object@misc[apas.pass, "Gene_name"]
@@ -78,6 +85,48 @@ de_polya_MAST <- function(apa.seurat.object, cluster1, cluster2, exp.thresh = 0.
   print(head(diff.table))
   
   return(diff.table)
+}
+
+#########################################################################################
+#'
+#' Get a list of P-values for differential polyA testing
+#'
+#' Given an expression matrix, a list of cluster identities and cluster labels, calculate 
+#' a list of differential expression P-values for the polyA sites in the expression matrix.
+#' Currently can choose from two tests: MAST or t-test. 
+#' 
+#' @param expressionData a matrix of expression data
+#' @param identities cell identity labels (normally clusters)
+#' @param cluster1 target cluster to test DE for
+#' @param cluster2 optional comparison cluster (all non-cluster1 cells by default)
+#' @param test.use statistical test to use. Currently either MAST or t-test. 
+#' @return a list of P-values
+#' @examples 
+#' p.values = get_pvalue_list(expressionData, identities, "1")
+#'
+get_pvalue_list <- function(expressionData, identities, cluster1, cluster2=NULL, test.use = "MAST") {
+  
+  if (test.use == "MAST") {
+    p.values = mast_de_test(expressionData, identities, cluster1, cluster2)
+    p.values = p.values[rownames(expressionData)]
+    return(p.values)
+  } else if (test.use == "t-test") {
+    # cluster identity used as input
+    foreground.set = (identities == cluster1)
+    if (is.null(cluster2)) {
+      remainder.set = (identities != cluster1)
+    } else {
+      remainder.set = (identities==cluster2)
+    }
+    if (is.null(dim(expressionData))) {
+      p.values = t.test(expressionData[foreground.set], expressionData[remainder.set])
+    } else {
+      p.values = unlist(apply(expressionData, 1, function(x) t.test(x[foreground.set], x[remainder.set])$p.value))
+    }
+    return(p.values)
+  } else {
+    stop("Invalid test option: please choose either MAST or t-test")
+  }
 }
 
 ################################################################################################
@@ -159,11 +208,11 @@ de_polya_lr <- function(apa.seurat.object, cluster1, cluster2, exp.thresh = 0.05
   
   ## Determine the APA expressed above provided threshold proportion of cells
   print("Detecting expressed APA in each cluster...")
-  high.expressed.transcripts = getHighlyExpressedPeaks(apa.seurat.object, cluster1, cluster2, threshold = exp.thresh)
+  high.expressed.transcripts = get_highly_expressed_peaks(apa.seurat.object, cluster1, cluster2, threshold = exp.thresh)
   print(paste(length(high.expressed.transcripts), "expressed peaks"))
   
   ## Calculate fold-changes for transcripts between the two populations
-  all.fcs = getLog2FCList(apa.seurat.object, high.expressed.transcripts, cluster1 = cluster1, cluster2 = cluster2)
+  all.fcs = get_log2FC_list(apa.seurat.object, high.expressed.transcripts, cluster1 = cluster1, cluster2 = cluster2)
   
   ## Get the APAs and corresponding genes that pass a fold-change threshold
   fcs.pass = all.fcs[which(abs(all.fcs) >= fc.thresh)]
@@ -342,7 +391,7 @@ get_log2FC_list <- function(seurat.object, geneList, cluster1, cluster2=NULL) {
     }
   }
   log2.fc.values = apply(seurat.object@data[geneList, c(foreground.set, remainder.set)], 1, function(x) 
-    getLog2FC(x[foreground.set], x[remainder.set]))
+    get_log2FC(x[foreground.set], x[remainder.set]))
   return(log2.fc.values)
 }
 
@@ -388,8 +437,8 @@ Log2ExpMean <- function (x) {
 #' @param threshold percentage threshold of detected (non-zero) expression for including a peak
 #' @return an array of peak (or gene) names
 #' @examples
-#' getHighlyExpressedPeaks(apa.seurat, "1")
-#' getHighlyExpressedPeaks(apa.seurat, cluster1 = "1", cluster2 = "2")
+#' get_highly_expressed_peaks(apa.seurat, "1")
+#' get_highly_expressed_peaks(apa.seurat, cluster1 = "1", cluster2 = "2")
 #' 
 get_highly_expressed_peaks <- function(seurat.object, cluster1, cluster2=NULL, threshold=0.05) {
   
