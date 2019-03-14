@@ -13,6 +13,7 @@ Imports:
     GenomicRanges,
     GenomicAlignments,
     reshape2,
+    S4Vectors,
     plyr,
     dplyr,
     doParallel,

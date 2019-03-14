@@ -158,16 +158,16 @@ find_polyA <- function(output.file, reference.file, bamfile, junctions.file,
   # Read in the junction information
   junctions <- read.table(junctions.file, sep = "\t",header = FALSE)
   junctions <- cbind(junctions,
-                     colsplit(junctions$V11, ",", c("blocks1","blocks2")))
+                     reshape2::colsplit(junctions$V11, ",", c("blocks1","blocks2")))
   junctions$start <- junctions$V2+junctions$blocks1
   junctions$end <- junctions$V3-junctions$blocks2
-  junctions.GR <- GRanges(seqnames = junctions$V1,
-                          IRanges(start = junctions$start,
+  junctions.GR <- GenomicRanges::GRanges(seqnames = junctions$V1,
+                          IRanges::IRanges(start = junctions$start,
                                   end = junctions$end), counts = junctions$V5)
 
-  registerDoParallel(cores=ncores)
+  doParallel::registerDoParallel(cores=ncores)
 
-  foreach(i = 1:n.genes) %dopar% {
+  foreach::foreach(i = 1:n.genes) %dopar% {
     #for(i in 1:n.genes) {
     #for(i in c(7509)) {
     #i <- 7509
@@ -179,19 +179,19 @@ find_polyA <- function(output.file, reference.file, bamfile, junctions.file,
 
     message(i, " :", gene.name)
     isMinusStrand <- if(strand==1) FALSE else TRUE
-    which <- GRanges(seqnames = seq.name, ranges = IRanges(gene.start, gene.end))
-    param <- ScanBamParam(which = which,
-                          flag=scanBamFlag(isMinusStrand=isMinusStrand))
+    which <- GenomicRanges::GRanges(seqnames = seq.name, ranges = IRanges::IRanges(gene.start, gene.end))
+    param <- Rsamtools::ScanBamParam(which = which,
+                          flag=Rsamtools::scanBamFlag(isMinusStrand=isMinusStrand))
 
-    aln <- readGAlignments(bamfile, param=param)
-    aln_cov <- coverage(aln)[seq.name][[1]]
+    aln <- GenomicAlignments::readGAlignments(bamfile, param=param)
+    aln_cov <- GenomicRanges::coverage(aln)[seq.name][[1]]
 
     data <- data.frame(pos = seq(gene.start, gene.end),
-                       coverage = runValue(aln_cov)[findRun(gene.start:gene.end, aln_cov)])
+                       coverage = S4Vectors::runValue(aln_cov)[S4Vectors::findRun(gene.start:gene.end, aln_cov)])
 
     # Find the junction which overlaps this gene
     j.cutoff <- max(min.jcutoff,min.jcutoff.prop*max(data$coverage))
-    hits <- findOverlaps(which, junctions.GR)
+    hits <- GenomicRanges::findOverlaps(which, junctions.GR)
     this.junctions.GR <- junctions.GR[hits@to]
     this.junctions.GR <- subset(this.junctions.GR, counts > j.cutoff)
     n.junctions <- length(this.junctions.GR)
@@ -301,7 +301,7 @@ find_polyA <- function(output.file, reference.file, bamfile, junctions.file,
     ## test each intron separate
     #message("Finding intronic peaks...")
 
-    reduced.junctions <- reduce(this.junctions.GR)
+    reduced.junctions <- GenomicRanges::reduce(this.junctions.GR)
     n.rjunctions <- length(reduced.junctions)
 
     if(n.junctions > 0) {

@@ -1,6 +1,5 @@
----
-title: scpolya
----
+
+## scPolyA
 
 The scPolyA package allows you to analyse any single cell RNAseq dataset that uses a 3' protocol. 
 
