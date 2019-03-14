@@ -17,6 +17,10 @@ Imports:
     dplyr,
     doParallel,
     Matrix,
+    MLmetrics,
     progress,
     ggplot2
 RoxygenNote: 6.1.1
+Suggests: knitr,
+    rmarkdown
+VignetteBuilder: knitr

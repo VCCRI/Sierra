@@ -103,4 +103,23 @@ polya_seurat_from_gene_object <- function(peak.data, genes.seurat, annot.info, p
   return(apa.seurat)
 }
 
+################################################
+#'
+#' return polyAs associated with a select gene
+#' 
+#' @param apa.seurat.object
+#' @param gene
+#' @param feature.type
+#' @return a list of polyA IDs
+#' @examples 
+#' polya.list = select_gene_polyas(apa.seurat, "PTPRC", feature.type = c("UTR3", "exon"))
+#'
+select_gene_polyas <- function(apa.seurat.object, gene, feature.type = c("UTR3", "UTR5", "exon", "intron")) {
+  annot.subset = subset(apa.seurat.object@misc, Gene_name == gene)
+  peaks.to.use = apply(annot.subset, 1, function(x) {
+    ifelse(sum(x[feature.type] == "YES") >= 1, TRUE, FALSE)
+  })
+  annot.subset = annot.subset[peaks.to.use, ]
+  return(rownames(annot.subset))
+}
 

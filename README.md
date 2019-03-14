@@ -1,4 +1,6 @@
-# scpolya
+---
+title: scpolya
+---
 
 The scPolyA package allows you to analyse any single cell RNAseq dataset that uses a 3' protocol. 
 
@@ -49,5 +51,4 @@ After you finish peak calling, you will have a file with the peak location infor
 ```{r} 
 count_polyA(polyA.sites.file, reference.file, bamfile, whitelist.file, output.file) 
 ```
-
 

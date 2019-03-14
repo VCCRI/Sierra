@@ -14,12 +14,14 @@
 #' @param fc.thresh threshold log2 fold-change difference for testing a peak
 #' @param adj.pval.thresh adjusted P-value threshold for retaining a peak 
 #' @param test.use statistical test to use. Either MAST (default) or t-test. 
+#' @param feature.type the feature type(s) to test for
 #' @return a data-frame of results.
 #' @examples 
 #' find_MAST_de_polya(apa.seurat, cluster1 = "1", cluster2 = "2")
 #' 
 find_de_polya <- function(apa.seurat.object, cluster1, cluster2, exp.thresh = 0.05,
-                                    fc.thresh = 0.25, adj.pval.thresh = 1e-05, test.use = "MAST") {
+                          fc.thresh = 0.25, adj.pval.thresh = 1e-05, test.use = "MAST",
+                          feature.type = c("UTR3", "UTR5", "exon", "intron")) {
   
   if (!(test.use %in% c("MAST", "t-test"))) {
     stop("Invalid test option: please choose either MAST or t-test")
@@ -44,6 +46,16 @@ find_de_polya <- function(apa.seurat.object, cluster1, cluster2, exp.thresh = 0.
   high.expressed.peaks = get_highly_expressed_peaks(apa.seurat.object, cluster1, cluster2, threshold = exp.thresh)
   print(paste(length(high.expressed.peaks), "expressed peaks"))
   
+  ## Filter peaks according to feature type
+  annot.subset = apa.seurat.object@misc[high.expressed.peaks, ]
+  peaks.to.use = apply(annot.subset, 1, function(x) {
+    ifelse(sum(x[feature.type] == "YES") >= 1, TRUE, FALSE)
+  })
+  peaks.to.use = names(peaks.to.use[which(peaks.to.use == TRUE)])
+  
+  high.expressed.peaks = intersect(high.expressed.peaks, peaks.to.use)
+  print(paste(length(high.expressed.peaks), "expressed peaks in feature types", toString(feature.type)))
+  
   ## Calculate fold-changes for transcripts between the two populations
   all.fcs = get_log2FC_list(apa.seurat.object, high.expressed.peaks, cluster1 = cluster1, cluster2 = cluster2)
   
@@ -55,7 +67,7 @@ find_de_polya <- function(apa.seurat.object, cluster1, cluster2, exp.thresh = 0.
   clusters = as.character(apa.seurat.object@ident)
   p.values = get_pvalue_list(apa.seurat.object@data[apas.pass, ], identities = clusters, 
                            cluster1 = cluster1, cluster2 = cluster2, test.use = test.use)
-  p.adj = p.adjust(p.values, method = "bonferroni", n = nrow(apa.seurat@data))
+  p.adj = p.adjust(p.values, method = "bonferroni", n = nrow(apa.seurat.object@data))
   
   gene.name = apa.seurat.object@misc[apas.pass, "Gene_name"]
   
@@ -75,14 +87,12 @@ find_de_polya <- function(apa.seurat.object, cluster1, cluster2, exp.thresh = 0.
                           Background_pct = nz.prop.background[apas.pass],
                           Log2FC = fcs.pass[apas.pass],
                           p_value = p.values[apas.pass],
-                          P_value_adj = p.adj, stringsAsFactors = FALSE)
+                          P_value_adj = p.adj[apas.pass], stringsAsFactors = FALSE)
   
   features.add = apa.seurat@misc[apas.pass, "FeaturesCollapsed"]
   diff.table$GenomicFeature = features.add
   
   diff.table = diff.table[order(diff.table$P_value_adj), ]
-  
-  print(head(diff.table))
   
   return(diff.table)
 }
@@ -177,8 +187,10 @@ mast_de_test <- function(expressionData, identities, cluster1, cluster2=NULL) {
   summaryDt <- summaryCond$datatable
   p_val <- summaryDt[which(summaryDt[, "component"] == "H"), 4]
   genes.return <- summaryDt[which(summaryDt[, "component"] == "H"), 1]
-  to.return <- p_val$`Pr(>Chisq)` 
-  names(to.return) = genes.return$primerid
+  #to.return <- p_val$`Pr(>Chisq)` 
+  to.return <- p_val
+  #names(to.return) = genes.return$primerid
+  names(to.return) = genes.return
   return(to.return)
 }
 
@@ -195,12 +207,13 @@ mast_de_test <- function(expressionData, identities, cluster1, cluster2=NULL) {
 #' @param exp.thresh threshold \% of cells expressing a peak to consider in
 #' @param fc.thresh threshold log2 fold-change difference for testing a peak
 #' @param adj.pval.thresh adjusted P-value threshold for retaining a peak 
+#' @param feature.type the feature type(s) to test for
 #' @return a data-frame of results
 #' @examples 
 #' res.table = lr_de_test(apa.seurat, cluster1 = "1", cluster2 = "2")
 #' 
 de_polya_lr <- function(apa.seurat.object, cluster1, cluster2, exp.thresh = 0.05, fc.thresh = 0.25,
-                                  adj.pval.thresh = 1e-05) {
+                                  adj.pval.thresh = 1e-05, feature.type = c("UTR3", "UTR5", "exon", "intron")) {
   
   ## Pull out the set of cells for performing the comparison
   cells.fg = apa.seurat.object@cell.names[which(apa.seurat.object@ident == cluster1)]
@@ -208,11 +221,21 @@ de_polya_lr <- function(apa.seurat.object, cluster1, cluster2, exp.thresh = 0.05
   
   ## Determine the APA expressed above provided threshold proportion of cells
   print("Detecting expressed APA in each cluster...")
-  high.expressed.transcripts = get_highly_expressed_peaks(apa.seurat.object, cluster1, cluster2, threshold = exp.thresh)
-  print(paste(length(high.expressed.transcripts), "expressed peaks"))
+  high.expressed.peaks = get_highly_expressed_peaks(apa.seurat.object, cluster1, cluster2, threshold = exp.thresh)
+  print(paste(length(high.expressed.peaks), "expressed peaks"))
+  
+  ## Filter peaks according to feature type
+  annot.subset = apa.seurat.object@misc[high.expressed.peaks, ]
+  peaks.to.use = apply(annot.subset, 1, function(x) {
+    ifelse(sum(x[feature.type] == "YES") >= 1, TRUE, FALSE)
+  })
+  peaks.to.use = names(peaks.to.use[which(peaks.to.use == TRUE)])
+  
+  high.expressed.peaks = intersect(high.expressed.peaks, peaks.to.use)
+  print(paste(length(high.expressed.peaks), "expressed peaks in feature types", toString(feature.type)))
   
   ## Calculate fold-changes for transcripts between the two populations
-  all.fcs = get_log2FC_list(apa.seurat.object, high.expressed.transcripts, cluster1 = cluster1, cluster2 = cluster2)
+  all.fcs = get_log2FC_list(apa.seurat.object, high.expressed.peaks, cluster1 = cluster1, cluster2 = cluster2)
   
   ## Get the APAs and corresponding genes that pass a fold-change threshold
   fcs.pass = all.fcs[which(abs(all.fcs) >= fc.thresh)]
@@ -221,7 +244,7 @@ de_polya_lr <- function(apa.seurat.object, cluster1, cluster2, exp.thresh = 0.05
   genes.fc.pass = apa.seurat.object@misc[apas.pass, "Gene_name"]
   
   ## Pull out the unique gene names - should be in a geneA.1, geneA.2 etc. format
-  gene.names = apa.seurat.object@misc[high.expressed.transcripts, "Gene_name"]
+  gene.names = apa.seurat.object@misc[high.expressed.peaks, "Gene_name"]
   
   ## Pull out genes with more than one site
   genes.multi.apa = names(table(gene.names)[which(table(gene.names) > 1)])
@@ -230,11 +253,11 @@ de_polya_lr <- function(apa.seurat.object, cluster1, cluster2, exp.thresh = 0.05
   genes.use = intersect(genes.fc.pass, genes.multi.apa)
   
   ## Filter the apa sites for genes that will be tested
-  all.apa.sites = high.expressed.transcripts
+  all.apa.sites = high.expressed.peaks
   all.genes = apa.seurat.object@misc[all.apa.sites, "Gene_name"]
   apa.sites.test = all.apa.sites[which(all.genes %in% genes.use)]
   
-  exp.matrix.full = t(apa.seurat.object@raw.data[apa.sites.test, c(cells.fg, cells.bg)])
+  exp.matrix.full = Matrix::t(apa.seurat.object@raw.data[apa.sites.test, c(cells.fg, cells.bg)])
   
   value.labels = c(rep(1, length(cells.fg)), rep(0, length(cells.bg)))
   
