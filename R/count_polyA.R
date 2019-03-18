@@ -15,8 +15,10 @@
 #' @return NULL. Writes counts to file.
 #' @examples
 #' count_polyA(polyA.sites.file, reference.file, bamfile, whitelist.file, output.file)
-count_polyA <- function(polyA.sites.file, reference.file, bamfile, whitelist.file, output.file, countUMI=TRUE) {
+count_polyA <- function(polyA.sites.file, reference.file, bamfile, whitelist.file, output.file, countUMI=TRUE, 
+			ncores = 1) {
 
+  lock <- tempfile() 
   whitelist.bc <- read.table(whitelist.file, stringsAsFactors = FALSE)
   whitelist.bc <- whitelist.bc[,1]
   n.bcs <- length(whitelist.bc)
@@ -27,34 +29,51 @@ count_polyA <- function(polyA.sites.file, reference.file, bamfile, whitelist.fil
   write(colheadings, file = output.file,  sep = "\t", ncolumns = n.columns)
   genes.ref <- read.table(reference.file,
                           header = TRUE, sep = ",", stringsAsFactors = FALSE)
-  chr.names <- as.character(unique(genes.ref$chr)[2:22])
+  chr.names <- as.character(unique(genes.ref$chr))
   genes.ref <- subset(genes.ref, chr %in% chr.names)
   n.genes <- nrow(genes.ref)
 
-  polyA.sites <- read.table(polyA.sites.file, header = T, sep = ",",
+  polyA.sites <- read.table(polyA.sites.file, header = T, sep = "\t",
                             stringsAsFactors = FALSE)
 
-    for(each.chr in chr.names) {
-    #each.chr <- "19"
-    message("Processing chr: ", each.chr)
+  # Filter the polyA sites 
+  n.total.sites <- nrow(polyA.sites) 
+  print(head(polyA.sites)) 
+  to.filter <- which(polyA.sites$Fit.max.pos == "Negative")
+  to.filter <- union(to.filter, which(polyA.sites$Fit.start == "Negative")) 
+  to.filter <- union(to.filter, which(polyA.sites$Fit.end == "Negative")) 
+  to.filter <- union(to.filter,  which(is.na(polyA.sites$Fit.max.pos))) 
+
+  polyA.sites <- polyA.sites[-to.filter,] 
+  print(head(polyA.sites)) 
+  n.filt.sites <- nrow(polyA.sites) 
+  message("There are ", n.total.sites, " unfiltered sites and ", n.filt.sites, " filtered sites") 
+  message("Doing counting for each filtered site...") 
+
+  doParallel::registerDoParallel(cores=ncores) 
+
+  print(chr.names) 
+  foreach::foreach(each.chr = chr.names, .packages = c("GenomicRanges", "GenomicAlignments", "Rsamtools", "dplyr")) %dopar% { 
+    #for(each.chr in chr.names) {
+
+      message("Processing chr: ", each.chr)
       for(strand in c(1, -1) ) {
       message(" and strand ", strand)
-      #strand <- 1
       isMinusStrand <- if(strand==1) FALSE else TRUE
-      polyA.sites.chr <- filter(polyA.sites, Chr == each.chr & Strand == strand) %>%
-                           select(GeneID, Chr, Start, End, Strand)
-      polyA.sites.chr$Start <- as.integer(polyA.sites.chr$Start)
-      polyA.sites.chr$End <- as.integer(polyA.sites.chr$End)
-      polyA.sites.chr <- filter(polyA.sites.chr, Start < End)
+      polyA.sites.chr <- dplyr::filter(polyA.sites, Chr == each.chr & Strand == strand) %>%
+                           dplyr::select(Gene, Chr, Fit.start, Fit.end, Strand)
+      polyA.sites.chr$Fit.start <- as.integer(polyA.sites.chr$Fit.start)
+      polyA.sites.chr$Fit.end <- as.integer(polyA.sites.chr$Fit.end)
+      polyA.sites.chr <- dplyr::filter(polyA.sites.chr, Fit.start < Fit.end)
 
       isMinusStrand <- if(strand==1) FALSE else TRUE
-      which <- GRanges(seqnames = each.chr, ranges = IRanges(1, max(polyA.sites.chr$End) ))
+      which <- GenomicRanges::GRanges(seqnames = each.chr, ranges = IRanges::IRanges(1, max(polyA.sites.chr$Fit.end) ))
 
-      param <- ScanBamParam(tag=c("CB", "UB"),
+      param <- Rsamtools::ScanBamParam(tag=c("CB", "UB"),
                             which = which,
                             flag=scanBamFlag(isMinusStrand=isMinusStrand))
 
-      aln <- readGAlignments(bamfile, param=param)
+      aln <- GenomicAlignments::readGAlignments(bamfile, param=param)
 
       nobarcodes <- which(is.na(mcols(aln)$CB))
       noUMI <- which(is.na(mcols(aln)$UB))
@@ -71,23 +90,25 @@ count_polyA <- function(polyA.sites.file, reference.file, bamfile, whitelist.fil
          aln <- aln[uniqUMIs]
       }
 
-      aln <- split(aln, mcols(aln)$CB)
+      aln <- GenomicRanges::split(aln, mcols(aln)$CB)
 
-      polyA.GR <- GRanges(seqnames = polyA.sites.chr$Chr,
-                          IRanges(start = polyA.sites.chr$Start,
-                                  end = as.integer(polyA.sites.chr$End)))
+      polyA.GR <- GenomicRanges::GRanges(seqnames = polyA.sites.chr$Chr,
+                          IRanges::IRanges(start = polyA.sites.chr$Fit.start,
+                                  end = as.integer(polyA.sites.chr$Fit.end)))
       n.polyA <- length(polyA.GR)
       barcodes.gene <- names(aln)
-      res <- sapply(barcodes.gene, function(x) countOverlaps(polyA.GR, aln[[x]]))
+      res <- sapply(barcodes.gene, function(x) GenomicRanges::countOverlaps(polyA.GR, aln[[x]]))
 
 
       mat.to.write <- matrix(0L, nrow = n.polyA, ncol = n.bcs)
       mat.to.write[,match(barcodes.gene, whitelist.bc)] <- res
-      polyA.ids <- paste0(polyA.sites.chr$GeneID, ":", polyA.sites.chr$Chr, ":", polyA.sites.chr$Start,
-                          "-", polyA.sites.chr$End, ":", polyA.sites.chr$Strand )
+      polyA.ids <- paste0(polyA.sites.chr$Gene, ":", polyA.sites.chr$Chr, ":", polyA.sites.chr$Fit.start,
+                          "-", polyA.sites.chr$Fit.end, ":", polyA.sites.chr$Strand )
       rownames(mat.to.write) <- polyA.ids
 
+      locked <- flock::lock(lock) 
       write.table(mat.to.write, file = output.file, quote = F, col.names = F, row.names = T, sep = "\t", append = T)
+      flock::unlock(locked) 
 
     } # Loop for strand
 
@@ -145,6 +166,8 @@ find_polyA <- function(output.file, reference.file, bamfile, junctions.file,
                        min.jcutoff=50, min.jcutoff.prop = 0.05, min.cov.cutoff = 500,
                        min.cov.prop = 0.05, min.peak.cutoff=200, min.peak.prop = 0.05, ncores = 1) {
 
+ 
+  lock <- tempfile() 	
   genes.ref <- read.table(reference.file,
                           header = TRUE, sep = ",", stringsAsFactors = FALSE)
   chr.names <- as.character(unique(genes.ref$chr))
@@ -153,7 +176,7 @@ find_polyA <- function(output.file, reference.file, bamfile, junctions.file,
 
 
   # Initiate the output file
-  write("Gene, Chr, Strand, MaxPosition, Fit.max.pos, Fit.start, Fit.end, mu, sigma, k, exon/intron, exon.pos", file = output.file)
+  write("Gene\tChr\tStrand\tMaxPosition\tFit.max.pos\tFit.start\tFit.end\tmu\tsigma\tk\texon/intron\texon.pos", file = output.file)
 
   # Read in the junction information
   junctions <- read.table(junctions.file, sep = "\t",header = FALSE)
@@ -167,17 +190,14 @@ find_polyA <- function(output.file, reference.file, bamfile, junctions.file,
 
   doParallel::registerDoParallel(cores=ncores)
 
-  foreach::foreach(i = 1:n.genes) %dopar% {
-    #for(i in 1:n.genes) {
-    #for(i in c(7509)) {
-    #i <- 7509
+  foreach::foreach(i = 1:n.genes, .packages = c("dplyr")) %dopar% {
     gene.name <- genes.ref[i, "Gene"]
     seq.name <- genes.ref[i,"chr"]
     gene.start <- genes.ref[i,"start"]
     gene.end <- genes.ref[i, "end"]
     strand <- genes.ref[i,"strand"]
 
-    message(i, " :", gene.name)
+    #message(i, " :", gene.name)
     isMinusStrand <- if(strand==1) FALSE else TRUE
     which <- GenomicRanges::GRanges(seqnames = seq.name, ranges = IRanges::IRanges(gene.start, gene.end))
     param <- Rsamtools::ScanBamParam(which = which,
@@ -238,7 +258,7 @@ find_polyA <- function(output.file, reference.file, bamfile, junctions.file,
         tryCatch({
           nls.res <- nls( y ~ k*exp(-1/2*(x-mu)^2/sigma^2),
                           start=c(mu=300,sigma=100,k=maxval) , data = fit.data)
-        }, error = function(err) { print(err) })
+        }, error = function(err) { })
 
         if(!is.null(nls.res)) {
           residuals <- sum(summary(nls.res)$residuals )
@@ -283,12 +303,16 @@ find_polyA <- function(output.file, reference.file, bamfile, junctions.file,
                         data.no.juncs[from, "pos"],
                         to.pos,
                         v[1], v[2], v[3], "non-juncs", exon.pos, sep="\t")
-          #print(line)
+          #print(line)  
+	  locked <- flock::lock(lock) 
           write(line,file=output.file,append=TRUE)
+	  flock::unlock(locked) 
         } else {
           line <- paste(gene.name, seq.name, strand, data.no.juncs[maxpeak, "pos"],
                         "NA", "NA", "NA", "NA", "NA", "NA", "non-juncs", "NA", sep="\t")
+	  locked <- flock::lock(lock) 
           write(line,file=output.file,append=TRUE)
+	  flock::unlock(locked) 
         }
 
         data.no.juncs[start:end, "coverage"] <- 0
@@ -325,7 +349,7 @@ find_polyA <- function(output.file, reference.file, bamfile, junctions.file,
         tryCatch({
           nls.res <- nls( y ~ k*exp(-1/2*(x-mu)^2/sigma^2),
                           start=c(mu=maxpeak,sigma=100,k=maxval) , data = fit.data)
-        }, error = function(err) { print(err) })
+        }, error = function(err) { })
 
         if(!is.null(nls.res)) {
           residuals <- sum(summary(nls.res)$residuals )
@@ -358,11 +382,15 @@ find_polyA <- function(output.file, reference.file, bamfile, junctions.file,
 
           #line=paste(gene.name, seq.name, maxpeak, v[1], v[2], v[3], "junctions", sep=",")
           #print(line)
+	  locked <- flock::lock(lock) 
           write(line,file=output.file,append=TRUE)
+	  flock::unlock(locked) 
         } else {
           line=paste(gene.name, seq.name, strand, intron.data[maxpeak, "pos"],
                      "NA", "NA", "NA", "NA", "NA", "NA", "junction", "NA", sep="\t")
+	  flocked <- flock::lock(lock) 
           write(line,file=output.file,append=TRUE)
+	  flock::unlock(locked) 
         }
       }
 

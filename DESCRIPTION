@@ -20,7 +20,8 @@ Imports:
     Matrix,
     MLmetrics,
     progress,
-    ggplot2
+    ggplot2,
+    flock
 RoxygenNote: 6.1.1
 Suggests: knitr,
     rmarkdown
