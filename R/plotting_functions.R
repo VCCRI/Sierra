@@ -3,69 +3,71 @@
 #'
 #' t-SNE plot of cell populations
 #'
-#' Based on t-SNE coordinates and cluster identities stored in a Seurat object, 
+#' Based on t-SNE coordinates and cluster identities stored in a Seurat object,
 #' plot t-SNE colouring cells according to cluster ID
 #'
 #' @param seurat.obect a Seurat object containing t-SNE coordinates and cluster ID's in @ident slot
 #' @param col.set a vector of colour codes corresponding to the number of clusters
 #' @param title optional plot title
-#' @param do.plot whether to print the plot to output (default: TRUE). 
-#' @param pt.size
-#' @param show.labels
-#' @param return.plot
-#' @param simple.theme
+#' @param do.plot whether to print the plot to output (default: TRUE).
+#' @param pt.size size of the point (default: 0.75)
+#' @param show.labels whether to show the cluster labels (default: FALSE)
+#' @param return.plot whether to return the ggplot object (default: FALSE)
+#' @param simple.theme whether to remove axis (default: FALSE)
 #' @return NULL by default. Returns a ggplot2 object if return.plot = TRUE
-#' @examples 
+#' @examples
 #' plot_tsne(apa.seurat, show.labels = TRUE)
+#'
+#' @import ggplot2
 #'
 plot_tsne <- function(seurat.object, col.set=NULL, title=NULL, do.plot=TRUE, pt.size = 0.75, show.labels = FALSE,
                      return.plot = FALSE, simple.theme=FALSE) {
   seurat.object.names <- names(seurat.object@ident)
-  
+
   # get the tSNE coordinates
   seurat.object.tsne1 <- seurat.object@dr$tsne@cell.embeddings[, 1]
   names(seurat.object.tsne1) <- names(seurat.object@ident)
-  
+
   seurat.object.tsne2 <- seurat.object@dr$tsne@cell.embeddings[, 2]
   names(seurat.object.tsne2) <- names(seurat.object@ident)
-  
+
   # If colors not provided use the deafult ggplot2 color scheme
   if (is.null(col.set)){
     col.set = scales::hue_pal()(length(table(seurat.object@ident)))
   }
-  
+
   # create the ggplot data-frame and generate a dot plot
   ggData <- data.frame(tSNE_1=seurat.object.tsne1, tSNE_2=seurat.object.tsne2, cluster=seurat.object@ident)
-  
+
   if (simple.theme == FALSE) {
     pl <- ggplot(ggData, aes(tSNE_1, tSNE_2, color=cluster)) + geom_point(size=pt.size) + xlab("t-SNE 1") + ylab("t-SNE 2") +
-      scale_color_manual(values=col.set, breaks=names(table(seurat.object@ident)), 
+      scale_color_manual(values=col.set, breaks=names(table(seurat.object@ident)),
                          labels=names(table(seurat.object@ident)), name="Population") + guides(color = guide_legend(override.aes = list(size=4)))
   } else {
     pl <- ggplot(ggData, aes(tSNE_1, tSNE_2, color=cluster)) + geom_point(size=pt.size) + theme_void() +
-      scale_color_manual(values=col.set, breaks=names(table(seurat.object@ident)), 
+      scale_color_manual(values=col.set, breaks=names(table(seurat.object@ident)),
                          labels=names(table(seurat.object@ident)), name="Population") + guides(color = guide_legend(override.aes = list(size=4)))
   }
-  
+
   if (show.labels == TRUE) {
     ggData %>%
       dplyr::group_by(cluster) %>%
       summarize(tSNE_1 = median(x = tSNE_1), tSNE_2 = median(x = tSNE_2)) -> centers
     centers[12, "tSNE_1"] = centers[12, "tSNE_1"] - 6
-    
+
     pl <- pl + geom_text(data = centers, mapping = aes(label = cluster), size = 4.5, colour="black", fontface="bold") +
-      theme(text = element_text(size = 16, family="Helvetica")) 
+      theme(text = element_text(size = 16, family="Helvetica"))
   }
-  
-  
+
+
   if (!is.null(title)) {
     pl <- pl + ggtitle(title)
   }
-  
+
   if (do.plot) {
     plot(pl)
   }
-  
+
   if (return.plot) {
     return(pl)
   }
@@ -77,31 +79,31 @@ plot_tsne <- function(seurat.object, col.set=NULL, title=NULL, do.plot=TRUE, pt.
 #########################################################
 plot_expression_tsne <- function(seurat.object, geneSet, do.plot=TRUE, figure.title=NULL,
                                return.plot = FALSE, pt.size = 0.75) {
-  
+
   # Get data-frame containing expression, gene name and cluster
   ggData = getMultiGeneExpressionData(seurat.object, geneSet)
-  
+
   # Pull out the t-SNE coordinates
   seurat.object.tsne1 <- seurat.object@dr$tsne@cell.embeddings[, 1]
   names(seurat.object.tsne1) <- names(seurat.object@ident)
-  
+
   seurat.object.tsne2 <- seurat.object@dr$tsne@cell.embeddings[, 2]
   names(seurat.object.tsne2) <- names(seurat.object@ident)
-  
+
   ggData$tSNE_1 = rep(seurat.object.tsne1, length(geneSet))
   ggData$tSNE_2 = rep(seurat.object.tsne2, length(geneSet))
-  
+
   ggData$Cell_ID = rep(seurat.object@cell.names, length(geneSet))
-  
+
   ggData$Gene <- factor(ggData$Gene, levels = geneSet)
-  pl <- ggplot(ggData, aes(tSNE_1, tSNE_2, color=Expression)) + geom_point(size=pt.size) + xlab("t-SNE 1") + ylab("t-SNE 2") + 
-    scale_color_gradient2(low="#d9d9d9", mid="red", high="brown", midpoint=min(ggData$Expression) + 
+  pl <- ggplot(ggData, aes(tSNE_1, tSNE_2, color=Expression)) + geom_point(size=pt.size) + xlab("t-SNE 1") + ylab("t-SNE 2") +
+    scale_color_gradient2(low="#d9d9d9", mid="red", high="brown", midpoint=min(ggData$Expression) +
                             (max(ggData$Expression)-min(ggData$Expression))/2, name="") +
     theme(strip.text.x = element_text(size = 14))
   if (length(geneSet) > 1) {
     pl <- pl + facet_wrap(~Gene)
   }
-  
+
   if (is.null(figure.title)) {
     if (length(geneSet) == 1) {
       pl <- pl + ggtitle(paste0(geneSet, " expression vizualised on t-SNE coordinates"))
@@ -111,11 +113,11 @@ plot_expression_tsne <- function(seurat.object, geneSet, do.plot=TRUE, figure.ti
   } else {
     pl <- pl + ggtitle(figure.title)
   }
-  
+
   if (do.plot) {
     plot(pl)
   }
-  
+
   if (return.plot) {
     return(pl)
   }
@@ -125,35 +127,35 @@ plot_expression_tsne <- function(seurat.object, geneSet, do.plot=TRUE, figure.ti
 #########################################
 ### Do a boxplot for a panel of genes ###
 #########################################
-do_box_plot <- function(seurat.object, geneSet, figure.title = NULL, num_col = NULL, do.plot = TRUE, col.set = NULL, 
+do_box_plot <- function(seurat.object, geneSet, figure.title = NULL, num_col = NULL, do.plot = TRUE, col.set = NULL,
                       return.plot = FALSE) {
   ggData = getMultiGeneExpressionData(seurat.object, geneSet)
-  
+
   if (is.null(col.set)){
     col.set = scales::hue_pal()(length(table(seurat.object@ident)))
   }
-  
+
   ## Boxplot
   ggData$Gene = factor(ggData$Gene, levels = geneSet)
   ggData$Cluster = factor(ggData$Cluster, levels = names(table(seurat.object@ident)))
-  pl <- ggplot(ggData, aes(y=Expression, x=Cluster, fill=Cluster)) + geom_boxplot(colour = "black", outlier.size = 0.75) + 
+  pl <- ggplot(ggData, aes(y=Expression, x=Cluster, fill=Cluster)) + geom_boxplot(colour = "black", outlier.size = 0.75) +
     ylab("Log2 (normalised expression + 1)") + scale_fill_manual(values=col.set) + theme_bw(base_size = 16) +
     theme(legend.position="bottom", axis.ticks.x = element_blank(), axis.text.x = element_blank(), text = element_text(size = 16)) + xlab("")
-  
+
   if (!is.null(num_col)) {
     pl <- pl + facet_wrap(~ Gene, ncol = num_col)
   } else{
     pl <- pl + facet_wrap(~ Gene)
   }
-  
+
   if (!is.null(figure.title)) {
     pl <- pl + ggtitle(figure.title)
   }
-  
+
   if (do.plot) {
     plot(pl)
   }
-  
+
   if (return.plot) {
     return(pl)
   }

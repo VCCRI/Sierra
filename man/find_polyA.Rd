@@ -40,4 +40,5 @@ Do peak calling on a scRNA-seq BAM file...
 }
 \examples{
 find_polyA(output.file, reference.file, bamfile, junctions.file)
+
 }

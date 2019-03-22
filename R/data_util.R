@@ -166,9 +166,9 @@ new_polya_seurat <- function(peak.data, annot.info, project.name = "PolyA",
 #'
 #' return polyAs associated with a select gene
 #'
-#' @param apa.seurat.object
-#' @param gene
-#' @param feature.type
+#' @param apa.seurat.object Seurat polyA object
+#' @param gene Gene name
+#' @param feature.type type of genomic features to use
 #' @return a list of polyA IDs
 #' @examples
 #' polya.list = select_gene_polyas(apa.seurat, "PTPRC", feature.type = c("UTR3", "exon"))

@@ -16,6 +16,7 @@ Imports:
     S4Vectors,
     plyr,
     dplyr,
+    foreach,
     doParallel,
     Matrix,
     MLmetrics,

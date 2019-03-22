@@ -5,7 +5,8 @@
 \title{Use the logistic regression method by Lior Patcher group to calculate differential polyA}
 \usage{
 de_polya_lr(apa.seurat.object, cluster1, cluster2, exp.thresh = 0.05,
-  fc.thresh = 0.25, adj.pval.thresh = 1e-05)
+  fc.thresh = 0.25, adj.pval.thresh = 1e-05, feature.type = c("UTR3",
+  "UTR5", "exon", "intron"))
 }
 \arguments{
 \item{apa.seurat.object}{a polyA Seurat object}
@@ -19,6 +20,8 @@ de_polya_lr(apa.seurat.object, cluster1, cluster2, exp.thresh = 0.05,
 \item{fc.thresh}{threshold log2 fold-change difference for testing a peak}
 
 \item{adj.pval.thresh}{adjusted P-value threshold for retaining a peak}
+
+\item{feature.type}{the feature type(s) to test for}
 }
 \value{
 a data-frame of results

@@ -5,7 +5,7 @@
 \title{count polyA sites in cells}
 \usage{
 count_polyA(polyA.sites.file, reference.file, bamfile, whitelist.file,
-  output.file, countUMI = TRUE)
+  output.file, countUMI = TRUE, ncores = 1)
 }
 \arguments{
 \item{polyA.sites.file}{a file containing polyA sites}

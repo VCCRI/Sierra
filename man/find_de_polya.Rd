@@ -5,7 +5,8 @@
 \title{Apply a differential expression test to polyA sites.}
 \usage{
 find_de_polya(apa.seurat.object, cluster1, cluster2, exp.thresh = 0.05,
-  fc.thresh = 0.25, adj.pval.thresh = 1e-05, test.use = "MAST")
+  fc.thresh = 0.25, adj.pval.thresh = 1e-05, test.use = "MAST",
+  feature.type = c("UTR3", "UTR5", "exon", "intron"))
 }
 \arguments{
 \item{apa.seurat.object}{a polyA Seurat object}
@@ -21,6 +22,8 @@ find_de_polya(apa.seurat.object, cluster1, cluster2, exp.thresh = 0.05,
 \item{adj.pval.thresh}{adjusted P-value threshold for retaining a peak}
 
 \item{test.use}{statistical test to use. Either MAST (default) or t-test.}
+
+\item{feature.type}{the feature type(s) to test for}
 }
 \value{
 a data-frame of results.
