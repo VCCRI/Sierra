@@ -15,6 +15,10 @@
 #' @return NULL. Writes counts to file.
 #' @examples
 #' count_polyA(polyA.sites.file, reference.file, bamfile, whitelist.file, output.file)
+#'
+#' @importFrom magrittr "%>%"
+#' @importFrom foreach "%dopar%"
+#'
 count_polyA <- function(polyA.sites.file, reference.file, bamfile, whitelist.file, output.file, countUMI=TRUE,
 			ncores = 1) {
 
@@ -53,7 +57,7 @@ count_polyA <- function(polyA.sites.file, reference.file, bamfile, whitelist.fil
   doParallel::registerDoParallel(cores=ncores)
 
   print(chr.names)
-  foreach::foreach(each.chr = chr.names, .packages = c("GenomicRanges", "GenomicAlignments", "Rsamtools", "dplyr")) %dopar% {
+  foreach::foreach(each.chr = chr.names) %dopar% {
     #for(each.chr in chr.names) {
 
       message("Processing chr: ", each.chr)
@@ -71,26 +75,26 @@ count_polyA <- function(polyA.sites.file, reference.file, bamfile, whitelist.fil
 
       param <- Rsamtools::ScanBamParam(tag=c("CB", "UB"),
                             which = which,
-                            flag=scanBamFlag(isMinusStrand=isMinusStrand))
+                            flag=Rsamtools::scanBamFlag(isMinusStrand=isMinusStrand))
 
       aln <- GenomicAlignments::readGAlignments(bamfile, param=param)
 
-      nobarcodes <- which(is.na(mcols(aln)$CB))
-      noUMI <- which(is.na(mcols(aln)$UB))
+      nobarcodes <- which(is.na(GenomicRanges::mcols(aln)$CB))
+      noUMI <- which(is.na(GenomicRanges::mcols(aln)$UB))
       to.remove <- union(nobarcodes, noUMI)
       aln <- aln[-to.remove]
-      whitelist.pos <- which(mcols(aln)$CB %in% whitelist.bc)
+      whitelist.pos <- which(GenomicRanges::mcols(aln)$CB %in% whitelist.bc)
       aln <- aln[whitelist.pos]
 
       # For de-duplicating UMIs, let's just remove a random read
       # when there is a duplicate
       if(countUMI) {
-         mcols(aln)$CB_UB <- paste0(mcols(aln)$CB, "_", mcols(aln)$UB)
-         uniqUMIs <- which(!duplicated(mcols(aln)$CB_UB))
+         GenomicRanges::mcols(aln)$CB_UB <- paste0(GenomicRanges::mcols(aln)$CB, "_", GenomicRanges::mcols(aln)$UB)
+         uniqUMIs <- which(!duplicated(GenomicRanges::mcols(aln)$CB_UB))
          aln <- aln[uniqUMIs]
       }
 
-      aln <- GenomicRanges::split(aln, mcols(aln)$CB)
+      aln <- GenomicRanges::split(aln, GenomicRanges::mcols(aln)$CB)
 
       polyA.GR <- GenomicRanges::GRanges(seqnames = polyA.sites.chr$Chr,
                           IRanges::IRanges(start = polyA.sites.chr$Fit.start,
