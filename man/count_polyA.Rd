@@ -28,4 +28,5 @@ Generates a count matrix
 }
 \examples{
 count_polyA(polyA.sites.file, reference.file, bamfile, whitelist.file, output.file)
+
 }

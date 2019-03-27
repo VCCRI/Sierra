@@ -22,4 +22,5 @@ Returns a list of peaks that have been merged, as well as the unique peaks from 
 }
 \examples{
 DoPeakMerging(apa.dataset.list)
+
 }

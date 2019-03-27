@@ -22,4 +22,5 @@ and calculates the level of overlap.
 }
 \examples{
 generate_similarity_table(peaks.1)
+
 }

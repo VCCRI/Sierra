@@ -30,4 +30,5 @@ variance (25\% by default).
 }
 \examples{
 generate_merged_peak_table(dataset.1, apa.dataset.list, self.merged.peaks.list)
+
 }
