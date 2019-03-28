@@ -23,4 +23,5 @@ is not available in peaks.2, ditance is set to -1e7.
 }
 \examples{
 generate_similarity_table(peaks.1, peaks.2)
+
 }

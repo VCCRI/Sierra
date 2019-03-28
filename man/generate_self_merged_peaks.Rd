@@ -25,4 +25,5 @@ y is a percentage of allowed variance (25\% by default)
 }
 \examples{
 generate_similarity_table(peaks.1)
+
 }
