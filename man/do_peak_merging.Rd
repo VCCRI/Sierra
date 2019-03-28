@@ -4,11 +4,13 @@
 \alias{do_peak_merging}
 \title{Merge peaks across a list of data-sets}
 \usage{
-do_peak_merging(apa.dataset.list, sim.thresh = 0.75,
+do_peak_merging(apa.dataset.list, output.file, sim.thresh = 0.75,
   allow.match.var = 0.25)
 }
 \arguments{
 \item{apa.dataset.list}{a named list containing peaks called from different data-sets}
+
+\item{output.file}{file to write the set of merged peaks to}
 }
 \value{
 a set of merged peaks

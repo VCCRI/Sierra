@@ -485,13 +485,14 @@ generate_merged_peak_table <- function(dataset.1, apa.dataset.list, self.merged.
 #' Returns a list of peaks that have been merged, as well as the unique peaks from each data-set.
 #'
 #' @param apa.dataset.list a named list containing peaks called from different data-sets
+#' @param output.file file to write the set of merged peaks to
 #' @return a set of merged peaks
 #' @examples
 #' DoPeakMerging(apa.dataset.list)
 #' 
 #' @importFrom magrittr "%>%"
 #' 
-do_peak_merging <- function(apa.dataset.list, sim.thresh = 0.75, allow.match.var = 0.25) {
+do_peak_merging <- function(apa.dataset.list, output.file, sim.thresh = 0.75, allow.match.var = 0.25) {
   ### Generate the in-dataset similarity table
   self.merged.peaks.list = vector("list", length(apa.dataset.list))
 
@@ -536,6 +537,13 @@ do_peak_merging <- function(apa.dataset.list, sim.thresh = 0.75, allow.match.var
   unique.peaks = unique.peaks[which(!(unique.peaks$Peak %in% merged.peaks.unique$Peak)), ]
 
   final.merged.peaks = rbind(merged.peaks.unique, unique.peaks)
-
-  return(final.merged.peaks)
+  
+  final.merged.peaks %>% dplyr::mutate(Gene = sub("(.*):.*:.*-.*:.*", "\\1", Peak), 
+                                       Chr = sub(".*:(.*):.*-.*:.*", "\\1", Peak),
+                                       Strand = sub(".*:.*:.*-.*:(.*)", "\\1", Peak),
+                                       Fit.start = sub(".*:.*:(.*)-.*:.*", "\\1", Peak),
+                                       Fit.end = sub(".*:.*:.*-(.*):.*", "\\1", Peak)) -> output.table
+  output.table = output.table[, c("Gene", "Chr", "Strand", "Fit.start", "Fit.end", "Peak", "Class")]
+  colnames(output.table) = c("Gene", "Chr", "Strand", "Fit.start", "Fit.end", "Peak.ID", "Peak.origin")
+  write.table(output.table, file = output.file, sep="\t", quote = FALSE, row.names = FALSE)
 }
