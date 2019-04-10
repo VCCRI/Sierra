@@ -18,7 +18,9 @@
 #'
 #' @importFrom magrittr "%>%"
 #' @importFrom foreach "%dopar%"
-#'
+#' @importFrom Matrix writeMM 
+#' 
+#' @export
 count_polyA <- function(polyA.sites.file, reference.file, bamfile, whitelist.file, output.file, countUMI=TRUE,
 			ncores = 1) {
 
@@ -29,8 +31,8 @@ count_polyA <- function(polyA.sites.file, reference.file, bamfile, whitelist.fil
   message("There are ", n.bcs, " whitelist barcodes.")
 
   n.columns <- n.bcs + 1
-  colheadings <- c("polyAID", whitelist.bc)
-  write(colheadings, file = output.file,  sep = "\t", ncolumns = n.columns)
+  #colheadings <- c("polyAID", whitelist.bc)
+  #write(colheadings, file = output.file,  sep = "\t", ncolumns = n.columns)
   genes.ref <- read.table(reference.file,
                           header = TRUE, sep = ",", stringsAsFactors = FALSE)
   chr.names <- as.character(unique(genes.ref$chr))
@@ -42,26 +44,29 @@ count_polyA <- function(polyA.sites.file, reference.file, bamfile, whitelist.fil
 
   # Filter the polyA sites
   n.total.sites <- nrow(polyA.sites)
-  print(head(polyA.sites))
+  #print(head(polyA.sites))
   to.filter <- which(polyA.sites$Fit.max.pos == "Negative")
   to.filter <- union(to.filter, which(polyA.sites$Fit.start == "Negative"))
   to.filter <- union(to.filter, which(polyA.sites$Fit.end == "Negative"))
   to.filter <- union(to.filter,  which(is.na(polyA.sites$Fit.max.pos)))
 
   polyA.sites <- polyA.sites[-to.filter,]
-  print(head(polyA.sites))
+  #print(head(polyA.sites))
   n.filt.sites <- nrow(polyA.sites)
   message("There are ", n.total.sites, " unfiltered sites and ", n.filt.sites, " filtered sites")
   message("Doing counting for each filtered site...")
 
   doParallel::registerDoParallel(cores=ncores)
 
-  print(chr.names)
-  foreach::foreach(each.chr = chr.names) %dopar% {
+  #print(chr.names)
+  chr.names <- chr.names[1:4]
+  mat.to.write <- foreach::foreach(each.chr = chr.names, .combine = 'rbind') %dopar% {
     #for(each.chr in chr.names) {
-
+      mat.per.chr <- c() 
+      #each.chr <- chr.names[1]
       message("Processing chr: ", each.chr)
       for(strand in c(1, -1) ) {
+        #strand = 1
       message(" and strand ", strand)
       isMinusStrand <- if(strand==1) FALSE else TRUE
       polyA.sites.chr <- dplyr::filter(polyA.sites, Chr == each.chr & Strand == strand) %>%
@@ -103,21 +108,38 @@ count_polyA <- function(polyA.sites.file, reference.file, bamfile, whitelist.fil
       barcodes.gene <- names(aln)
       res <- sapply(barcodes.gene, function(x) GenomicRanges::countOverlaps(polyA.GR, aln[[x]]))
 
-
-      mat.to.write <- matrix(0L, nrow = n.polyA, ncol = n.bcs)
-      mat.to.write[,match(barcodes.gene, whitelist.bc)] <- res
+      # Reorder the columns of the res matrix to match the whitelist barcodes 
+      res.mat <- matrix(0L, nrow = n.polyA, ncol = n.bcs) 
+      res.mat[,match(barcodes.gene, whitelist.bc)] <- res
+      
+      # Return a sparse matrix       
+      mat.per.strand <- Matrix::Matrix(res.mat, sparse = TRUE)
+      #mat.to.write <- matrix(0L, nrow = n.polyA, ncol = n.bcs)
+      #mat.to.write[,match(barcodes.gene, whitelist.bc)] <- res
       polyA.ids <- paste0(polyA.sites.chr$Gene, ":", polyA.sites.chr$Chr, ":", polyA.sites.chr$Fit.start,
                           "-", polyA.sites.chr$Fit.end, ":", polyA.sites.chr$Strand )
-      rownames(mat.to.write) <- polyA.ids
-
-      locked <- flock::lock(lock)
-      write.table(mat.to.write, file = output.file, quote = F, col.names = F, row.names = T, sep = "\t", append = T)
-      flock::unlock(locked)
-
+      rownames(mat.per.strand) <- polyA.ids
+      
     } # Loop for strand
-
+  
+    # Need to combine the two matrices from each strand 
+    if(is.null(mat.per.chr)) { 
+      mat.per.chr <- mat.per.strand
+    } else { 
+      mat.per.chr <- rbind(mat.per.chr, mat.per.strand) 
+    }
+    
+    # Return sparse matrix for each chromosome for combining across all threads 
+    return(mat.per.chr) 
   } # Loop for chr
 
+  writeMM(mat.to.write, file = paste0(output.file, "_matrix.mtx"))
+  #print(colnames(mat.to.write)[1:10]) 
+  #print(rownames(mat.to.write)[1:10])
+  write.table(whitelist.bc, file = paste0(output.file, "_barcodes.tsv"), quote = FALSE, row.names = FALSE, col.names = FALSE) 
+  write.table(rownames(mat.to.write), file = paste0(output.file, "_sitenames.tsv"), quote = FALSE, row.names = FALSE, col.names = FALSE)  
+
+  
 } # End function
 
 ###################################################################
