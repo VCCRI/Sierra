@@ -338,7 +338,7 @@ find_polyA <- function(output.file, reference.file, bamfile, junctions.file,
 
   doParallel::registerDoParallel(cores=ncores)
 
-  foreach::foreach(i = 1:n.genes) %dopar% {
+  foreach::foreach(i = 1:n.genes, .packages = c("GenomicRanges")) %dopar% {
     gene.name <- genes.ref[i, "Gene"]
     seq.name <- genes.ref[i,"chr"]
     gene.start <- genes.ref[i,"start"]
