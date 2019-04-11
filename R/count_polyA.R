@@ -71,6 +71,11 @@ count_polyA <- function(polyA.sites.file, reference.file, bamfile, whitelist.fil
       polyA.sites.chr$Fit.end <- as.integer(polyA.sites.chr$Fit.end)
       polyA.sites.chr <- dplyr::filter(polyA.sites.chr, Fit.start < Fit.end)
 
+      # If there are no sites in this range, then just keep going 
+      if(nrow(polyA.sites.chr) == 0) { 
+	      next  
+      } 
+
       isMinusStrand <- if(strand==1) FALSE else TRUE
       which <- GenomicRanges::GRanges(seqnames = each.chr, ranges = IRanges::IRanges(1, max(polyA.sites.chr$Fit.end) ))
 
