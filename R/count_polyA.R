@@ -537,7 +537,7 @@ find_polyA <- function(output.file, reference.file, bamfile, junctions.file,
         } else {
           line=paste(gene.name, seq.name, strand, intron.data[maxpeak, "pos"],
                      "NA", "NA", "NA", "NA", "NA", "NA", "junction", "NA", sep="\t")
-	  flocked <- flock::lock(lock)
+	  locked <- flock::lock(lock)
           write(line,file=output.file,append=TRUE)
 	  flock::unlock(locked)
         }
