@@ -307,6 +307,9 @@ makeExons <- function(x) {
 #'
 #' @importFrom magrittr "%>%"
 #' @importFrom foreach "%dopar%"
+#' @import GenomicRanges 
+#' 
+#' @export
 #'
 find_polyA <- function(output.file, reference.file, bamfile, junctions.file,
                        min.jcutoff=50, min.jcutoff.prop = 0.05, min.cov.cutoff = 500,
@@ -358,7 +361,8 @@ find_polyA <- function(output.file, reference.file, bamfile, junctions.file,
     j.cutoff <- max(min.jcutoff,min.jcutoff.prop*max(data$coverage))
     hits <- GenomicRanges::findOverlaps(which, junctions.GR)
     this.junctions.GR <- junctions.GR[hits@to]
-    this.junctions.GR <- IRanges::subset(this.junctions.GR, counts > j.cutoff)
+    this.junctions.GR <- this.junctions.GR[this.junctions.GR$counts > j.cutoff]
+    #this.junctions.GR <- IRanges::subset(this.junctions.GR, counts > j.cutoff)
     n.junctions <- length(this.junctions.GR)
     data.no.juncs <- data
 
