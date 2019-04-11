@@ -59,14 +59,10 @@ count_polyA <- function(polyA.sites.file, reference.file, bamfile, whitelist.fil
   doParallel::registerDoParallel(cores=ncores)
 
   #print(chr.names)
-  chr.names <- chr.names[1:4]
   mat.to.write <- foreach::foreach(each.chr = chr.names, .combine = 'rbind') %dopar% {
-    #for(each.chr in chr.names) {
       mat.per.chr <- c() 
-      #each.chr <- chr.names[1]
       message("Processing chr: ", each.chr)
       for(strand in c(1, -1) ) {
-        #strand = 1
       message(" and strand ", strand)
       isMinusStrand <- if(strand==1) FALSE else TRUE
       polyA.sites.chr <- dplyr::filter(polyA.sites, Chr == each.chr & Strand == strand) %>%
