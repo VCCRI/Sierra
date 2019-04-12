@@ -22,7 +22,7 @@ get_pvalue_list(expressionData, identities, cluster1, cluster2 = NULL,
 a list of P-values
 }
 \description{
-Given an expression matrix, a list of cluster identities and cluster labels, calculate 
+Given an expression matrix, a list of cluster identities and cluster labels, calculate
 a list of differential expression P-values for the polyA sites in the expression matrix.
 Currently can choose from two tests: MAST or t-test.
 }

@@ -20,8 +20,8 @@ get_highly_expressed_peaks(seurat.object, cluster1, cluster2 = NULL,
 an array of peak (or gene) names
 }
 \description{
-Selects peaks that are considered expressed above some provided criteria within a target or 
-background cluster. Considers peaks expressed in some x\% of cells to be highly expressed. Returns the 
+Selects peaks that are considered expressed above some provided criteria within a target or
+background cluster. Considers peaks expressed in some x\% of cells to be highly expressed. Returns the
 union of peaks identified from the target and background cluster
 }
 \examples{

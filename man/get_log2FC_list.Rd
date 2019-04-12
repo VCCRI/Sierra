@@ -2,10 +2,7 @@
 % Please edit documentation in R/differential_expression.R
 \name{get_log2FC_list}
 \alias{get_log2FC_list}
-\title{Calculate log2 fold-changes for a list of genes
- 
-Get a list of Log2 fold-change values for a gene list between a specified cluster
-and either all remaining cells (default) or an alternative cluster}
+\title{Calculate log2 fold-changes for a list of genes}
 \usage{
 get_log2FC_list(seurat.object, geneList, cluster1, cluster2 = NULL)
 }
@@ -22,8 +19,6 @@ get_log2FC_list(seurat.object, geneList, cluster1, cluster2 = NULL)
 a list of log2 fold-changes
 }
 \description{
-Calculate log2 fold-changes for a list of genes
- 
 Get a list of Log2 fold-change values for a gene list between a specified cluster
 and either all remaining cells (default) or an alternative cluster
 }

@@ -24,10 +24,10 @@ lr_test(f.labels, exp.matrix, value.labels, num_cells_fg, num_cells_bg,
 a P-value
 }
 \description{
-Perform the logistic-regression test described by Lior Patcher and coleagues, which has 
-been adapted here for use on polyA sites. Builds a logistic regression 
-function using the polyA sites for a gene as the predictors. Performance 
-for correctly classifying class labels is compared to a null model to derive 
+Perform the logistic-regression test described by Lior Patcher and coleagues, which has
+been adapted here for use on polyA sites. Builds a logistic regression
+function using the polyA sites for a gene as the predictors. Performance
+for correctly classifying class labels is compared to a null model to derive
 a P-value for the gene.
 }
 \examples{

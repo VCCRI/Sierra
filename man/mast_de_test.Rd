@@ -19,7 +19,7 @@ mast_de_test(expressionData, identities, cluster1, cluster2 = NULL)
 a list of P-values
 }
 \description{
-Apply a MAST differential expression test to polyA sites. Code derived from the Seurat 'MASTDETest' 
+Apply a MAST differential expression test to polyA sites. Code derived from the Seurat 'MASTDETest'
 function - see 'MASTDETest' at https://github.com/satijalab/seurat for more details.
 }
 \examples{

@@ -6,7 +6,8 @@
 \usage{
 find_de_polya(apa.seurat.object, cluster1, cluster2, exp.thresh = 0.05,
   fc.thresh = 0.25, adj.pval.thresh = 1e-05, test.use = "MAST",
-  feature.type = c("UTR3", "UTR5", "exon", "intron"))
+  feature.type = c("UTR3", "UTR5", "exon", "intron"),
+  use.all.peaks = FALSE)
 }
 \arguments{
 \item{apa.seurat.object}{a polyA Seurat object}
@@ -23,7 +24,9 @@ find_de_polya(apa.seurat.object, cluster1, cluster2, exp.thresh = 0.05,
 
 \item{test.use}{statistical test to use. Either MAST (default) or t-test.}
 
-\item{feature.type}{the feature type(s) to test for}
+\item{feature.type}{the feature type(s) to test for. Redundant if use.all.peaks set to TRUE.}
+
+\item{use.all.peaks}{whether to use all peaks regardless of annotation. FALSE by default.}
 }
 \value{
 a data-frame of results.
@@ -32,6 +35,6 @@ a data-frame of results.
 Apply a differential expression test to polyA sites, i.e. treats polyA sites as independent.
 }
 \examples{
-find_MAST_de_polya(apa.seurat, cluster1 = "1", cluster2 = "2")
+find_de_polya(apa.seurat, cluster1 = "1", cluster2 = "2")
 
 }
