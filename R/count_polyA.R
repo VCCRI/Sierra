@@ -18,8 +18,8 @@
 #'
 #' @importFrom magrittr "%>%"
 #' @importFrom foreach "%dopar%"
-#' @importFrom Matrix writeMM 
-#' 
+#' @importFrom Matrix writeMM
+#'
 #' @export
 count_polyA <- function(polyA.sites.file, reference.file, bamfile, whitelist.file, output.file, countUMI=TRUE,
 			ncores = 1) {
@@ -60,7 +60,7 @@ count_polyA <- function(polyA.sites.file, reference.file, bamfile, whitelist.fil
 
   #print(chr.names)
   mat.to.write <- foreach::foreach(each.chr = chr.names, .combine = 'rbind') %dopar% {
-      mat.per.chr <- c() 
+      mat.per.chr <- c()
       message("Processing chr: ", each.chr)
       for(strand in c(1, -1) ) {
       message(" and strand ", strand)
@@ -71,10 +71,10 @@ count_polyA <- function(polyA.sites.file, reference.file, bamfile, whitelist.fil
       polyA.sites.chr$Fit.end <- as.integer(polyA.sites.chr$Fit.end)
       polyA.sites.chr <- dplyr::filter(polyA.sites.chr, Fit.start < Fit.end)
 
-      # If there are no sites in this range, then just keep going 
-      if(nrow(polyA.sites.chr) == 0) { 
-	      next  
-      } 
+      # If there are no sites in this range, then just keep going
+      if(nrow(polyA.sites.chr) == 0) {
+	      next
+      }
 
       isMinusStrand <- if(strand==1) FALSE else TRUE
       which <- GenomicRanges::GRanges(seqnames = each.chr, ranges = IRanges::IRanges(1, max(polyA.sites.chr$Fit.end) ))
@@ -109,46 +109,46 @@ count_polyA <- function(polyA.sites.file, reference.file, bamfile, whitelist.fil
       barcodes.gene <- names(aln)
       res <- sapply(barcodes.gene, function(x) GenomicRanges::countOverlaps(polyA.GR, aln[[x]]))
 
-      # Reorder the columns of the res matrix to match the whitelist barcodes 
-      res.mat <- matrix(0L, nrow = n.polyA, ncol = n.bcs) 
+      # Reorder the columns of the res matrix to match the whitelist barcodes
+      res.mat <- matrix(0L, nrow = n.polyA, ncol = n.bcs)
       res.mat[,match(barcodes.gene, whitelist.bc)] <- res
-      
-      # Return a sparse matrix       
+
+      # Return a sparse matrix
       mat.per.strand <- Matrix::Matrix(res.mat, sparse = TRUE)
       #mat.to.write <- matrix(0L, nrow = n.polyA, ncol = n.bcs)
       #mat.to.write[,match(barcodes.gene, whitelist.bc)] <- res
       polyA.ids <- paste0(polyA.sites.chr$Gene, ":", polyA.sites.chr$Chr, ":", polyA.sites.chr$Fit.start,
                           "-", polyA.sites.chr$Fit.end, ":", polyA.sites.chr$Strand )
       rownames(mat.per.strand) <- polyA.ids
-      
+
     } # Loop for strand
-  
-    # Need to combine the two matrices from each strand 
-    if(is.null(mat.per.chr)) { 
+
+    # Need to combine the two matrices from each strand
+    if(is.null(mat.per.chr)) {
       mat.per.chr <- mat.per.strand
-    } else { 
-      mat.per.chr <- rbind(mat.per.chr, mat.per.strand) 
+    } else {
+      mat.per.chr <- rbind(mat.per.chr, mat.per.strand)
     }
-    
-    # Return sparse matrix for each chromosome for combining across all threads 
-    return(mat.per.chr) 
+
+    # Return sparse matrix for each chromosome for combining across all threads
+    return(mat.per.chr)
   } # Loop for chr
 
   writeMM(mat.to.write, file = paste0(output.file, "_matrix.mtx"))
-  #print(colnames(mat.to.write)[1:10]) 
+  #print(colnames(mat.to.write)[1:10])
   #print(rownames(mat.to.write)[1:10])
-  write.table(whitelist.bc, file = paste0(output.file, "_barcodes.tsv"), quote = FALSE, row.names = FALSE, col.names = FALSE) 
-  write.table(rownames(mat.to.write), file = paste0(output.file, "_sitenames.tsv"), quote = FALSE, row.names = FALSE, col.names = FALSE)  
+  write.table(whitelist.bc, file = paste0(output.file, "_barcodes.tsv"), quote = FALSE, row.names = FALSE, col.names = FALSE)
+  write.table(rownames(mat.to.write), file = paste0(output.file, "_sitenames.tsv"), quote = FALSE, row.names = FALSE, col.names = FALSE)
 
-  
+
 } # End function
 
 ###################################################################
 #'
 #' count polyA sites in cells from merged peaks
 #'
-#' Generates a count matrix in cells using a file of merged peaks generated from 
-#' two or more data-sets. 
+#' Generates a count matrix in cells using a file of merged peaks generated from
+#' two or more data-sets.
 #'
 #' @param polyA.sites.file a file containing polyA sites
 #' @param reference.file reference (GTF) file
@@ -165,13 +165,13 @@ count_polyA <- function(polyA.sites.file, reference.file, bamfile, whitelist.fil
 #'
 count_merged_polyA <- function(polyA.sites.file, reference.file, bamfile, whitelist.file, output.file, countUMI=TRUE,
                         ncores = 1) {
-  
+
   lock <- tempfile()
   whitelist.bc <- read.table(whitelist.file, stringsAsFactors = FALSE)
   whitelist.bc <- whitelist.bc[,1]
   n.bcs <- length(whitelist.bc)
   message("There are ", n.bcs, " whitelist barcodes.")
-  
+
   n.columns <- n.bcs + 1
   colheadings <- c("polyAID", whitelist.bc)
   write(colheadings, file = output.file,  sep = "\t", ncolumns = n.columns)
@@ -180,24 +180,24 @@ count_merged_polyA <- function(polyA.sites.file, reference.file, bamfile, whitel
   chr.names <- as.character(unique(genes.ref$chr))
   genes.ref <- subset(genes.ref, chr %in% chr.names)
   n.genes <- nrow(genes.ref)
-  
+
   polyA.sites <- read.table(polyA.sites.file, header = T, sep = "\t",
                             stringsAsFactors = FALSE)
-  
+
   # Filter the polyA sites
   n.total.sites <- nrow(polyA.sites)
   print(head(polyA.sites))
-  
+
   n.filt.sites <- nrow(polyA.sites)
   message("There are ", n.total.sites, " unfiltered sites and ", n.filt.sites, " filtered sites")
   message("Doing counting for each filtered site...")
-  
+
   doParallel::registerDoParallel(cores=ncores)
-  
+
   print(chr.names)
   foreach::foreach(each.chr = chr.names) %dopar% {
     #for(each.chr in chr.names) {
-    
+
     message("Processing chr: ", each.chr)
     for(strand in c(1, -1) ) {
       message(" and strand ", strand)
@@ -207,23 +207,23 @@ count_merged_polyA <- function(polyA.sites.file, reference.file, bamfile, whitel
       polyA.sites.chr$Fit.start <- as.integer(polyA.sites.chr$Fit.start)
       polyA.sites.chr$Fit.end <- as.integer(polyA.sites.chr$Fit.end)
       polyA.sites.chr <- dplyr::filter(polyA.sites.chr, Fit.start < Fit.end)
-      
+
       isMinusStrand <- if(strand==1) FALSE else TRUE
       which <- GenomicRanges::GRanges(seqnames = each.chr, ranges = IRanges::IRanges(1, max(polyA.sites.chr$Fit.end) ))
-      
+
       param <- Rsamtools::ScanBamParam(tag=c("CB", "UB"),
                                        which = which,
                                        flag=Rsamtools::scanBamFlag(isMinusStrand=isMinusStrand))
-      
+
       aln <- GenomicAlignments::readGAlignments(bamfile, param=param)
-      
+
       nobarcodes <- which(is.na(GenomicRanges::mcols(aln)$CB))
       noUMI <- which(is.na(GenomicRanges::mcols(aln)$UB))
       to.remove <- union(nobarcodes, noUMI)
       aln <- aln[-to.remove]
       whitelist.pos <- which(GenomicRanges::mcols(aln)$CB %in% whitelist.bc)
       aln <- aln[whitelist.pos]
-      
+
       # For de-duplicating UMIs, let's just remove a random read
       # when there is a duplicate
       if(countUMI) {
@@ -231,31 +231,31 @@ count_merged_polyA <- function(polyA.sites.file, reference.file, bamfile, whitel
         uniqUMIs <- which(!duplicated(GenomicRanges::mcols(aln)$CB_UB))
         aln <- aln[uniqUMIs]
       }
-      
+
       aln <- GenomicRanges::split(aln, GenomicRanges::mcols(aln)$CB)
-      
+
       polyA.GR <- GenomicRanges::GRanges(seqnames = polyA.sites.chr$Chr,
                                          IRanges::IRanges(start = polyA.sites.chr$Fit.start,
                                                           end = as.integer(polyA.sites.chr$Fit.end)))
       n.polyA <- length(polyA.GR)
       barcodes.gene <- names(aln)
       res <- sapply(barcodes.gene, function(x) GenomicRanges::countOverlaps(polyA.GR, aln[[x]]))
-      
-      
+
+
       mat.to.write <- matrix(0L, nrow = n.polyA, ncol = n.bcs)
       mat.to.write[,match(barcodes.gene, whitelist.bc)] <- res
       polyA.ids <- paste0(polyA.sites.chr$Gene, ":", polyA.sites.chr$Chr, ":", polyA.sites.chr$Fit.start,
                           "-", polyA.sites.chr$Fit.end, ":", polyA.sites.chr$Strand )
       rownames(mat.to.write) <- polyA.ids
-      
+
       locked <- flock::lock(lock)
       write.table(mat.to.write, file = output.file, quote = F, col.names = F, row.names = T, sep = "\t", append = T)
       flock::unlock(locked)
-      
+
     } # Loop for strand
-    
+
   } # Loop for chr
-  
+
 } # End function
 
 
@@ -308,8 +308,8 @@ makeExons <- function(x) {
 #'
 #' @importFrom magrittr "%>%"
 #' @importFrom foreach "%dopar%"
-#' @import GenomicRanges 
-#' 
+#' @import GenomicRanges
+#'
 #' @export
 #'
 find_polyA <- function(output.file, reference.file, bamfile, junctions.file,
@@ -355,197 +355,226 @@ find_polyA <- function(output.file, reference.file, bamfile, junctions.file,
     aln <- GenomicAlignments::readGAlignments(bamfile, param=param)
     aln_cov <- GenomicRanges::coverage(aln)[seq.name][[1]]
 
-    data <- data.frame(pos = seq(gene.start, gene.end),
-                       coverage = S4Vectors::runValue(aln_cov)[S4Vectors::findRun(gene.start:gene.end, aln_cov)])
+    if (length(aln_cov@values) > 1) { ## check for 0 read coverage for this gene
 
-    # Find the junction which overlaps this gene
-    j.cutoff <- max(min.jcutoff,min.jcutoff.prop*max(data$coverage))
-    hits <- GenomicRanges::findOverlaps(which, junctions.GR)
-    this.junctions.GR <- junctions.GR[hits@to]
-    this.junctions.GR <- this.junctions.GR[this.junctions.GR$counts > j.cutoff]
-    #this.junctions.GR <- IRanges::subset(this.junctions.GR, counts > j.cutoff)
-    n.junctions <- length(this.junctions.GR)
-    data.no.juncs <- data
+      data <- data.frame(pos = seq(gene.start, gene.end),
+                         coverage = S4Vectors::runValue(aln_cov)[S4Vectors::findRun(gene.start:gene.end, aln_cov)])
 
-    ## This is pretty slow way to do this filtering,
-    ## can definitely improve computationally!
-    if(n.junctions > 0) {
-      for(i in 1:n.junctions) {
-        j.start <- IRanges::start(this.junctions.GR[i])
-        j.end <- IRanges::end(this.junctions.GR[i])
-        data.no.juncs <- data.no.juncs %>%
-          dplyr::filter(pos < j.start | pos > j.end)
+      # Find the junction which overlaps this gene
+      j.cutoff <- max(min.jcutoff,min.jcutoff.prop*max(data$coverage))
+      hits <- GenomicRanges::findOverlaps(which, junctions.GR)
+      this.junctions.GR <- junctions.GR[hits@to]
+      this.junctions.GR <- this.junctions.GR[this.junctions.GR$counts > j.cutoff]
+      #this.junctions.GR <- IRanges::subset(this.junctions.GR, counts > j.cutoff)
+      n.junctions <- length(this.junctions.GR)
+      data.no.juncs <- data
+
+      ## This is pretty slow way to do this filtering,
+      ## can definitely improve computationally!
+      if(n.junctions > 0) {
+        for(i in 1:n.junctions) {
+          j.start <- IRanges::start(this.junctions.GR[i])
+          j.end <- IRanges::end(this.junctions.GR[i])
+          data.no.juncs <- data.no.juncs %>%
+            dplyr::filter(pos < j.start | pos > j.end)
+        }
       }
-    }
 
-    ## Find peaks
+      ## Find peaks
 
-    totalcov <- sum(data$coverage)
-    cutoff <- max(min.cov.cutoff,min.cov.prop*totalcov)
-    covsum <- totalcov
-    maxpeakval <- max(data$coverage)
-    maxpeakcutoff <- max(min.peak.cutoff,min.peak.prop*maxpeakval )
+      totalcov <- sum(data$coverage)
+      cutoff <- max(min.cov.cutoff,min.cov.prop*totalcov)
+      covsum <- totalcov
+      maxpeakval <- max(data$coverage)
+      maxpeakcutoff <- max(min.peak.cutoff,min.peak.prop*maxpeakval )
 
-    #message("Finding exonic sites...")
-    n.points <- nrow(data.no.juncs)
-    if(n.points > 0) {
-      while(covsum > cutoff) {
-        maxpeak <- which.max(data.no.juncs$coverage)
-        if(data.no.juncs[maxpeak, "coverage"] < maxpeakcutoff) { break }
-        start <- maxpeak - 300
-        end <- maxpeak + 299
+      #message("Finding exonic sites...")
+      n.points <- nrow(data.no.juncs)
+      if(n.points > 0) {
+        while(covsum > cutoff) {
+          maxpeak <- which.max(data.no.juncs$coverage)
+          if(data.no.juncs[maxpeak, "coverage"] < maxpeakcutoff) { break }
+          start <- maxpeak - 300
+          end <- maxpeak + 299
 
-        if(start < 1 ) { start <- 1 }
-        if(end > n.points) { end <- n.points }
+          if(start < 1 ) { start <- 1 }
+          if(end > n.points) { end <- n.points }
 
-        maxval <- max(data.no.juncs$coverage)
-        #message(start, ",", end, ",", maxval)
-        #message("length: ", data.no.juncs[end,"pos"] - data.no.juncs[start, "pos"])
-        #message("max peak: ", data.no.juncs[maxpeak, "pos"])
+          maxval <- max(data.no.juncs$coverage)
+          #message(start, ",", end, ",", maxval)
+          #message("length: ", data.no.juncs[end,"pos"] - data.no.juncs[start, "pos"])
+          #message("max peak: ", data.no.juncs[maxpeak, "pos"])
 
-        fit.data <- data.frame(x = seq(1,end-start+1), y = data.no.juncs[start:end,"coverage"])
-        nls.res <- NULL
-        tryCatch({
-          nls.res <- nls( y ~ k*exp(-1/2*(x-mu)^2/sigma^2),
-                          start=c(mu=300,sigma=100,k=maxval) , data = fit.data)
-        }, error = function(err) { })
+          fit.data <- data.frame(x = seq(1,end-start+1), y = data.no.juncs[start:end,"coverage"])
+          nls.res <- NULL
+          tryCatch({
+            nls.res <- nls( y ~ k*exp(-1/2*(x-mu)^2/sigma^2),
+                            start=c(mu=300,sigma=100,k=maxval) , data = fit.data)
+          }, error = function(err) { })
 
-        if(!is.null(nls.res)) {
-          residuals <- sum(summary(nls.res)$residuals )
-          v <- summary(nls.res)$parameters[,"Estimate"]
-          fitted.peak <- maxpeak - 300 + floor(v[1])
-          from <- fitted.peak - 3*floor(v[2])
-          to <- fitted.peak + 3*floor(v[2])
+          if(!is.null(nls.res)) {
+            residuals <- sum(summary(nls.res)$residuals )
+            v <- summary(nls.res)$parameters[,"Estimate"]
+            fitted.peak <- maxpeak - 300 + floor(v[1])
+            from <- fitted.peak - 3*floor(v[2])
+            to <- fitted.peak + 3*floor(v[2])
 
-          # Handle the cases where the peak is too close to eithr the start or the end
-          if(from < 1) { from = 1 }
-          if(to > n.points) { to = n.points}
+            # Handle the cases where the peak is too close to eithr the start or the end
+            if(from < 1) { from = 1 }
+            if(to > n.points) { to = n.points}
 
-          if(fitted.peak <= 0) {
-            peak.pos <- "Negative"
-          } else {
-            peak.pos <- data.no.juncs[fitted.peak, "pos"]
-          }
-
-          isGapped <- FALSE
-          if(to <= 0) {
-            to.pos <- "Negative"
-          } else {
-            to.pos <- data.no.juncs[to, "pos"]
-            # Check if this is a spliced region
-            pos.gaps <- diff(data.no.juncs[from:to, "pos"])
-
-            if(length(which(pos.gaps > 1) > 0)) {
-              isGapped <- TRUE
+            if(fitted.peak <= 0) {
+              peak.pos <- "Negative"
+            } else {
+              peak.pos <- data.no.juncs[fitted.peak, "pos"]
             }
 
-          }
+            isGapped <- FALSE
+            if(to <= 0) {
+              to.pos <- "Negative"
+            } else {
+              to.pos <- data.no.juncs[to, "pos"]
+              # Check if this is a spliced region
+              pos.gaps <- diff(data.no.juncs[from:to, "pos"])
+
+              if(length(which(pos.gaps > 1) > 0)) {
+                isGapped <- TRUE
+              }
+
+            }
 
 
-          if(isGapped) {
-            exon.pos <- makeExons(data.no.juncs[from:to, "pos"])
+            if(isGapped) {
+              exon.pos <- makeExons(data.no.juncs[from:to, "pos"])
+            } else {
+              exon.pos <- "NA"
+            }
+
+            line <- paste(gene.name, seq.name, strand, data.no.juncs[maxpeak, "pos"],
+                          peak.pos,
+                          data.no.juncs[from, "pos"],
+                          to.pos,
+                          v[1], v[2], v[3], "non-juncs", exon.pos, sep="\t")
+            #print(line)
+  	  locked <- flock::lock(lock)
+            write(line,file=output.file,append=TRUE)
+  	  flock::unlock(locked)
           } else {
-            exon.pos <- "NA"
+            line <- paste(gene.name, seq.name, strand, data.no.juncs[maxpeak, "pos"],
+                          "NA", "NA", "NA", "NA", "NA", "NA", "non-juncs", "NA", sep="\t")
+  	  locked <- flock::lock(lock)
+            write(line,file=output.file,append=TRUE)
+  	  flock::unlock(locked)
           }
 
-          line <- paste(gene.name, seq.name, strand, data.no.juncs[maxpeak, "pos"],
-                        peak.pos,
-                        data.no.juncs[from, "pos"],
-                        to.pos,
-                        v[1], v[2], v[3], "non-juncs", exon.pos, sep="\t")
-          #print(line)
-	  locked <- flock::lock(lock)
-          write(line,file=output.file,append=TRUE)
-	  flock::unlock(locked)
-        } else {
-          line <- paste(gene.name, seq.name, strand, data.no.juncs[maxpeak, "pos"],
-                        "NA", "NA", "NA", "NA", "NA", "NA", "non-juncs", "NA", sep="\t")
-	  locked <- flock::lock(lock)
-          write(line,file=output.file,append=TRUE)
-	  flock::unlock(locked)
+          data.no.juncs[start:end, "coverage"] <- 0
+          covsum <- sum(data.no.juncs$coverage)
+          #print(covsum)
         }
-
-        data.no.juncs[start:end, "coverage"] <- 0
-        covsum <- sum(data.no.juncs$coverage)
-        #print(covsum)
       }
-    }
 
-    ## Now let's see if there are any peaks in the introns
-    ## test each intron separate
-    #message("Finding intronic peaks...")
+      ## Now let's see if there are any peaks in the introns
+      ## test each intron separate
+      #message("Finding intronic peaks...")
 
-    reduced.junctions <- GenomicRanges::reduce(this.junctions.GR)
-    n.rjunctions <- length(reduced.junctions)
+      reduced.junctions <- GenomicRanges::reduce(this.junctions.GR)
+      n.rjunctions <- length(reduced.junctions)
 
-    if(n.junctions > 0) {
+      if(n.junctions > 0) {
 
-      for(i in 1:n.rjunctions) {
-        #message(i)
-        j.start <- IRanges::start(reduced.junctions[i])
-        j.end <- IRanges::end(reduced.junctions[i])
-        intron.data <- data %>%
-          dplyr::filter(pos > j.start & pos < j.end)
+        for(i in 1:n.rjunctions) {
+          #message(i)
+          j.start <- IRanges::start(reduced.junctions[i])
+          j.end <- IRanges::end(reduced.junctions[i])
+          intron.data <- data %>%
+            dplyr::filter(pos > j.start & pos < j.end)
 
-        if(nrow(intron.data) == 0) { next }
-        maxpeak <- which.max(intron.data$coverage)
-        maxval <- intron.data[maxpeak, "coverage"]
+          if(nrow(intron.data) == 0) { next }
+          maxpeak <- which.max(intron.data$coverage)
+          maxval <- intron.data[maxpeak, "coverage"]
 
-        #message(maxpeak, "    ", maxval)
-        if(maxval < maxpeakcutoff) { next }
-        fit.data <- data.frame(x = seq(1,nrow(intron.data)),
-                               y = intron.data[,"coverage"])
-        nls.res <- NULL
-        tryCatch({
-          nls.res <- nls( y ~ k*exp(-1/2*(x-mu)^2/sigma^2),
-                          start=c(mu=maxpeak,sigma=100,k=maxval) , data = fit.data)
-        }, error = function(err) { })
+          #message(maxpeak, "    ", maxval)
+          if(maxval < maxpeakcutoff) { next }
+          fit.data <- data.frame(x = seq(1,nrow(intron.data)),
+                                 y = intron.data[,"coverage"])
+          nls.res <- NULL
+          tryCatch({
+            nls.res <- nls( y ~ k*exp(-1/2*(x-mu)^2/sigma^2),
+                            start=c(mu=maxpeak,sigma=100,k=maxval) , data = fit.data)
+          }, error = function(err) { })
 
-        if(!is.null(nls.res)) {
-          residuals <- sum(summary(nls.res)$residuals )
-          v <- summary(nls.res)$parameters[,"Estimate"]
-          #print(v)
-          fitted.peak <- floor(v[1])
-          from <- fitted.peak - 3*floor(v[2])
-          to <- fitted.peak + 3*floor(v[2])
-          if(from < 1) { from = 1 }
-          this.n.points <- nrow(intron.data)
-          if(to > this.n.points) { to = this.n.points}
+          if(!is.null(nls.res)) {
+            residuals <- sum(summary(nls.res)$residuals )
+            v <- summary(nls.res)$parameters[,"Estimate"]
+            #print(v)
+            fitted.peak <- floor(v[1])
+            from <- fitted.peak - 3*floor(v[2])
+            to <- fitted.peak + 3*floor(v[2])
+            if(from < 1) { from = 1 }
+            this.n.points <- nrow(intron.data)
+            if(to > this.n.points) { to = this.n.points}
 
-          if(fitted.peak <= 0) {
-            peak.pos <- "Negative"
+            if(fitted.peak <= 0) {
+              peak.pos <- "Negative"
+            } else {
+              peak.pos <- intron.data[fitted.peak, "pos"]
+            }
+
+            if(to <= 0) {
+              to.pos <- "Negative"
+            } else {
+              to.pos <- intron.data[to, "pos"]
+            }
+
+            line=paste(gene.name, seq.name, strand, intron.data[maxpeak, "pos"],
+                       peak.pos,
+                       intron.data[from, "pos"],
+                       to.pos,
+                       v[1], v[2], v[3], "junctions", "NA", sep="\t")
+
+            #line=paste(gene.name, seq.name, maxpeak, v[1], v[2], v[3], "junctions", sep=",")
+            #print(line)
+  	  locked <- flock::lock(lock)
+            write(line,file=output.file,append=TRUE)
+  	  flock::unlock(locked)
           } else {
-            peak.pos <- intron.data[fitted.peak, "pos"]
+            line=paste(gene.name, seq.name, strand, intron.data[maxpeak, "pos"],
+                       "NA", "NA", "NA", "NA", "NA", "NA", "junction", "NA", sep="\t")
+  	  locked <- flock::lock(lock)
+            write(line,file=output.file,append=TRUE)
+  	  flock::unlock(locked)
           }
-
-          if(to <= 0) {
-            to.pos <- "Negative"
-          } else {
-            to.pos <- intron.data[to, "pos"]
-          }
-
-          line=paste(gene.name, seq.name, strand, intron.data[maxpeak, "pos"],
-                     peak.pos,
-                     intron.data[from, "pos"],
-                     to.pos,
-                     v[1], v[2], v[3], "junctions", "NA", sep="\t")
-
-          #line=paste(gene.name, seq.name, maxpeak, v[1], v[2], v[3], "junctions", sep=",")
-          #print(line)
-	  locked <- flock::lock(lock)
-          write(line,file=output.file,append=TRUE)
-	  flock::unlock(locked)
-        } else {
-          line=paste(gene.name, seq.name, strand, intron.data[maxpeak, "pos"],
-                     "NA", "NA", "NA", "NA", "NA", "NA", "junction", "NA", sep="\t")
-	  locked <- flock::lock(lock)
-          write(line,file=output.file,append=TRUE)
-	  flock::unlock(locked)
         }
+
       }
 
     }
 
   } # End loop for genes
+
+  ## As a final step, read in the peak file, filter, and add Peak IDs
+  polyA.sites.file = output.file
+  polyA.sites <- read.table(polyA.sites.file, header = T, sep = "\t",
+                            stringsAsFactors = FALSE)
+
+  ## Filter the polyA sites
+  n.total.sites <- nrow(polyA.sites)
+  print(head(polyA.sites))
+  to.filter <- which(polyA.sites$Fit.max.pos == "Negative")
+  to.filter <- union(to.filter, which(polyA.sites$Fit.start == "Negative"))
+  to.filter <- union(to.filter, which(polyA.sites$Fit.end == "Negative"))
+  to.filter <- union(to.filter,  which(is.na(polyA.sites$Fit.max.pos)))
+
+  polyA.sites <- polyA.sites[-to.filter,]
+  n.filt.sites <- nrow(polyA.sites)
+  message("There are ", n.total.sites, " unfiltered sites and ", n.filt.sites, " filtered sites")
+
+  ## Add polyA IDs to the table
+  polyA.ids <- paste0(polyA.sites$Gene, ":", polyA.sites$Chr, ":", polyA.sites$Fit.start,
+                      "-", polyA.sites$Fit.end, ":", polyA.sites$Strand )
+  polyA.sites$polyA_ID = polyA.ids
+
+  ## re-write the updated table
+  write.table(polyA.sites, file = output.file, sep="\t", quote = FALSE, row.names = FALSE)
 
 } # End function
