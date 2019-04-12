@@ -52,7 +52,7 @@ plot_tsne <- function(seurat.object, col.set=NULL, title=NULL, do.plot=TRUE, pt.
   if (show.labels == TRUE) {
     ggData %>%
       dplyr::group_by(cluster) %>%
-      summarize(tSNE_1 = median(x = tSNE_1), tSNE_2 = median(x = tSNE_2)) -> centers
+      dplyr::summarize(tSNE_1 = median(x = tSNE_1), tSNE_2 = median(x = tSNE_2)) -> centers
     centers[12, "tSNE_1"] = centers[12, "tSNE_1"] - 6
 
     pl <- pl + geom_text(data = centers, mapping = aes(label = cluster), size = 4.5, colour="black", fontface="bold") +
