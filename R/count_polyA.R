@@ -121,14 +121,14 @@ count_polyA <- function(polyA.sites.file, reference.file, bamfile, whitelist.fil
                           "-", polyA.sites.chr$Fit.end, ":", polyA.sites.chr$Strand )
       rownames(mat.per.strand) <- polyA.ids
 
-    } # Loop for strand
 
-    # Need to combine the two matrices from each strand
-    if(is.null(mat.per.chr)) {
-      mat.per.chr <- mat.per.strand
-    } else {
-      mat.per.chr <- rbind(mat.per.chr, mat.per.strand)
-    }
+      # Need to combine the two matrices from each strand
+      if(is.null(mat.per.chr)) {
+         mat.per.chr <- mat.per.strand
+      } else {
+         mat.per.chr <- rbind(mat.per.chr, mat.per.strand)
+      }
+    } # Loop for strand
 
     # Return sparse matrix for each chromosome for combining across all threads
     return(mat.per.chr)
