@@ -7,7 +7,7 @@
 #' Generates a count matrix
 #'
 #' @param polyA.sites.file a file containing polyA sites
-#' @param reference.file reference (GTF) file
+#' @param gtf.file reference (GTF) file
 #' @param bamfile scRNA-seq BAM file
 #' @param whitelist.file white list file
 #' @param output.file name of output
@@ -21,7 +21,7 @@
 #' @importFrom Matrix writeMM
 #'
 #' @export
-count_polyA <- function(polyA.sites.file, reference.file, bamfile, whitelist.file, output.file, countUMI=TRUE,
+count_polyA <- function(polyA.sites.file, gtf.file, bamfile, whitelist.file, output.file, countUMI=TRUE,
 			ncores = 1) {
 
   lock <- tempfile()
@@ -33,10 +33,7 @@ count_polyA <- function(polyA.sites.file, reference.file, bamfile, whitelist.fil
   n.columns <- n.bcs + 1
   #colheadings <- c("polyAID", whitelist.bc)
   #write(colheadings, file = output.file,  sep = "\t", ncolumns = n.columns)
-  genes.ref <- read.table(reference.file,
-                          header = TRUE, sep = ",", stringsAsFactors = FALSE)
-  chr.names <- as.character(unique(genes.ref$chr))
-  genes.ref <- subset(genes.ref, chr %in% chr.names)
+  genes.ref <- makeReference(gtf.file)
   n.genes <- nrow(genes.ref)
 
   polyA.sites <- read.table(polyA.sites.file, header = T, sep = "\t",
@@ -287,12 +284,49 @@ makeExons <- function(x) {
 
 ###################################################################
 #'
+#' Build gene star-end reference from a gtf file
+#'
+#' Takes a GTF file as input and creates a table of chromosome start-end
+#' positions for each gene. Works with GTF files downloaded from 10x Genomics website.
+#'
+makeReference <- function(gtf_file) {
+  ## Read in the gtf file
+  gtf_gr <- rtracklayer::import(gtf_file)
+  gtf_TxDb <- GenomicFeatures::makeTxDbFromGFF(gtf_file, format="gtf")
+
+  ## Build a table of gene start-end positions
+  genes <- GenomicFeatures::genes(gtf_TxDb)
+  genes.ref = as.data.frame(genes)
+
+  ## Build a unique map of Ensembl ID to gene symbol
+  ensembl.symbol.map = data.frame(EnsemblID = gtf_gr@elementMetadata@listData$gene_id,
+                                  GeneName = gtf_gr@elementMetadata@listData$gene_name, stringsAsFactors = FALSE)
+  ensembl.symbol.map %>% dplyr::distinct(EnsemblID, GeneName, .keep_all = TRUE) -> ensembl.symbol.map.unique
+  rownames(ensembl.symbol.map.unique) = ensembl.symbol.map.unique$EnsemblID
+
+  ## Add gene symbol to the gene table
+  ensembl.symbol.map.unique = ensembl.symbol.map.unique[rownames(genes.ref), ]
+  genes.ref$Gene = ensembl.symbol.map.unique$GeneName
+
+  ## update column names in reference file
+  colnames(genes.ref) = c("chr", "start", "end", "width", "strand", "EnsemblID", "Gene")
+  genes.ref = genes.ref[, c("EnsemblID", "chr", "start", "end", "strand", "Gene")]
+  genes.ref$strand = plyr::mapvalues(genes.ref$strand, from = c("-", "+"), to = c("-1", "1"))
+
+  chr.use = as.character(c(1:22, c("X", "Y", "MT")))
+  genes.ref = subset(genes.ref, chr %in% chr.use)
+
+  return(genes.ref)
+}
+
+###################################################################
+#'
 #' Do peak calling on a scRNA-seq BAM file
 #'
 #' Do peak calling on a scRNA-seq BAM file...
 #'
 #' @param output.file a file containing polyA sites
-#' @param reference.file reference (GTF) file
+#' @param gtf.file reference (GTF) file
 #' @param bamfile scRNA-seq BAM file
 #' @param junctions.file white list file
 #' @param min.jcutoff name of output
@@ -312,17 +346,20 @@ makeExons <- function(x) {
 #'
 #' @export
 #'
-find_polyA <- function(output.file, reference.file, bamfile, junctions.file,
+find_polyA <- function(output.file, gtf.file, bamfile, junctions.file,
                        min.jcutoff=50, min.jcutoff.prop = 0.05, min.cov.cutoff = 500,
                        min.cov.prop = 0.05, min.peak.cutoff=200, min.peak.prop = 0.05, ncores = 1) {
 
   lock <- tempfile()
-  genes.ref <- read.table(reference.file,
-                          header = TRUE, sep = ",", stringsAsFactors = FALSE)
-  chr.names <- as.character(unique(genes.ref$chr))
-  genes.ref <- subset(genes.ref, chr %in% chr.names)
-  n.genes <- nrow(genes.ref)
+  #genes.ref <- read.table(reference.file,
+  #                        header = TRUE, sep = ",", stringsAsFactors = FALSE)
+  #chr.names <- as.character(unique(genes.ref$chr))
+  #genes.ref <- subset(genes.ref, chr %in% chr.names)
 
+  ## Read in the gtf file
+  genes.ref = makeReference(gtf.file)
+  n.genes = nrow(genes.ref)
+  message(paste(n.genes, "gene entries to process"))
 
   # Initiate the output file
   write("Gene\tChr\tStrand\tMaxPosition\tFit.max.pos\tFit.start\tFit.end\tmu\tsigma\tk\texon/intron\texon.pos", file = output.file)
@@ -563,6 +600,8 @@ find_polyA <- function(output.file, reference.file, bamfile, junctions.file,
   to.filter <- which(polyA.sites$Fit.max.pos == "Negative")
   to.filter <- union(to.filter, which(polyA.sites$Fit.start == "Negative"))
   to.filter <- union(to.filter, which(polyA.sites$Fit.end == "Negative"))
+  to.filter <- union(to.filter, which(is.na(polyA.sites$Fit.start)))
+  to.filter <- union(to.filter, which(is.na(polyA.sites$Fit.end)))
   to.filter <- union(to.filter,  which(is.na(polyA.sites$Fit.max.pos)))
 
   polyA.sites <- polyA.sites[-to.filter,]
