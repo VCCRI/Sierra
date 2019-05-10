@@ -179,7 +179,7 @@ makeReference <- function(gtf_file) {
   ## Build a unique map of Ensembl ID to gene symbol
   ensembl.symbol.map = data.frame(EnsemblID = gtf_gr@elementMetadata@listData$gene_id,
                                   GeneName = gtf_gr@elementMetadata@listData$gene_name, stringsAsFactors = FALSE)
-  ensembl.symbol.map %>% dplyr::distinct(EnsemblID, GeneName, .keep_all = TRUE) -> ensembl.symbol.map.unique
+  ensembl.symbol.map %>% dplyr::distinct(EnsemblID, .keep_all = TRUE) -> ensembl.symbol.map.unique
   rownames(ensembl.symbol.map.unique) = ensembl.symbol.map.unique$EnsemblID
 
   ## Add gene symbol to the gene table
@@ -490,6 +490,11 @@ find_polyA <- function(output.file, gtf.file, bamfile, junctions.file,
   polyA.ids <- paste0(polyA.sites$Gene, ":", polyA.sites$Chr, ":", polyA.sites$Fit.start,
                       "-", polyA.sites$Fit.end, ":", polyA.sites$Strand )
   polyA.sites$polyA_ID = polyA.ids
+
+  ## Remove any duplicates
+  polyA.sites %>% dplyr::distinct(polyA_ID, .keep_all = TRUE) -> polyA.sites
+  n.updated.sites = nrow(polyA.sites)
+  message("There are ", n.updated.sites, " sites following duplicate removal")
 
   ## re-write the updated table
   write.table(polyA.sites, file = output.file, sep="\t", quote = FALSE, row.names = FALSE)
