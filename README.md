@@ -51,3 +51,20 @@ After you finish peak calling, you will have a file with the peak location infor
 count_polyA(polyA.sites.file, reference.file, bamfile, whitelist.file, output.file) 
 ```
 
+## Integrating multiple data-sets
+
+If you have multiple data-sets, you will need to run an extra step to merge together the peaks called from the different sequencing runs so that counting is run on a unified set of peaks. To run peak merging, create a table with two columns: 'Peak_file', containing the files of peaks generated with find_polyA, and 'Identifier', containing labels for the data-sets. Specify an output file name (output.file) where the merged peaks will be written. Number of cores can be set to speed up the process. 
+
+```{r}
+peak.dataset.table = data.frame(Peak_file = c("Condition1_peaks.txt", "Condition2_peaks.txt"),
+                                Identifier = c("Condition1", "Condition2"), stringsAsFactors = FALSE)
+
+output.file = "conditions_merged_peaks.txt"
+
+merged.peak.table = do_peak_merging(peak.dataset.table, output.file = output.file, ncores = 4)
+```
+
+
+
+
+
