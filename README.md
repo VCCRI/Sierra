@@ -64,7 +64,7 @@ output.file = "conditions_merged_peaks.txt"
 merged.peak.table = do_peak_merging(peak.dataset.table, output.file = output.file, ncores = 4)
 ```
 
-
+After the peak merging has been run, the merged peaks file (output.file) can be used as input to the counting function described above.
 
 
 
