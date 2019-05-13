@@ -15,10 +15,10 @@
 #' @return a data-frame with peaks from peaks.1 mapped to the closest corresponding peak in peaks.2.
 #' @examples
 #' generate_similarity_table(peaks.1, peaks.2)
-#' 
+#'
 #' @importFrom magrittr "%>%"
-#' 
-generate_similarity_table <- function(peaks.1, peaks.2, plot.distributions = FALSE) {
+#'
+generate_similarity_table <- function(peaks.1, peaks.2, ncores = 1) {
 
   ## Pull out gene names
   gene.names1 = sub("(*):.*", "\\1", peaks.1)
@@ -28,10 +28,13 @@ generate_similarity_table <- function(peaks.1, peaks.2, plot.distributions = FAL
   gene.names1.unique = gene.names1.unique[which(gene.names1.unique != "")]
   complete.apa.table = c()
 
-  pb <- progress::progress_bar$new(format = "Processing [:bar] :percent eta: :eta",
-                         total = length(gene.names1.unique), clear=FALSE)
-  pb$tick(0)
-  for (gene.name in gene.names1.unique) {
+  ## Go through the peaks by pulling out peaks associates with each gene
+  doParallel::registerDoParallel(cores=ncores)
+  complete.apa.table <- foreach::foreach(gene.name = gene.names1.unique, .combine = 'rbind') %dopar% {
+  #pb <- progress::progress_bar$new(format = "Processing [:bar] :percent eta: :eta",
+  #                       total = length(gene.names1.unique), clear=FALSE)
+  #pb$tick(0)
+  #for (gene.name in gene.names1.unique) {
     ## Get positions for first data-set
     gene.apa1 = peaks.1[which(gene.names1 == gene.name)]
     start.pos = as.numeric(sub(".*:(.*)-.*:.*", "\\1", gene.apa1))
@@ -99,29 +102,20 @@ generate_similarity_table <- function(peaks.1, peaks.2, plot.distributions = FAL
         gene.apa.table = rbind(gene.apa.table, newLine)
       }
 
-      complete.apa.table = rbind(complete.apa.table, gene.apa.table)
+      #complete.apa.table = rbind(complete.apa.table, gene.apa.table)
+      return(gene.apa.table)
+
     } else {
       ## Gene isn't in the comparison data-set - set closest peak to -1e7
       peaks1.table %>%
         dplyr::mutate(Data2_Closest_Peak = -1e7, Data2_Start_Dif = -1e7,
                Data2_End_Dif = -1e7, Data2_Similarity = 0, Data2_Data1_Similarity = 0) %>% as.data.frame() ->
         newLine
-      complete.apa.table = rbind(complete.apa.table, newLine)
+
+      return(newLine)
+      #complete.apa.table = rbind(complete.apa.table, newLine)
     }
-    pb$tick()
-  }
-
-  if (plot.distributions) {
-    ## Plot the distribution of best similarities
-    sub.apa.table = complete.apa.table[which(complete.apa.table$Data2_Similarity >= 0), ]
-
-    ## plot distribution of peak similarity between data-sets
-    ggData = data.frame(Similarity = complete.apa.table$Data2_Similarity, Data = rep("1", nrow(complete.apa.table)),
-                        Start = complete.apa.table$Data2_Start_Dif, End = complete.apa.table$Data2_End_Dif)
-
-    ## Plot Discordance differences using a box plot
-    ggplot2::ggplot(ggData, aes(Similarity)) + ggplot2::geom_density() + ggplot2::theme_bw(base_size = 15) + 
-      ggplot2::ylab("Density") + ggplot2::ggtitle("Closest peak similarities")
+    #pb$tick()
   }
 
   rownames(complete.apa.table) = complete.apa.table$Peak
@@ -144,10 +138,11 @@ generate_similarity_table <- function(peaks.1, peaks.2, plot.distributions = FAL
 #' @return a data-frame with peaks from peaks.1 mapped to the closest peak within itself
 #' @examples
 #' generate_similarity_table(peaks.1)
-#' 
+#'
 #' @importFrom magrittr "%>%"
-#' 
-generate_self_similarity_table <- function(peaks.1, plot.distributions = TRUE) {
+#' @importFrom foreach "%dopar%"
+#'
+generate_self_similarity_table <- function(peaks.1, ncores = 1) {
 
   peaks.2 = peaks.1
 
@@ -161,17 +156,9 @@ generate_self_similarity_table <- function(peaks.1, plot.distributions = TRUE) {
 
   gene.names1.unique = unique(gene.names1)
 
-  ## Initialise the results table. Number of final entries will equal APA with non empty gene names
-  complete.apa.table = data.frame(matrix(NA, nrow = length(gene.names1), ncol = 8))
-  colnames(complete.apa.table) = c("Peak", "Start", "End", "Data2_Closest_Peak",
-                                   "Data2_Start_Dif", "Data2_End_Dif", "Data2_Similarity", "Data2_Data1_Similarity")
-  current.start = 1
-  current.end = 0
-
-  pb <- progress::progress_bar$new(format = "Processing [:bar] :percent eta: :eta",
-                         total = length(gene.names1.unique), clear=FALSE)
-  pb$tick(0)
-  for (gene.name in gene.names1.unique) {
+  ## Go through the peaks by pulling out peaks associates with each gene
+  doParallel::registerDoParallel(cores=ncores)
+  complete.apa.table <- foreach::foreach(gene.name = gene.names1.unique, .combine = 'rbind') %dopar% {
     ## Get positions for first data-set
     gene.apa1 = peaks.1[which(gene.names1 == gene.name)]
     start.pos = as.numeric(sub(".*:.*:(.*)-.*:.*", "\\1", gene.apa1))
@@ -245,37 +232,23 @@ generate_self_similarity_table <- function(peaks.1, plot.distributions = TRUE) {
       }
 
       ## Update the complete table
-      current.end = current.end + nrow(gene.apa.table)
-      complete.apa.table[current.start:current.end, ] = gene.apa.table
-      current.start = current.end + 1
-      #complete.apa.table = rbind(complete.apa.table, gene.apa.table)
+      return(gene.apa.table)
+
     } else {
       ## Gene isn't in the comparison data-set - set closest peak to -1e7
       peaks1.table %>%
         dplyr::mutate(Data2_Closest_Peak = -1e7, Data2_Start_Dif = -1e7,
                Data2_End_Dif = -1e7, Data2_Similarity = 0, Data2_Data1_Similarity = 0) %>% as.data.frame() ->
         newLine
-      current.end = current.end + 1
-      complete.apa.table[current.start, ] = newLine
-      current.start = current.start + 1
-      #complete.apa.table = rbind(complete.apa.table, newLine)
+
+      return(newLine)
     }
-    pb$tick()
+
   }
 
-  if (plot.distributions) {
-    ## Plot the distribution of best similarities
-    sub.apa.table = complete.apa.table[which(complete.apa.table$Data2_Similarity >= 0), ]
-
-    ## plot distribution of peak similarity between data-sets
-    ggData = data.frame(Similarity = complete.apa.table$Data2_Similarity, Data = rep("1", nrow(complete.apa.table)),
-                        Start = complete.apa.table$Data2_Start_Dif, End = complete.apa.table$Data2_End_Dif)
-
-    ## Plot Discordance differences using a box plot
-    ggplot(ggData, aes(Similarity)) + geom_density() + theme_bw(base_size = 15) + ylab("Density") +
-      ggtitle("T-regulatory to T-helper closest peak similarities")
-  }
-
+  ## Add column names to the output table
+  colnames(complete.apa.table) = c("Peak", "Start", "End", "Data2_Closest_Peak",
+                                   "Data2_Start_Dif", "Data2_End_Dif", "Data2_Similarity", "Data2_Data1_Similarity")
   return(complete.apa.table)
 }
 
@@ -295,9 +268,9 @@ generate_self_similarity_table <- function(peaks.1, plot.distributions = TRUE) {
 #' @return a vector of merged peaks
 #' @examples
 #' generate_similarity_table(peaks.1)
-#' 
+#'
 #' @importFrom magrittr "%>%"
-#' 
+#'
 generate_self_merged_peaks <- function(apa.similarity.table, sim.thresh = 0.75, allow.match.var = 0.25) {
 
   apa.similarity.table %>%
@@ -358,18 +331,18 @@ generate_self_merged_peaks <- function(apa.similarity.table, sim.thresh = 0.75, 
 #' variance (25\% by default).
 #'
 #' @param dataset.1 the reference peak data-set
-#' @param apa.dataset.list a list of peak data-sets
+#' @param peak.dataset.list a list of peak data-sets
 #' @param self.merged.peaks.list the set of self-merged peaks from the reference data-set
 #' @param sim.thresh The required similarity threshold for merging (default: 0.75)
 #' @param allow.match.var The allowance for deviation from the sim.thresh for comparison peaks (default: 0.25)
 #' @return a data-frame containing peaks, their class (merged or unique) and the original peak from the reference
 #' @examples
-#' generate_merged_peak_table(dataset.1, apa.dataset.list, self.merged.peaks.list)
-#' 
+#' generate_merged_peak_table(dataset.1, peak.dataset.table, self.merged.peaks.list)
+#'
 #' @importFrom magrittr "%>%"
-#' 
-generate_merged_peak_table <- function(dataset.1, apa.dataset.list, self.merged.peaks.list,
-                                       sim.thresh = 0.75, allow.match.var = 0.25) {
+#'
+generate_merged_peak_table <- function(dataset.1, peak.dataset.list, self.merged.peaks.list,
+                                       sim.thresh = 0.75, allow.match.var = 0.25, ncores = 1) {
   peak.set1 = self.merged.peaks.list[[dataset.1]]
 
   gene.names1 = sub("(*):.*", "\\1", peak.set1)
@@ -382,11 +355,11 @@ generate_merged_peak_table <- function(dataset.1, apa.dataset.list, self.merged.
   rev.similarity.labels = c()
   closest.peak.labels = c()
   match.labels = c()
-  for (i in 1:length(apa.dataset.list)) {
-    comparison.dataset = names(apa.dataset.list)[i]
+  for (i in 1:length(peak.dataset.list)) {
+    comparison.dataset = names(peak.dataset.list)[i]
     if (dataset.1 != comparison.dataset) {
       comparison.peak.set = self.merged.peaks.list[[comparison.dataset]]
-      this.peak.similarity.table = generate_similarity_table(peak.set1, comparison.peak.set)
+      this.peak.similarity.table = generate_similarity_table(peak.set1, comparison.peak.set, ncores = ncores)
       table.subset = this.peak.similarity.table[combined.peak.similarity.table$Peak,
                                                 c("Data2_Closest_Peak", "Data2_Similarity", "Data2_Data1_Similarity")]
       table.subset %>%
@@ -450,8 +423,8 @@ generate_merged_peak_table <- function(dataset.1, apa.dataset.list, self.merged.
   gene = sub("(.*):.*:.*-.*:.*", "\\1", combined.peak.similarity.table.subset$Peak)
   chr = sub(".*:(.*):.*-.*:.*", "\\1", combined.peak.similarity.table.subset$Peak)
 
-  peak.mapping.table = data.frame(OriginalPeak = combined.peak.similarity.table.subset$Peak, Gene = gene, 
-                                  Chromosome = chr, Strand = strand, Start_Min = min.start.positions, 
+  peak.mapping.table = data.frame(OriginalPeak = combined.peak.similarity.table.subset$Peak, Gene = gene,
+                                  Chromosome = chr, Strand = strand, Start_Min = min.start.positions,
                                   End_Max = max.end.positions, stringsAsFactors = FALSE)
 
 
@@ -484,42 +457,59 @@ generate_merged_peak_table <- function(dataset.1, apa.dataset.list, self.merged.
 #' Then compares each peak set as a reference to the remaining sets to identify peaks that should be merged.
 #' Returns a list of peaks that have been merged, as well as the unique peaks from each data-set.
 #'
-#' @param apa.dataset.list a named list containing peaks called from different data-sets
+#' @param peak.dataset.table a dataframe with two required columnss: one called "Peak_file" , which
+#' contains file names of the peak data-sets to be merged and labels ("Identifier") for each file.
 #' @param output.file file to write the set of merged peaks to
-#' @return a set of merged peaks
+#' @param sim.thresh The required similarity threshold for merging (default: 0.75)
+#' @param allow.match.var The allowance for deviation from the sim.thresh for comparison peaks (default: 0.25)
+#' @param ncores number of cores to use (default 1)
+#' @return NULL. writes out a set of merged peaks to output.file
 #' @examples
-#' DoPeakMerging(apa.dataset.list)
-#' 
+#' DoPeakMerging(peak.dataset.table, output.file, ncores = 4)
+#'
 #' @importFrom magrittr "%>%"
-#' 
-do_peak_merging <- function(apa.dataset.list, output.file, sim.thresh = 0.75, allow.match.var = 0.25) {
+#'
+do_peak_merging <- function(peak.dataset.table, output.file, sim.thresh = 0.75,
+                            allow.match.var = 0.25, ncores = 1) {
+
+  ## Create a named list from the peaks
+  peak.dataset.list = c()
+  for (i in 1:nrow(peak.dataset.table)) {
+    peak.table <- read.table(as.character(peak.dataset.table[i, "Peak_file"]),
+                             header = TRUE, stringsAsFactors = FALSE)
+    this.peak.list = unique(peak.table$polyA_ID)
+    peak.dataset.list = c(peak.dataset.list, list(this.peak.list))
+  }
+  names(peak.dataset.list) = as.character(peak.dataset.table$Identifier)
+
   ### Generate the in-dataset similarity table
-  self.merged.peaks.list = vector("list", length(apa.dataset.list))
+  self.merged.peaks.list = vector("list", length(peak.dataset.list))
 
   ## Go through the list and first generate self similarity tables to merge
   ## Return a list of peaks where similar peaks within each data-set have been merged
-  for (i in 1:length(apa.dataset.list)) {
-    dataset.name = names(apa.dataset.list)[i]
-    this.peak.set = apa.dataset.list[[dataset.name]]
+  for (i in 1:length(peak.dataset.list)) {
+    dataset.name = names(peak.dataset.list)[i]
+    this.peak.set = peak.dataset.list[[dataset.name]]
     print(paste0("Performing internal peak merging for ", dataset.name))
-    this.peak.similarity.table = generate_self_similarity_table(this.peak.set)
+    this.peak.similarity.table = generate_self_similarity_table(this.peak.set, ncores = ncores)
     peak.set.merged = generate_self_merged_peaks(this.peak.similarity.table,
                                                  sim.thresh = sim.thresh, allow.match.var = allow.match.var)
     self.merged.peaks.list[[i]] = peak.set.merged
   }
-  names(self.merged.peaks.list) = names(apa.dataset.list)
+  names(self.merged.peaks.list) = names(peak.dataset.list)
 
   ### Build a table of similarity between the reference data-set and remainder data-sets
-  combined.merged.peaks.list = vector("list", length(apa.dataset.list))
-  for (i in 1:length(apa.dataset.list)) {
-    ref.dataset.name = names(apa.dataset.list)[i]
+  combined.merged.peaks.list = vector("list", length(peak.dataset.list))
+  for (i in 1:length(peak.dataset.list)) {
+    ref.dataset.name = names(peak.dataset.list)[i]
     print(paste0("Comparing peaks from ", ref.dataset.name, " to remaining data-sets"))
-    this.merged.peak.table = generate_merged_peak_table(dataset.1 = ref.dataset.name, apa.dataset.list = apa.dataset.list,
+    this.merged.peak.table = generate_merged_peak_table(dataset.1 = ref.dataset.name, peak.dataset.list = peak.dataset.list,
                                                         self.merged.peaks.list = self.merged.peaks.list,
-                                                        sim.thresh = sim.thresh, allow.match.var = allow.match.var)
+                                                        sim.thresh = sim.thresh, allow.match.var = allow.match.var,
+                                                        ncores = ncores)
     combined.merged.peaks.list[[i]] = this.merged.peak.table
   }
-  names(combined.merged.peaks.list) = names(apa.dataset.list)
+  names(combined.merged.peaks.list) = names(peak.dataset.list)
 
   ### Identif the peaks that are among all the merged and the ones that are unique to each data-set
   ## start with the merged peaks
@@ -537,8 +527,8 @@ do_peak_merging <- function(apa.dataset.list, output.file, sim.thresh = 0.75, al
   unique.peaks = unique.peaks[which(!(unique.peaks$Peak %in% merged.peaks.unique$Peak)), ]
 
   final.merged.peaks = rbind(merged.peaks.unique, unique.peaks)
-  
-  final.merged.peaks %>% dplyr::mutate(Gene = sub("(.*):.*:.*-.*:.*", "\\1", Peak), 
+
+  final.merged.peaks %>% dplyr::mutate(Gene = sub("(.*):.*:.*-.*:.*", "\\1", Peak),
                                        Chr = sub(".*:(.*):.*-.*:.*", "\\1", Peak),
                                        Strand = sub(".*:.*:.*-.*:(.*)", "\\1", Peak),
                                        Fit.start = sub(".*:.*:(.*)-.*:.*", "\\1", Peak),
