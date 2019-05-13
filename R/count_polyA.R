@@ -31,27 +31,19 @@ count_polyA <- function(polyA.sites.file, gtf.file, bamfile, whitelist.file, out
   message("There are ", n.bcs, " whitelist barcodes.")
 
   n.columns <- n.bcs + 1
-  #colheadings <- c("polyAID", whitelist.bc)
-  #write(colheadings, file = output.file,  sep = "\t", ncolumns = n.columns)
+
+  # read in gene reference
   genes.ref <- makeReference(gtf.file)
+  chr.names <- as.character(unique(genes.ref$chr))
   n.genes <- nrow(genes.ref)
 
   polyA.sites <- read.table(polyA.sites.file, header = T, sep = "\t",
                             stringsAsFactors = FALSE)
 
-  # Filter the polyA sites
+  # Count the peaks
   n.total.sites <- nrow(polyA.sites)
-  #print(head(polyA.sites))
-  to.filter <- which(polyA.sites$Fit.max.pos == "Negative")
-  to.filter <- union(to.filter, which(polyA.sites$Fit.start == "Negative"))
-  to.filter <- union(to.filter, which(polyA.sites$Fit.end == "Negative"))
-  to.filter <- union(to.filter,  which(is.na(polyA.sites$Fit.max.pos)))
-
-  polyA.sites <- polyA.sites[-to.filter,]
-  #print(head(polyA.sites))
-  n.filt.sites <- nrow(polyA.sites)
-  message("There are ", n.total.sites, " unfiltered sites and ", n.filt.sites, " filtered sites")
-  message("Doing counting for each filtered site...")
+  message("There are ", n.total.sites, "  sites")
+  message("Doing counting for each site...")
 
   doParallel::registerDoParallel(cores=ncores)
 
@@ -140,120 +132,6 @@ count_polyA <- function(polyA.sites.file, gtf.file, bamfile, whitelist.file, out
 
 } # End function
 
-###################################################################
-#'
-#' count polyA sites in cells from merged peaks
-#'
-#' Generates a count matrix in cells using a file of merged peaks generated from
-#' two or more data-sets.
-#'
-#' @param polyA.sites.file a file containing polyA sites
-#' @param reference.file reference (GTF) file
-#' @param bamfile scRNA-seq BAM file
-#' @param whitelist.file white list file
-#' @param output.file name of output
-#' @param countUMI whether to count UMIs (default: TRUE)
-#' @return NULL. Writes counts to file.
-#' @examples
-#' count_polyA(polyA.sites.file, reference.file, bamfile, whitelist.file, output.file)
-#'
-#' @importFrom magrittr "%>%"
-#' @importFrom foreach "%dopar%"
-#'
-count_merged_polyA <- function(polyA.sites.file, reference.file, bamfile, whitelist.file, output.file, countUMI=TRUE,
-                        ncores = 1) {
-
-  lock <- tempfile()
-  whitelist.bc <- read.table(whitelist.file, stringsAsFactors = FALSE)
-  whitelist.bc <- whitelist.bc[,1]
-  n.bcs <- length(whitelist.bc)
-  message("There are ", n.bcs, " whitelist barcodes.")
-
-  n.columns <- n.bcs + 1
-  colheadings <- c("polyAID", whitelist.bc)
-  write(colheadings, file = output.file,  sep = "\t", ncolumns = n.columns)
-  genes.ref <- read.table(reference.file,
-                          header = TRUE, sep = ",", stringsAsFactors = FALSE)
-  chr.names <- as.character(unique(genes.ref$chr))
-  genes.ref <- subset(genes.ref, chr %in% chr.names)
-  n.genes <- nrow(genes.ref)
-
-  polyA.sites <- read.table(polyA.sites.file, header = T, sep = "\t",
-                            stringsAsFactors = FALSE)
-
-  # Filter the polyA sites
-  n.total.sites <- nrow(polyA.sites)
-  print(head(polyA.sites))
-
-  n.filt.sites <- nrow(polyA.sites)
-  message("There are ", n.total.sites, " unfiltered sites and ", n.filt.sites, " filtered sites")
-  message("Doing counting for each filtered site...")
-
-  doParallel::registerDoParallel(cores=ncores)
-
-  print(chr.names)
-  foreach::foreach(each.chr = chr.names) %dopar% {
-    #for(each.chr in chr.names) {
-
-    message("Processing chr: ", each.chr)
-    for(strand in c(1, -1) ) {
-      message(" and strand ", strand)
-      isMinusStrand <- if(strand==1) FALSE else TRUE
-      polyA.sites.chr <- dplyr::filter(polyA.sites, Chr == each.chr & Strand == strand) %>%
-        dplyr::select(Gene, Chr, Fit.start, Fit.end, Strand)
-      polyA.sites.chr$Fit.start <- as.integer(polyA.sites.chr$Fit.start)
-      polyA.sites.chr$Fit.end <- as.integer(polyA.sites.chr$Fit.end)
-      polyA.sites.chr <- dplyr::filter(polyA.sites.chr, Fit.start < Fit.end)
-
-      isMinusStrand <- if(strand==1) FALSE else TRUE
-      which <- GenomicRanges::GRanges(seqnames = each.chr, ranges = IRanges::IRanges(1, max(polyA.sites.chr$Fit.end) ))
-
-      param <- Rsamtools::ScanBamParam(tag=c("CB", "UB"),
-                                       which = which,
-                                       flag=Rsamtools::scanBamFlag(isMinusStrand=isMinusStrand))
-
-      aln <- GenomicAlignments::readGAlignments(bamfile, param=param)
-
-      nobarcodes <- which(is.na(GenomicRanges::mcols(aln)$CB))
-      noUMI <- which(is.na(GenomicRanges::mcols(aln)$UB))
-      to.remove <- union(nobarcodes, noUMI)
-      aln <- aln[-to.remove]
-      whitelist.pos <- which(GenomicRanges::mcols(aln)$CB %in% whitelist.bc)
-      aln <- aln[whitelist.pos]
-
-      # For de-duplicating UMIs, let's just remove a random read
-      # when there is a duplicate
-      if(countUMI) {
-        GenomicRanges::mcols(aln)$CB_UB <- paste0(GenomicRanges::mcols(aln)$CB, "_", GenomicRanges::mcols(aln)$UB)
-        uniqUMIs <- which(!duplicated(GenomicRanges::mcols(aln)$CB_UB))
-        aln <- aln[uniqUMIs]
-      }
-
-      aln <- GenomicRanges::split(aln, GenomicRanges::mcols(aln)$CB)
-
-      polyA.GR <- GenomicRanges::GRanges(seqnames = polyA.sites.chr$Chr,
-                                         IRanges::IRanges(start = polyA.sites.chr$Fit.start,
-                                                          end = as.integer(polyA.sites.chr$Fit.end)))
-      n.polyA <- length(polyA.GR)
-      barcodes.gene <- names(aln)
-      res <- sapply(barcodes.gene, function(x) GenomicRanges::countOverlaps(polyA.GR, aln[[x]]))
-
-
-      mat.to.write <- matrix(0L, nrow = n.polyA, ncol = n.bcs)
-      mat.to.write[,match(barcodes.gene, whitelist.bc)] <- res
-      polyA.ids <- paste0(polyA.sites.chr$Gene, ":", polyA.sites.chr$Chr, ":", polyA.sites.chr$Fit.start,
-                          "-", polyA.sites.chr$Fit.end, ":", polyA.sites.chr$Strand )
-      rownames(mat.to.write) <- polyA.ids
-
-      locked <- flock::lock(lock)
-      write.table(mat.to.write, file = output.file, quote = F, col.names = F, row.names = T, sep = "\t", append = T)
-      flock::unlock(locked)
-
-    } # Loop for strand
-
-  } # Loop for chr
-
-} # End function
 
 
 ###################################################################
@@ -289,7 +167,7 @@ makeExons <- function(x) {
 #' Takes a GTF file as input and creates a table of chromosome start-end
 #' positions for each gene. Works with GTF files downloaded from 10x Genomics website.
 #'
-makeReference <- function(gtf.file) {
+makeReference <- function(gtf_file) {
   ## Read in the gtf file
   gtf_gr <- rtracklayer::import(gtf_file)
   gtf_TxDb <- GenomicFeatures::makeTxDbFromGFF(gtf_file, format="gtf")
@@ -301,7 +179,7 @@ makeReference <- function(gtf.file) {
   ## Build a unique map of Ensembl ID to gene symbol
   ensembl.symbol.map = data.frame(EnsemblID = gtf_gr@elementMetadata@listData$gene_id,
                                   GeneName = gtf_gr@elementMetadata@listData$gene_name, stringsAsFactors = FALSE)
-  ensembl.symbol.map %>% dplyr::distinct(EnsemblID, GeneName, .keep_all = TRUE) -> ensembl.symbol.map.unique
+  ensembl.symbol.map %>% dplyr::distinct(EnsemblID, .keep_all = TRUE) -> ensembl.symbol.map.unique
   rownames(ensembl.symbol.map.unique) = ensembl.symbol.map.unique$EnsemblID
 
   ## Add gene symbol to the gene table
@@ -358,7 +236,8 @@ find_polyA <- function(output.file, gtf.file, bamfile, junctions.file,
 
   ## Read in the gtf file
   genes.ref = makeReference(gtf.file)
-  nrow(genes.ref)
+  n.genes = nrow(genes.ref)
+  message(paste(n.genes, "gene entries to process"))
 
   # Initiate the output file
   write("Gene\tChr\tStrand\tMaxPosition\tFit.max.pos\tFit.start\tFit.end\tmu\tsigma\tk\texon/intron\texon.pos", file = output.file)
@@ -611,6 +490,11 @@ find_polyA <- function(output.file, gtf.file, bamfile, junctions.file,
   polyA.ids <- paste0(polyA.sites$Gene, ":", polyA.sites$Chr, ":", polyA.sites$Fit.start,
                       "-", polyA.sites$Fit.end, ":", polyA.sites$Strand )
   polyA.sites$polyA_ID = polyA.ids
+
+  ## Remove any duplicates
+  polyA.sites %>% dplyr::distinct(polyA_ID, .keep_all = TRUE) -> polyA.sites
+  n.updated.sites = nrow(polyA.sites)
+  message("There are ", n.updated.sites, " sites following duplicate removal")
 
   ## re-write the updated table
   write.table(polyA.sites, file = output.file, sep="\t", quote = FALSE, row.names = FALSE)

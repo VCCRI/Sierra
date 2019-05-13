@@ -22,7 +22,7 @@
 #'
 find_de_polya <- function(apa.seurat.object, cluster1, cluster2, exp.thresh = 0.05,
                           fc.thresh = 0.25, adj.pval.thresh = 1e-05, test.use = "MAST",
-                          feature.type = c("UTR3", "UTR5", "exon", "intron"), 
+                          feature.type = c("UTR3", "UTR5", "exon", "intron"),
                           use.all.peaks = FALSE, add.annot.info = TRUE, print.output = TRUE) {
 
   if (!(test.use %in% c("MAST", "t-test"))) {
@@ -38,10 +38,6 @@ find_de_polya <- function(apa.seurat.object, cluster1, cluster2, exp.thresh = 0.
   ## Pull out the set of cells for performing the comparison
   cells.fg = apa.seurat.object@cell.names[which(apa.seurat.object@ident == cluster1)]
   cells.bg = apa.seurat.object@cell.names[which(apa.seurat.object@ident == cluster2)]
-
-  ## Pull out the set of cells for performing the comparison
-  cells.fg = apa.seurat@cell.names[which(apa.seurat.object@ident == cluster1)]
-  cells.bg = apa.seurat@cell.names[which(apa.seurat.object@ident == cluster2)]
 
   ## Determine the APA expressed above provided threshold proportion of cells
   if (print.output) print("Detecting expressed APA in each cluster...")
@@ -75,7 +71,7 @@ find_de_polya <- function(apa.seurat.object, cluster1, cluster2, exp.thresh = 0.
                            cluster1 = cluster1, cluster2 = cluster2, test.use = test.use)
   p.adj = p.adjust(p.values, method = "bonferroni", n = nrow(apa.seurat.object@data))
 
-  
+
 
   ## Calculate the percentage of cells expressing the gene
   nz.row.foreground = tabulate(apa.seurat.object@data[, cells.fg]@i + 1)
@@ -90,7 +86,7 @@ find_de_polya <- function(apa.seurat.object, cluster1, cluster2, exp.thresh = 0.
   if (add.annot.info) {
     ## Pull out the gene names
     gene.name = apa.seurat.object@misc[apas.pass, "Gene_name"]
-    
+
     ## Build the results table to return
     diff.table = data.frame(Peak = apas.pass,
                             Gene = gene.name,
@@ -99,7 +95,7 @@ find_de_polya <- function(apa.seurat.object, cluster1, cluster2, exp.thresh = 0.
                             Log2FC = fcs.pass[apas.pass],
                             p_value = p.values[apas.pass],
                             P_value_adj = p.adj[apas.pass], stringsAsFactors = FALSE)
-    
+
     features.add = apa.seurat@misc[apas.pass, "FeaturesCollapsed"]
     diff.table$GenomicFeature = features.add
   } else {
@@ -111,7 +107,7 @@ find_de_polya <- function(apa.seurat.object, cluster1, cluster2, exp.thresh = 0.
                             P_value_adj = p.adj[apas.pass], stringsAsFactors = FALSE)
   }
   rownames(diff.table) = apas.pass
-  
+
   diff.table = diff.table[order(diff.table$P_value_adj), ]
   diff.table = subset(diff.table,  P_value_adj < adj.pval.thresh)
   if (print.output) print(paste0(nrow(diff.table), " differentialy expressed polyA sites identified"))
@@ -119,14 +115,117 @@ find_de_polya <- function(apa.seurat.object, cluster1, cluster2, exp.thresh = 0.
   return(diff.table)
 }
 
+#############################################################
+#'
+#'
+#'
+#'
+#'
+find_max_polyA_de <- function(apa.seurat.object, cluster1, cluster2 = NULL, exp.thresh = 0.1,
+                                 fc.thresh = 0.5, adj.pval.thresh = 1e-05, test.use = "MAST",
+                                 feature.type = c("UTR3", "UTR5", "exon", "intron"), use.all.peaks = FALSE,
+                                 add.annot.info = TRUE, print.output = TRUE){
+
+  ## Pull out the set of cells for performing the comparison
+  cells.fg = apa.seurat.object@cell.names[which(apa.seurat.object@ident == cluster1)]
+
+  if (is.null(cluster2)){ ## if cluster 2 not provided just use all remaining cells
+    cells.bg = apa.seurat.object@cell.names[which(apa.seurat.object@ident != cluster1)]
+  } else {
+    cells.bg = apa.seurat.object@cell.names[which(apa.seurat.object@ident == cluster2)]
+  }
+
+  ## Determine the APA expressed above provided threshold proportion of cells
+  if (print.output) print("Detecting expressed APA in each cluster...")
+  high.expressed.peaks = get_highly_expressed_peaks(apa.seurat.object, cluster1, cluster2, threshold = exp.thresh)
+  if (print.output) print(paste(length(high.expressed.peaks), "expressed peaks"))
+
+  ## Filter peaks according to feature type
+  if (use.all.peaks == FALSE) {
+    annot.subset = apa.seurat.object@misc[high.expressed.peaks, ]
+    peaks.to.use = apply(annot.subset, 1, function(x) {
+      ifelse(sum(x[feature.type] == "YES") >= 1, TRUE, FALSE)
+    })
+    peaks.to.use = names(peaks.to.use[which(peaks.to.use == TRUE)])
+    high.expressed.peaks = intersect(high.expressed.peaks, peaks.to.use)
+    if (print.output) print(paste(length(high.expressed.peaks), "expressed peaks in feature types", toString(feature.type)))
+  } else {
+    if (print.output) print(paste(length(high.expressed.peaks), "expressed peaks across all feature types"))
+  }
+
+  ## Pull out the unique gene names - should be in a geneA.1, geneA.2 etc. format
+  gene.names = apa.seurat.object@misc[high.expressed.peaks, "Gene_name"]
+
+  ## Identifiy genes with more than one transcript detected as expressed
+  gene.table = table(gene.names)
+  multi.genes = gene.table[gene.table > 1]
+  print(paste(length(multi.genes), "genes detected with multiple polyA sites expressed"))
+  multi.gene.names = names(multi.genes)
+
+  peaks.use = high.expressed.peaks[which(gene.names %in% multi.gene.names)]
+  print(paste(length(peaks.use), "Individual polyA sites to test"))
+
+  ## Calculate fold-changes for transcripts between the two populations
+  all.fcs = get_log2FC_list(apa.seurat.object, peaks.use, cluster1 = cluster1, cluster2 = cluster2)
+
+  ## Calculate P-values (t-test) between the two populations
+  print("Calculating differential polyA usage between populations...")
+  clusters = as.character(apa.seurat.object@ident)
+  p.values = get_pvalue_list(apa.seurat.object@data[peaks.use, ], identities = clusters,
+                             cluster1 = cluster1, cluster2 = cluster2, test.use = test.use)
+  all.adj.pvalues = p.adjust(p.values, method = "bonferroni", n = nrow(apa.seurat.object@data))
+
+  ## Now go through genes and determine examples by differential polyA usage
+  sub.matrix = apa.seurat.object@data[peaks.use, ]
+  sub.matrix = sub.matrix[, cells.fg]
+  res.table = c()
+  for (thisGene in multi.gene.names) {
+    ## Pull out the transcripts corresponding to the gene
+    these.peaks = high.expressed.peaks[which(gene.names == thisGene)]
+
+    ## Obtain the adjusted P-values for the transcripts
+    adj.pvalues = all.adj.pvalues[these.peaks]
+
+    ## Obtain fold-changes between populations for the select transcripts
+    fcs = all.fcs[these.peaks]
+
+    ## Check if fold-change difference is greater than a chosen threshold
+    ## And if there is significant differential expression between the two populations
+    if ((max(fcs) - min(fcs)) > fc.thresh & sum(adj.pvalues < adj.pval.thresh) > 0) {
+
+      ## Finally compare expression of the two transcripts within the population of interest
+      peak1 = these.peaks[which(fcs == max(fcs))]
+      peak2 = these.peaks[which(fcs == min(fcs))]
+      this.pval = t.test(x = sub.matrix[peak1, cells.fg],
+                         y = sub.matrix[peak2, cells.fg])$p.value
+      if (is.nan(this.pval)) {
+        this.pval = 1
+      }
+      this.adj.pval = this.pval * length(multi.gene.names)
+
+      if (this.adj.pval < adj.pval.thresh) {
+        this.res = data.frame(Gene = thisGene, Peaks = paste(these.peaks, collapse = "_"),
+                              Max_peak = peak1, Peak1_Log2FC = max(fcs),
+                              Peak1_Adj_Pval = adj.pvalues[peak1], Min_peak = peak2,
+                              Peak2_Log2FC = min(fcs), Peak2_Adj_Pval = adj.pvalues[peak2],
+                              Log2FC_diff = max(fcs) - min(fcs), peak_compare_adjPval = this.adj.pval)
+        res.table = rbind(res.table, this.res)
+      }
+    }
+  }
+  print(paste(nrow(res.table), " genes with differential polyA expression identified"))
+  ## Return the results table
+  return(res.table)
+}
+
 ################################################################################################
 #'
 #' Apply differential expression testing to gene-level counts
 #'
-#' Essentially a wrapper function for find_de_polya. Applies the same approach for DE testing, 
+#' Essentially a wrapper function for find_de_polya. Applies the same approach for DE testing,
 #' but without any reference to annotation information. Thus, this function can be applied to
-#' a gene-level Seurat object to obtain differentially expressed genes for a direct comparison 
-#' with results from differential testing at the polyA level. 
+#' a gene-level Seurat object to obtain differentially expressed genes for a direct comparison
+#' with results from differential testing at the polyA level.
 #'
 #'
 #' @param apa.seurat.object a gene-level Seurat object
@@ -142,14 +241,14 @@ find_de_polya <- function(apa.seurat.object, cluster1, cluster2, exp.thresh = 0.
 #'
 find_de_genes <- function(genes.seurat.object, cluster1, cluster2, exp.thresh = 0.05,
                           fc.thresh = 0.25, adj.pval.thresh = 1e-05, test.use = "MAST") {
-  
+
   ## Wrapper for find_de_polya
-  res.table.genes = find_de_polya(genes.seurat.object, cluster1 = cluster1, cluster2 = cluster2, 
-                                  exp.thresh = exp.thresh, fc.thresh = fc.thresh, 
+  res.table.genes = find_de_polya(genes.seurat.object, cluster1 = cluster1, cluster2 = cluster2,
+                                  exp.thresh = exp.thresh, fc.thresh = fc.thresh,
                                   adj.pval.thresh = adj.pval.thresh, test.use = test.use,
                                   use.all.peaks = TRUE, add.annot.info = FALSE,
                                   print.output = FALSE)
-  
+
   print(paste0(nrow(res.table.genes), " differentialy expressed genes identified"))
   return(res.table.genes)
 
