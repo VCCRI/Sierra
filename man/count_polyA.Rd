@@ -4,13 +4,13 @@
 \alias{count_polyA}
 \title{count polyA sites in cells}
 \usage{
-count_polyA(polyA.sites.file, reference.file, bamfile, whitelist.file,
+count_polyA(polyA.sites.file, gtf.file, bamfile, whitelist.file,
   output.file, countUMI = TRUE, ncores = 1)
 }
 \arguments{
 \item{polyA.sites.file}{a file containing polyA sites}
 
-\item{reference.file}{reference (GTF) file}
+\item{gtf.file}{reference (GTF) file}
 
 \item{bamfile}{scRNA-seq BAM file}
 

@@ -4,13 +4,14 @@
 \alias{generate_merged_peak_table}
 \title{Merge peaks across data-sets based on a reference}
 \usage{
-generate_merged_peak_table(dataset.1, apa.dataset.list,
-  self.merged.peaks.list, sim.thresh = 0.75, allow.match.var = 0.25)
+generate_merged_peak_table(dataset.1, peak.dataset.list,
+  self.merged.peaks.list, sim.thresh = 0.75, allow.match.var = 0.25,
+  ncores = 1)
 }
 \arguments{
 \item{dataset.1}{the reference peak data-set}
 
-\item{apa.dataset.list}{a list of peak data-sets}
+\item{peak.dataset.list}{a list of peak data-sets}
 
 \item{self.merged.peaks.list}{the set of self-merged peaks from the reference data-set}
 
@@ -29,6 +30,6 @@ overlap with the other, and the other has at least x-(y*x)\% overlap where y is 
 variance (25\% by default).
 }
 \examples{
-generate_merged_peak_table(dataset.1, apa.dataset.list, self.merged.peaks.list)
+generate_merged_peak_table(dataset.1, peak.dataset.table, self.merged.peaks.list)
 
 }

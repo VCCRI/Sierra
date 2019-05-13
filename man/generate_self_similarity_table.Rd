@@ -4,7 +4,7 @@
 \alias{generate_self_similarity_table}
 \title{Generates a table of similarity measures within a set of peaks}
 \usage{
-generate_self_similarity_table(peaks.1, plot.distributions = TRUE)
+generate_self_similarity_table(peaks.1, ncores = 1)
 }
 \arguments{
 \item{peaks.1}{the set of peaks to merge}

@@ -4,7 +4,7 @@
 \alias{find_polyA}
 \title{Do peak calling on a scRNA-seq BAM file}
 \usage{
-find_polyA(output.file, reference.file, bamfile, junctions.file,
+find_polyA(output.file, gtf.file, bamfile, junctions.file,
   min.jcutoff = 50, min.jcutoff.prop = 0.05, min.cov.cutoff = 500,
   min.cov.prop = 0.05, min.peak.cutoff = 200, min.peak.prop = 0.05,
   ncores = 1)
@@ -12,7 +12,7 @@ find_polyA(output.file, reference.file, bamfile, junctions.file,
 \arguments{
 \item{output.file}{a file containing polyA sites}
 
-\item{reference.file}{reference (GTF) file}
+\item{gtf.file}{reference (GTF) file}
 
 \item{bamfile}{scRNA-seq BAM file}
 

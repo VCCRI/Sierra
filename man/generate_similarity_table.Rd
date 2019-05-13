@@ -4,7 +4,7 @@
 \alias{generate_similarity_table}
 \title{Generates a table of similarity measures between two sets of peaks}
 \usage{
-generate_similarity_table(peaks.1, peaks.2, plot.distributions = FALSE)
+generate_similarity_table(peaks.1, peaks.2, ncores = 1)
 }
 \arguments{
 \item{peaks.1}{first set of peaks - used as a reference point}

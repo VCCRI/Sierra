@@ -4,16 +4,23 @@
 \alias{do_peak_merging}
 \title{Merge peaks across a list of data-sets}
 \usage{
-do_peak_merging(apa.dataset.list, output.file, sim.thresh = 0.75,
-  allow.match.var = 0.25)
+do_peak_merging(peak.dataset.table, output.file, sim.thresh = 0.75,
+  allow.match.var = 0.25, ncores = 1)
 }
 \arguments{
-\item{apa.dataset.list}{a named list containing peaks called from different data-sets}
+\item{peak.dataset.table}{a dataframe with two required columnss: one called "Peak_file" , which
+contains file names of the peak data-sets to be merged and labels ("Identifier") for each file.}
 
 \item{output.file}{file to write the set of merged peaks to}
+
+\item{sim.thresh}{The required similarity threshold for merging (default: 0.75)}
+
+\item{allow.match.var}{The allowance for deviation from the sim.thresh for comparison peaks (default: 0.25)}
+
+\item{ncores}{number of cores to use (default 1)}
 }
 \value{
-a set of merged peaks
+NULL. writes out a set of merged peaks to output.file
 }
 \description{
 Takes as input a list of named peaks obtained from running peak calling on multiple data-sets.
@@ -23,6 +30,6 @@ Then compares each peak set as a reference to the remaining sets to identify pea
 Returns a list of peaks that have been merged, as well as the unique peaks from each data-set.
 }
 \examples{
-DoPeakMerging(apa.dataset.list)
+DoPeakMerging(peak.dataset.table, output.file, ncores = 4)
 
 }
