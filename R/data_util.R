@@ -14,7 +14,7 @@
 #' count.mat = readMEX(mm.file, barcodes.file, genes.file)
 #'
 readMEX <- function(mm.file, barcodes.file, genes.file) {
-  count.mat = readMM(mm.file)
+  count.mat = Matrix::readMM(mm.file)
 
   barcodes = readLines(barcodes.file)
   genes = readLines(genes.file)
