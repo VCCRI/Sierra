@@ -535,5 +535,11 @@ do_peak_merging <- function(peak.dataset.table, output.file, sim.thresh = 0.75,
                                        Fit.end = sub(".*:.*:.*-(.*):.*", "\\1", Peak)) -> output.table
   output.table = output.table[, c("Gene", "Chr", "Strand", "Fit.start", "Fit.end", "Peak", "Class")]
   colnames(output.table) = c("Gene", "Chr", "Strand", "Fit.start", "Fit.end", "Peak.ID", "Peak.origin")
+
+  ## Filter peaks
+  sites.diffs = output.table$Fit.end - output.table$Fit.start
+  sites.keep = which(sites.diffs > 0)
+  output.table = output.table[sites.keep, ]
+
   write.table(output.table, file = output.file, sep="\t", quote = FALSE, row.names = FALSE)
 }
