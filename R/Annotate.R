@@ -47,6 +47,12 @@ annotate_gr_from_gtf <- function(gr, invert_strand = FALSE, gtf_gr = NULL,
   gene_Labels<- function(gr, reference_gr, annotationType)
   {
     all_hits <- GenomicAlignments::findOverlaps(gr , reference_gr, type= annotationType)
+    if (length(all_hits) == 0)
+    {
+      warning("No samples matched")
+      return(-1)
+    }
+    
     identified_gene_symbols <- reference_gr[S4Vectors::subjectHits(all_hits)]$gene_name
     idx_to_annotate <- S4Vectors::queryHits(all_hits)
     
@@ -58,9 +64,9 @@ annotate_gr_from_gtf <- function(gr, invert_strand = FALSE, gtf_gr = NULL,
      # rep(newID, length(which(x== idx_to_annotate)))
       }))
     multi_idx <- as.numeric(names(multi_gene_IDs))  # These are the indexes to annotate
-    
+ 
     to_convert <- lapply(multi_idx,FUN = function(x) {which(idx_to_annotate == x)})
-#  browser()
+
     for(i in 1:length(to_convert))
     {
       identified_gene_symbols[to_convert[[i]]] <- multi_gene_IDs[[i]]
@@ -88,7 +94,7 @@ annotate_gr_from_gtf <- function(gr, invert_strand = FALSE, gtf_gr = NULL,
     all_UTR_3_hits <- GenomicAlignments::findOverlaps(gr , UTR_3_GR,type = annotationType)
     idx_to_annotate_3UTR <- S4Vectors::queryHits(all_UTR_3_hits)
     df$UTR3[idx_to_annotate_3UTR] <- "YES"
-    ok_to_annotate <- 1: nrows(df) # To identify which candidates can be annotated. Initally all samples can be annotated.
+    ok_to_annotate <- 1: nrow(df) # To identify which candidates can be annotated. Initally all samples can be annotated.
     if (annotation_correction)
     {
       # Want to record gene name (symbol) for 3'UTRs. The genomicfeatures function removes this info.
