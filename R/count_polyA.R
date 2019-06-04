@@ -191,8 +191,9 @@ makeReference <- function(gtf_file) {
   genes.ref = genes.ref[, c("EnsemblID", "chr", "start", "end", "strand", "Gene")]
   genes.ref$strand = plyr::mapvalues(genes.ref$strand, from = c("-", "+"), to = c("-1", "1"))
 
-  chr.use = as.character(c(1:22, c("X", "Y", "MT")))
-  genes.ref = subset(genes.ref, chr %in% chr.use)
+  chr.use1 = as.character(c(1:22, c("X", "Y", "MT")))
+  chr.use2 = paste0("chr", as.character(c(1:22, c("X", "Y", "MT")))) 
+  genes.ref = subset(genes.ref, chr %in% c(chr.use1, chr.use2) )
 
   return(genes.ref)
 }

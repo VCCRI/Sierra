@@ -537,6 +537,11 @@ do_peak_merging <- function(peak.dataset.table, output.file, sim.thresh = 0.75,
   colnames(output.table) = c("Gene", "Chr", "Strand", "Fit.start", "Fit.end", "Peak.ID", "Peak.origin")
 
   ## Filter peaks
+
+  ## Make sure the positions are numeric 
+  output.table$Fit.end <- as.numeric(output.table$Fit.end) 
+  output.table$Fit.start <- as.numeric(output.table$Fit.start) 
+
   sites.diffs = output.table$Fit.end - output.table$Fit.start
   sites.keep = which(sites.diffs > 0)
   output.table = output.table[sites.keep, ]
