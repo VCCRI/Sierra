@@ -4,7 +4,7 @@
 #' Annotates a granges object with overlapping genes from gtf file.
 #'
 #'  gr is the genomic ranges that need to be annotation. Ideally original input should be in the format:
-#'       chr8:70331172-70331574:1    # chr:start-end:strand
+#'       chr8:70331172-70331574:+   # chr:start-end:strand
 #'   This could already exist within an R object or you can copy it in via readClipboard.
 #'
 #'  gr <- GRanges(readClipboard())
@@ -12,6 +12,7 @@
 #' You need to run the following code:
 #'         gtf_file <- "u:/Reference/hg38/hg38_gene.gtf.gz"
 #'         gtf_file <- "u:/Reference/mm10/mm10_gene.gtf.gz"
+#'         gtf_file <- "u:/Reference/mm10/cellranger_genes.gtf.gz"
 #'        gtf_gr <- rtracklayer::import(gtf_file)
 #'        gtf_TxDb <- GenomicFeatures::makeTxDbFromGFF(gtf_file, format="gtf")
 #'
@@ -43,7 +44,6 @@ annotate_gr_from_gtf <- function(gr, invert_strand = FALSE, gtf_gr = NULL,
 #  mcols(gtf_gr) <- mcols(gtf_gr)[c("type","gene_id","gene_type","gene_name")]
   GenomicRanges::mcols(gtf_gr) <- GenomicRanges::mcols(gtf_gr)[c("type","gene_id","gene_name")]
 
-
   gene_Labels<- function(gr, reference_gr, annotationType)
   {
     all_hits <- GenomicAlignments::findOverlaps(gr , reference_gr, type= annotationType)
@@ -67,15 +67,25 @@ annotate_gr_from_gtf <- function(gr, invert_strand = FALSE, gtf_gr = NULL,
  
     to_convert <- lapply(multi_idx,FUN = function(x) {which(idx_to_annotate == x)})
 
-    for(i in 1:length(to_convert))
-    {
-      identified_gene_symbols[to_convert[[i]]] <- multi_gene_IDs[[i]]
+    if (length(to_convert) > 0)
+    {   for(i in 1:length(to_convert))
+        {
+          identified_gene_symbols[to_convert[[i]]] <- multi_gene_IDs[[i]]
+        }
     }
     
     return(list (identified_gene_symbols=identified_gene_symbols, idx_to_annotate=idx_to_annotate))
   }
 
+  # check for compatibility between chromosome labels:
+  if (length(intersect(seqlevels(gr),seqlevels(gtf_gr))) == 0)
+  { # remove chr prefix from both data sets
+    seqlevels(gr) <-   gsub(pattern = "chr",replacement = "",x = seqlevels(gr))
+    seqlevels(gtf_gr) <- gsub(pattern = "chr",replacement = "",x = seqlevels(gtf_gr))
+  }
+  
   genes_gr <- gtf_gr[gtf_gr$type == "gene"]
+  
   annotate_info <- gene_Labels(gr, genes_gr,annotationType)
   
   df <- as.data.frame(gr)
@@ -99,12 +109,27 @@ annotate_gr_from_gtf <- function(gr, invert_strand = FALSE, gtf_gr = NULL,
     {
       # Want to record gene name (symbol) for 3'UTRs. The genomicfeatures function removes this info.
       # Therefore subset UTRs and then overlap them to defined 3'UTRs.
-      UTR_GR <- gtf_gr[gtf_gr$type == "UTR"]   # This will be used to retrieve gene names from ALL UTRs
-      real_3UTRs_idx <- GenomicAlignments::findOverlaps(UTR_GR , UTR_3_GR,type = annotationType)
-  
-      UTR_annotate_info <- gene_Labels(gr, UTR_GR[S4Vectors::queryHits(real_3UTRs_idx)] ,annotationType)
-      df_with_gene_labels$UTR[UTR_annotate_info$idx_to_annotate] <- UTR_annotate_info$identified_gene_symbols
-    
+      # First need to know what annotations exist, and if 3'UTRs are actually annotated
+      listed_annotations <- names(table(gtf_gr$type))
+      if (length(grep(pattern = "three_prime_utr",x = listed_annotations)))
+      {### working here
+        
+#  browser()      
+        UTR_3_GR <- gtf_gr[gtf_gr$type == "three_prime_utr"]
+        UTR_annotate_info <- gene_Labels(gr, UTR_3_GR ,annotationType)
+        df_with_gene_labels$UTR[UTR_annotate_info$idx_to_annotate] <- UTR_annotate_info$identified_gene_symbols
+        
+      }
+      else
+      {
+        
+        UTR_GR <- gtf_gr[gtf_gr$type == "UTR"]   # This will be used to retrieve gene names from ALL UTRs
+        real_3UTRs_idx <- GenomicAlignments::findOverlaps(UTR_GR , UTR_3_GR,type = annotationType)
+        
+        UTR_annotate_info <- gene_Labels(gr, UTR_GR[S4Vectors::queryHits(real_3UTRs_idx)] ,annotationType)
+        df_with_gene_labels$UTR[UTR_annotate_info$idx_to_annotate] <- UTR_annotate_info$identified_gene_symbols
+      }
+      
       # Copy relevant updated annotations
       # Grab index of annotated entries and copy to main df.
       df$gene_id[UTR_annotate_info$idx_to_annotate] <- UTR_annotate_info$identified_gene_symbols
