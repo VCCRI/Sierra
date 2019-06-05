@@ -8,16 +8,16 @@
 #' into a smaller number of profiles, defined by num.splits.
 #'
 #' @param apa.seurat.object Seurat object of peaks
-#' @population.1 a target population of cells (can be an ID/cluster label or a set of cell barcode IDs)
-#' @population.2 comparison population of cells. If NULL (default), uses all non-population.1 cells
-#' @exp.thresh minimum percent expression threshold (for a population of cells) to include a peak
-#' @fc.thresh threshold for log2 fold-change difference for returned results
-#' @adj.pval.thresh threshold for adjusted P-value for returned results
-#' @num.splits the number of pseudo-bulk profiles to create per identity class (default: 6)
-#' @feature.type genomic feature types to run analysis on (degault: all)
+#' @param population.1 a target population of cells (can be an ID/cluster label or a set of cell barcode IDs)
+#' @param population.2 comparison population of cells. If NULL (default), uses all non-population.1 cells
+#' @param exp.thresh minimum percent expression threshold (for a population of cells) to include a peak
+#' @param fc.thresh threshold for log2 fold-change difference for returned results
+#' @param adj.pval.thresh threshold for adjusted P-value for returned results
+#' @param num.splits the number of pseudo-bulk profiles to create per identity class (default: 6)
+#' @param feature.type genomic feature types to run analysis on (degault: all)
 #' @return a data-frame of results.
 #' @examples
-#' apply_DEXSeq_test(apa.seurat, population.1 = "1", population.2 = "2")
+#' apply_DEXSeq_test(apa.seurat.object, population.1 = "1", population.2 = "2")
 #'
 #' @export
 #'
@@ -144,12 +144,12 @@ apply_DEXSeq_test <- function(apa.seurat.object, population.1, population.2 = NU
   peaks.to.add = dexseq.feature.table[rownames(dxrSig_subset), "Peak"]
   rownames(dxrSig_subset) = peaks.to.add
 
-  population.1.pct <- get_percent_expression(apa.seurat, population.1, remainder=FALSE, geneSet=rownames(dxrSig_subset))
+  population.1.pct <- get_percent_expression(apa.seurat.object, population.1, remainder=FALSE, geneSet=rownames(dxrSig_subset))
   if (is.null(population.2)) {
-    population.2.pct <- get_percent_expression(apa.seurat, population.1, remainder=TRUE, geneSet=rownames(dxrSig_subset))
+    population.2.pct <- get_percent_expression(apa.seurat.object, population.1, remainder=TRUE, geneSet=rownames(dxrSig_subset))
     population.2 <- "Remainder"
   } else {
-    population.2.pct <- get_percent_expression(apa.seurat, population.2, remainder=FALSE, geneSet=rownames(dxrSig_subset))
+    population.2.pct <- get_percent_expression(apa.seurat.object, population.2, remainder=FALSE, geneSet=rownames(dxrSig_subset))
   }
 
   dxrSig_subset$population1_pct <- population.1.pct
@@ -186,7 +186,7 @@ apply_DEXSeq_test <- function(apa.seurat.object, population.1, population.2 = NU
 #' @param use.all.peaks whether to use all peaks regardless of annotation. FALSE by default.
 #' @return a data-frame of results.
 #' @examples
-#' find_de_polya(apa.seurat, cluster1 = "1", cluster2 = "2")
+#' find_de_polya(apa.seurat.object, cluster1 = "1", cluster2 = "2")
 #'
 find_de_polya <- function(apa.seurat.object, cluster1, cluster2, exp.thresh = 0.05,
                              fc.thresh = 0.25, adj.pval.thresh = 1e-05, test.use = "MAST",
@@ -252,10 +252,10 @@ find_de_polya <- function(apa.seurat.object, cluster1, cluster2, exp.thresh = 0.
 
 
   ## Calculate the percentage of cells expressing the gene
-  nz.prop.foreground <- get_percent_expression(apa.seurat, cells.fg)
+  nz.prop.foreground <- get_percent_expression(apa.seurat.object, cells.fg)
 
   ## Also for the background population
-  nz.prop.background <- get_percent_expression(apa.seurat, cells.bg)
+  nz.prop.background <- get_percent_expression(apa.seurat.object, cells.bg)
 
 
   if (add.annot.info) {
@@ -307,7 +307,7 @@ find_de_polya <- function(apa.seurat.object, cluster1, cluster2, exp.thresh = 0.
 #' @param use.all.peaks whether to use all peaks regardless of annotation. FALSE by default.
 #' @return a data-frame of results.
 #' @examples
-#' find_de_polya(apa.seurat, cluster1 = "1", cluster2 = "2")
+#' find_de_polya(apa.seurat.object, cluster1 = "1", cluster2 = "2")
 #'
 find_de_polya_v2 <- function(apa.seurat.object, cluster1, cluster2, exp.thresh = 0.05,
                           fc.thresh = 0.25, adj.pval.thresh = 1e-05, test.use = "MAST",
@@ -396,7 +396,7 @@ find_de_polya_v2 <- function(apa.seurat.object, cluster1, cluster2, exp.thresh =
                             p_value = p.values[apas.pass],
                             P_value_adj = p.adj[apas.pass], stringsAsFactors = FALSE)
 
-    features.add = apa.seurat@misc[apas.pass, "FeaturesCollapsed"]
+    features.add = apa.seurat.object@misc[apas.pass, "FeaturesCollapsed"]
     diff.table$GenomicFeature = features.add
   } else {
     ## Don't incorporate any information from the annotation table
@@ -436,7 +436,7 @@ find_de_polya_v2 <- function(apa.seurat.object, cluster1, cluster2, exp.thresh =
 #' @param print.output whether to print the output
 #' @return a data-frame of results.
 #' @examples
-#' find_de_polya(apa.seurat, cluster1 = "1", cluster2 = "2")
+#' find_de_polya(apa.seurat.object, cluster1 = "1", cluster2 = "2")
 #'
 find_max_polyA_de <- function(apa.seurat.object, cluster1, cluster2 = NULL, exp.thresh = 0.1,
                                  fc.thresh = 0.5, peak.fc.thresh = 0.15, adj.pval.thresh = 1e-05,
@@ -601,7 +601,7 @@ find_max_polyA_de <- function(apa.seurat.object, cluster1, cluster2 = NULL, exp.
 #' @param print.output whether to print the output
 #' @return a data-frame of results.
 #' @examples
-#' find_de_polya(apa.seurat, cluster1 = "1", cluster2 = "2")
+#' find_de_polya(apa.seurat.object, cluster1 = "1", cluster2 = "2")
 #'
 find_max_polyA_de_v2 <- function(apa.seurat.object, cluster1, cluster2 = NULL, exp.thresh = 0.1,
                               fc.thresh = 0.5, peak.fc.thresh = 0.15, adj.pval.thresh = 1e-05,
@@ -764,7 +764,7 @@ find_max_polyA_de_v2 <- function(apa.seurat.object, cluster1, cluster2 = NULL, e
 #' @param test.use statistical test to use. Either MAST (default) or t-test.
 #' @return a data-frame of results.
 #' @examples
-#' find_de_genes(apa.seurat, cluster1 = "1", cluster2 = "2")
+#' find_de_genes(apa.seurat.object, cluster1 = "1", cluster2 = "2")
 #'
 find_de_genes <- function(genes.seurat.object, cluster1, cluster2, exp.thresh = 0.05,
                           fc.thresh = 0.25, adj.pval.thresh = 1e-05, test.use = "MAST") {
@@ -800,7 +800,7 @@ find_de_genes <- function(genes.seurat.object, cluster1, cluster2, exp.thresh = 
 #' @param use.all.peaks whether to use all peaks regardless of annotation. FALSE by default.
 #' @return a data-frame of results.
 #' @examples
-#' find_de_genes_collapsed(apa.seurat, cluster1 = "1", cluster2 = "2")
+#' find_de_genes_collapsed(apa.seurat.object, cluster1 = "1", cluster2 = "2")
 #'
 find_de_genes_collapsed <- function(apa.seurat.object, cluster1, cluster2, exp.thresh = 0.05,
                           fc.thresh = 0.25, adj.pval.thresh = 1e-05, test.use = "MAST",
@@ -1032,7 +1032,7 @@ mast_de_test <- function(expressionData, identities, cluster1, cluster2=NULL) {
 #' @param feature.type the feature type(s) to test for
 #' @return a data-frame of results
 #' @examples
-#' res.table = lr_de_test(apa.seurat, cluster1 = "1", cluster2 = "2")
+#' res.table = lr_de_test(apa.seurat.object, cluster1 = "1", cluster2 = "2")
 #'
 de_polya_lr <- function(apa.seurat.object, cluster1, cluster2, exp.thresh = 0.05, fc.thresh = 0.25,
                                   adj.pval.thresh = 1e-05, feature.type = c("UTR3", "UTR5", "exon", "intron")) {
@@ -1214,7 +1214,7 @@ lr_test <- function(f.labels, exp.matrix, value.labels, num_cells_fg, num_cells_
 #' @param cluster2 background cluster. If null uses all non-cluster1 cells.
 #' @return a list of log2 fold-changes
 #' @examples
-#' foldchange.list = get_log2FC_list(apa.seurat, geneList, "1")
+#' foldchange.list = get_log2FC_list(seurat.object, geneList, "1")
 #'
 get_log2FC_list <- function(seurat.object, geneList, cluster1, cluster2=NULL) {
 
@@ -1251,7 +1251,7 @@ get_log2FC_list <- function(seurat.object, geneList, cluster1, cluster2=NULL) {
 #' @param cluster2 background cluster. If null uses all non-cluster1 cells.
 #' @return a list of log2 fold-changes
 #' @examples
-#' foldchange.list = get_log2FC_list(apa.seurat, geneList, "1")
+#' foldchange.list = get_log2FC_list(seurat.object, geneList, "1")
 #'
 get_log2FC_list_v2 <- function(seurat.object, geneList, cluster1, cluster2=NULL) {
 
@@ -1316,8 +1316,8 @@ Log2ExpMean <- function (x) {
 #' @param threshold percentage threshold of detected (non-zero) expression for including a peak
 #' @return an array of peak (or gene) names
 #' @examples
-#' get_highly_expressed_peaks(apa.seurat, "1")
-#' get_highly_expressed_peaks(apa.seurat, cluster1 = "1", cluster2 = "2")
+#' get_highly_expressed_peaks(seurat.object, "1")
+#' get_highly_expressed_peaks(seurat.object, cluster1 = "1", cluster2 = "2")
 #'
 get_highly_expressed_peaks <- function(seurat.object, cluster1, cluster2=NULL, threshold=0.05) {
 
@@ -1366,8 +1366,8 @@ get_highly_expressed_peaks <- function(seurat.object, cluster1, cluster2=NULL, t
 #' @param threshold percentage threshold of detected (non-zero) expression for including a peak
 #' @return an array of peak (or gene) names
 #' @examples
-#' get_highly_expressed_peaks(apa.seurat, "1")
-#' get_highly_expressed_peaks(apa.seurat, cluster1 = "1", cluster2 = "2")
+#' get_highly_expressed_peaks(seurat.object, "1")
+#' get_highly_expressed_peaks(seurat.object, cluster1 = "1", cluster2 = "2")
 #'
 get_highly_expressed_peaks_v2 <- function(seurat.object, cluster1, cluster2=NULL, threshold=0.05) {
 
