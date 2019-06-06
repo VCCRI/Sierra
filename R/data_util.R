@@ -295,11 +295,12 @@ new_polya_seurat <- function(peak.data, annot.info, project.name = "PolyA",
   print(paste("Creating Seurat object with", nrow(peak.data), "peaks and", ncol(peak.data), "cells"))
 
   ## Create a Seurat object for polyA counts
-  apa.seurat = CreateSeuratObject(peak.data, min.cells = min.cells, min.genes = min.peaks, project = project.name)
+  apa.seurat = CreateSeuratObject(peak.data, min.cells = min.cells, project = project.name)
 
   ## Add peak annotations to the Seurat object
   annot.info = as.data.frame(annot.info, stringsAsFactors = FALSE)
-  peaks.use = intersect(annot.peaks, rownames(apa.seurat@data))
+  #peaks.use = intersect(annot.peaks, rownames(apa.seurat@data))
+  peaks.use = intersect(annot.peaks, rownames(apa.seurat))
   annot.info = annot.info[peaks.use, ]
   feature.names = c("UTR3", "UTR5", "intron", "exon")
   feature.mat = annot.info[peaks.use, feature.names]
