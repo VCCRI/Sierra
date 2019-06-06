@@ -325,15 +325,15 @@ find_de_polya_v2 <- function(apa.seurat.object, cluster1, cluster2, exp.thresh =
   }
 
   if (length(cluster1) == 1){ # cluster identity used as input
-    cells.fg = names(Idents(apa.seurat.object)[Idents(apa.seurat.object)==cluster1])
+    cells.fg = names(apa.seurat.object@ident[apa.seurat.object@ident==cluster1])
   } else { # cell identity used as input
     cells.fg = cluster1
   }
   if (is.null(cluster2)) {
-    remainder.set = names(Idents(apa.seurat.object)[Idents(apa.seurat.object)!=cluster1])
+    remainder.set = names(apa.seurat.object@ident[apa.seurat.object@ident!=cluster1])
   } else {
     if (length(cluster2) == 1) { # cluster identity used as input
-      cells.bg = names(Idents(apa.seurat.object)[Idents(apa.seurat.object)==cluster2])
+      cells.bg = names(apa.seurat.object@ident[apa.seurat.object@ident==cluster2])
     } else { # cell identity used as input
       cells.bg = cluster2
     }
@@ -802,7 +802,139 @@ find_de_genes <- function(genes.seurat.object, cluster1, cluster2, exp.thresh = 
 #' @examples
 #' find_de_genes_collapsed(apa.seurat.object, cluster1 = "1", cluster2 = "2")
 #'
+#' @export
+#'
 find_de_genes_collapsed <- function(apa.seurat.object, cluster1, cluster2, exp.thresh = 0.05,
+                                    fc.thresh = 0.25, adj.pval.thresh = 1e-05, test.use = "MAST",
+                                    feature.type = c("UTR3", "UTR5", "exon", "intron"), use.all.peaks = FALSE) {
+
+  if (packageVersion("Seurat") < '3.0.0') {
+    res.table = find_de_genes_collapsed_v2(apa.seurat.oject, cluster1, cluster2, exp.thresh,
+                                           fc.thresh, adj.pval.thresh, test.use, feature.type, use.all.peaks)
+    return(res.table)
+  }
+
+  if (!(test.use %in% c("MAST", "t-test"))) {
+    stop("Invalid test option: please choose either MAST or t-test")
+  }
+
+  if (test.use == "MAST") {
+    if (!'MAST' %in% rownames(x = installed.packages())) {
+      stop("Please install MAST before using this function  (https://github.com/RGLab/MAST)")
+    }
+  }
+
+  ## Pull out the set of cells for performing the comparison
+  cells.fg = colnames(apa.seurat.object)[which(Idents(apa.seurat.object) == cluster1)]
+  cells.bg = colnames(apa.seurat.object)[which(Idents(apa.seurat.object) == cluster2)]
+
+  ## Determine the APA expressed above provided threshold proportion of cells
+  print("Detecting expressed APA in each cluster...")
+  high.expressed.peaks = get_highly_expressed_peaks(apa.seurat.object, cluster1, cluster2, threshold = exp.thresh)
+  print(paste(length(high.expressed.peaks), "expressed peaks"))
+
+  ## Filter peaks according to feature type
+  annot.subset = Tool(apa.seurat.object, "GeneSLICER")[high.expressed.peaks, ]
+  if (use.all.peaks == FALSE) {
+    peaks.to.use = apply(annot.subset, 1, function(x) {
+      ifelse(sum(x[feature.type] == "YES") >= 1, TRUE, FALSE)
+    })
+    peaks.to.use = names(peaks.to.use[which(peaks.to.use == TRUE)])
+    high.expressed.peaks = intersect(high.expressed.peaks, peaks.to.use)
+    print(paste(length(high.expressed.peaks), "expressed peaks in feature types", toString(feature.type)))
+  } else {
+    print(paste(length(high.expressed.peaks), "expressed peaks across all feature types"))
+  }
+
+  ## Identifiy genes with more than one polyA detected as expressed
+  gene.names = Tool(apa.seurat.object, "GeneSLICER")[high.expressed.peaks, ]$Gene_name
+  gene.table = table(gene.names)
+  multi.genes = gene.table[gene.table > 1]
+  print(paste(length(multi.genes), "genes detected with multiple polyA expressed"))
+  multi.gene.names = names(multi.genes)
+  multi.gene.names = multi.gene.names[which(multi.gene.names != "")]
+
+  ## Build a matrix of genes corresponding to summed polyA counts
+  print("Collapsing gene polyA expression...")
+  multi.peaks = high.expressed.peaks[which(gene.names %in% multi.gene.names)]
+  multi.peak.genes = Tool(apa.seurat.object, "GeneSLICER")[multi.peaks, ]$Gene_name
+  sub.matrix = GetAssayData(apa.seurat.object)[multi.peaks, c(cells.fg, cells.bg)]
+  collapsed.mat = pbapply::pblapply(multi.gene.names, function(thisGene){
+    these.peak.indicies = which(multi.peak.genes == thisGene)
+    summed.expression = apply(sub.matrix[these.peak.indicies, ], 2, function(x) sum(x))
+    return(summed.expression)
+  })
+  collapsed.mat = do.call(rbind, collapsed.mat)
+  rownames(collapsed.mat) = multi.gene.names
+  colnames(collapsed.mat) = colnames(sub.matrix)
+  collapsed.mat = as(as.matrix(collapsed.mat), "sparseMatrix")
+
+  ## Now calculate differential expression on the collaped matrix
+  ## First calculate fold-changes for between the two populations
+  all.fcs = apply(collapsed.mat[multi.gene.names, c(cells.fg, cells.bg)], 1, function(x)
+    get_log2FC(x[cells.fg], x[cells.bg]))
+
+  ## Get the APAs and corresponding genes that pass a fold-change threshold
+  fcs.pass = all.fcs[which(abs(all.fcs) >= fc.thresh)]
+  genes.pass = names(fcs.pass)
+  print(paste(length(genes.pass), " collapsed genes pass LFC threshold"))
+
+  clusters = Idents(apa.seurat.object)
+  clusters = clusters[c(cells.fg, cells.bg)]
+  clusters = as.character(clusters)
+  p.values = get_pvalue_list(collapsed.mat[genes.pass, ], identities = clusters,
+                             cluster1 = cluster1, cluster2 = cluster2, test.use = test.use)
+  p.adj = p.adjust(p.values, method = "bonferroni", n = nrow(collapsed.mat))
+
+  gene.name = Tool(apa.seurat.object, "GeneSLICER")[genes.pass, "Gene_name"]
+
+  ## Calculate the percentage of cells expressing the gene
+  nz.row.foreground = tabulate(collapsed.mat[, cells.fg]@i + 1, nbins = length(multi.gene.names))
+  nz.prop.foreground = nz.row.foreground/length(cells.fg)
+  names(nz.prop.foreground) = rownames(collapsed.mat)
+
+  ## Also for the background population
+  nz.row.background = tabulate(collapsed.mat[, cells.bg]@i + 1, nbins = length(multi.gene.names))
+  nz.prop.background = nz.row.background/length(cells.bg)
+  names(nz.prop.background) = rownames(collapsed.mat)
+
+  diff.table = data.frame(Gene = genes.pass,
+                          Target_pct = nz.prop.foreground[genes.pass],
+                          Background_pct = nz.prop.background[genes.pass],
+                          Log2FC = fcs.pass[genes.pass],
+                          p_value = p.values[genes.pass],
+                          P_value_adj = p.adj[genes.pass], stringsAsFactors = FALSE)
+
+  diff.table = diff.table[order(diff.table$P_value_adj), ]
+  diff.table = subset(diff.table,  P_value_adj < adj.pval.thresh)
+  print(paste0(nrow(diff.table), " differentialy expressed genes identified"))
+
+  return(diff.table)
+
+}
+
+################################################################################################
+#'
+#' Apply a differential expression test to gene-level collapsed polyA sites.
+#'
+#' Collapses polyA sites into a single gene-level count for each gene. Performs differential
+#' gene expression analysis on the collapsed gene-level counts.
+#'
+#'
+#' @param apa.seurat.object a polyA Seurat object
+#' @param cluster1 foreground cluster
+#' @param cluster2 comparison cluster
+#' @param exp.thresh threshold \% of cells expressing a peak to consider in
+#' @param fc.thresh threshold log2 fold-change difference for testing a peak
+#' @param adj.pval.thresh adjusted P-value threshold for retaining a peak
+#' @param test.use statistical test to use. Either MAST (default) or t-test.
+#' @param feature.type the feature type(s) to test for. Redundant if use.all.peaks set to TRUE.
+#' @param use.all.peaks whether to use all peaks regardless of annotation. FALSE by default.
+#' @return a data-frame of results.
+#' @examples
+#' find_de_genes_collapsed(apa.seurat.object, cluster1 = "1", cluster2 = "2")
+#'
+find_de_genes_collapsed_v2 <- function(apa.seurat.object, cluster1, cluster2, exp.thresh = 0.05,
                           fc.thresh = 0.25, adj.pval.thresh = 1e-05, test.use = "MAST",
                           feature.type = c("UTR3", "UTR5", "exon", "intron"), use.all.peaks = FALSE) {
 
@@ -1421,7 +1553,7 @@ get_percent_expression <- function(seurat.object, this.cluster, remainder=FALSE,
 
   # Get the peaks/APA sites expressed in the foreground set based on proportion of non-zeros
   this.data <- GetAssayData(seurat.object, slot = "data", assay="RNA")
-  nz.row.cells = tabulate(this.data[, cell.set]@i + 1, nbins = nrow(seurat.object))
+  nz.row.cells = tabulate(this.data[, cell.set]@i + 1, AverageExpression)
   nz.prop.cells = nz.row.cells/length(cell.set)
   names(nz.prop.cells) = peak.names
   nz.prop.cells = nz.prop.cells[geneSet]
