@@ -117,7 +117,8 @@ annotate_gr_from_gtf <- function(gr, invert_strand = FALSE, gtf_gr = NULL,
 #  browser()      
         UTR_3_GR <- gtf_gr[gtf_gr$type == "three_prime_utr"]
         UTR_annotate_info <- gene_Labels(gr, UTR_3_GR ,annotationType)
-        df_with_gene_labels$UTR[UTR_annotate_info$idx_to_annotate] <- UTR_annotate_info$identified_gene_symbols
+        df_with_gene_labels$UTR3 <- rep(NA, nrow(df_with_gene_labels)) 
+        df_with_gene_labels$UTR3[UTR_annotate_info$idx_to_annotate] <- UTR_annotate_info$identified_gene_symbols
         
       }
       else
@@ -127,7 +128,8 @@ annotate_gr_from_gtf <- function(gr, invert_strand = FALSE, gtf_gr = NULL,
         real_3UTRs_idx <- GenomicAlignments::findOverlaps(UTR_GR , UTR_3_GR,type = annotationType)
         
         UTR_annotate_info <- gene_Labels(gr, UTR_GR[S4Vectors::queryHits(real_3UTRs_idx)] ,annotationType)
-        df_with_gene_labels$UTR[UTR_annotate_info$idx_to_annotate] <- UTR_annotate_info$identified_gene_symbols
+        df_with_gene_labels$UTR3 <- rep(NA, nrow(df_with_gene_labels)) 
+        df_with_gene_labels$UTR3[UTR_annotate_info$idx_to_annotate] <- UTR_annotate_info$identified_gene_symbols
       }
       
       # Copy relevant updated annotations
