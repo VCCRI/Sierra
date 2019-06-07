@@ -1559,7 +1559,7 @@ get_percent_expression <- function(seurat.object, this.cluster, remainder=FALSE,
 
   # Get the peaks/APA sites expressed in the foreground set based on proportion of non-zeros
   this.data <- GetAssayData(seurat.object, slot = "data", assay="RNA")
-  nz.row.cells = tabulate(this.data[, cell.set]@i + 1, AverageExpression)
+  nz.row.cells = tabulate(this.data[, cell.set]@i + 1, nbins = length(peak.names))
   nz.prop.cells = nz.row.cells/length(cell.set)
   names(nz.prop.cells) = peak.names
   nz.prop.cells = nz.prop.cells[geneSet]
