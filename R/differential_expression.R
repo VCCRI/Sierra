@@ -443,13 +443,19 @@ find_max_polyA_de <- function(apa.seurat.object, cluster1, cluster2 = NULL, exp.
                                  test.use = "t-test", feature.type = c("UTR3", "UTR5", "exon", "intron"),
                                  use.all.peaks = FALSE, add.annot.info = TRUE, print.output = TRUE){
 
-  ## Pull out the set of cells for performing the comparison
-  cells.fg = colnames(apa.seurat.object)[which(Idents(apa.seurat.object) == cluster1)]
-
-  if (is.null(cluster2)){ ## if cluster 2 not provided just use all remaining cells
-    cells.bg = colnames(apa.seurat.object)[which(Idents(apa.seurat.object) != cluster1)]
+  if (length(cluster1) == 1){ # cluster identity used as input
+    cells.fg = names(Idents(apa.seurat.object)[Idents(apa.seurat.object)==cluster1])
+  } else { # cell identity used as input
+    cells.fg = cluster1
+  }
+  if (is.null(cluster2)) {
+    cells.bg = names(Idents(apa.seurat.object)[Idents(apa.seurat.object)!=cluster1])
   } else {
-    cells.bg = colnames(apa.seurat.object)[which(Idents(apa.seurat.object) == cluster2)]
+    if (length(cluster2) == 1) { # cluster identity used as input
+      cells.bg = names(Idents(apa.seurat.object)[Idents(apa.seurat.object)==cluster2])
+    } else { # cell identity used as input
+      cells.bg = cluster2
+    }
   }
 
   ## Determine the APA expressed above provided threshold proportion of cells
