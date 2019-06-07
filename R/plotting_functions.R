@@ -1,3 +1,68 @@
+#########################################################
+#'
+#' Produce an arrow plot of peak expression
+#'
+#' Produce an arrow plot of peak expression, utlising the gggenes package. 
+#'
+#' @param peaks.seurat.object a Seurat object containing t-SNE coordinates and cluster ID's in @ident slot
+#' @param col.set a vector of colour codes corresponding to the number of clusters
+#' @param gene_name optional plot title
+#' @param peaks.use whether to print the plot to output (default: TRUE).
+#' @param population.ids size of the point (default: 0.75)
+#' @param return.plot whether to return the ggplot object (default: FALSE)
+#' @return NULL by default. Returns a ggplot2 object if return.plot = TRUE
+#' @examples
+#' do_arrow_plot(peaks.seurat.object, gene_name = Favouritegene1)
+#'
+#' @import ggplot2
+#'
+do_arrow_plot <- function(peaks.seurat.object, gene_name, peaks.use = NULL, population.ids = NULL,
+                          return.plot = FALSE) {
+  
+  if (!'gggenes' %in% rownames(x = installed.packages())) {
+    stop("Please install the gggenes package (dev. version) before using this function
+         (https://github.com/wilkox/gggenes)")
+  }
+  
+  peak.data = subset(Tool(peaks.seurat.object, "GeneSLICER"), Gene_name == gene_name)
+  if (!is.null(peaks.use)) peak.data = subset(peak.data, rownames(peak.data) %in% peaks.use)
+  n.peaks = nrow(peak.data)
+  
+  if (is.null(population.ids)) population.ids = names(table(Idents(peaks.seurat.object)))
+  
+  ave.expression = Seurat::AverageExpression(peaks.seurat.object, features = rownames(peak.data), verbose = FALSE)
+  ave.expression = t(as.matrix(ave.expression$RNA))
+  ave.expression = ave.expression[cl.use, ]
+  ave.expression = log2(ave.expression + 1)
+
+  peak.info = c()
+  for (this.peak in rownames(peak.data)) {
+    this.info = data.frame(Peak = rep(this.peak, nrow(ave.expression)),
+                           start = rep(peak.data[this.peak, "start"], nrow(ave.expression)),
+                           end = rep(peak.data[this.peak, "end"], nrow(ave.expression)),
+                           strand = rep(peak.data[this.peak, "strand"], nrow(ave.expression)),
+                           direction = rep(peak.data[this.peak, "strand"], nrow(ave.expression)))
+    peak.info = rbind(peak.info, this.info)
+  }
+  peak.info$strand = plyr::mapvalues(peak.info$strand, from = c("+", "-"), to = c("forward", "reverse"))
+  peak.info$direction = plyr::mapvalues(peak.info$direction, from = c("+", "-"), to = c("1", "-1"))
+  
+  gggenesData = data.frame(Cluster = rep(rownames(ave.expression), n.peaks), 
+                           Expression = as.vector(ave.expression))
+  gggenesData = cbind(gggenesData, peak.info)
+  
+  pl <- ggplot(gggenesData, aes(xmin = start, xmax = end, y = Cluster, fill = Expression)) +
+    gggenes::geom_gene_arrow() + ggtitle(paste0(gene_name, " peak-specific expression")) +
+    facet_wrap(~ Cluster, scales = "free", ncol = 1) +
+    gggenes::theme_genes() + scale_fill_gradient2(low="#d9d9d9", mid="red", high="brown", 
+    midpoint=min(gggenesData$Expression) + (max(gggenesData$Expression)-min(gggenesData$Expression))/2, 
+    name="Expression (log2)") + theme(legend.position = "bottom", legend.box = "horizontal") +
+    guides(fill = guide_colourbar(barwidth = 10))
+  print(pl)
+  
+  if (return.plot) return(pl)
+}
+
 
 #########################################################
 #'
@@ -84,21 +149,21 @@ plot_expression_tsne <- function(seurat.object, geneSet, do.plot=TRUE, figure.ti
   ggData = getMultiGeneExpressionData(seurat.object, geneSet)
 
   # Pull out the t-SNE coordinates
-  seurat.object.tsne1 <- seurat.object@dr$tsne@cell.embeddings[, 1]
-  names(seurat.object.tsne1) <- names(seurat.object@ident)
+  seurat.object.tsne1 <- seurat.object@reductions$tsne@cell.embeddings[, 1]
+  names(seurat.object.tsne1) <- colnames(seurat.object)
 
-  seurat.object.tsne2 <- seurat.object@dr$tsne@cell.embeddings[, 2]
-  names(seurat.object.tsne2) <- names(seurat.object@ident)
+  seurat.object.tsne2 <- seurat.object@reductions$tsne@cell.embeddings[, 2]
+  names(seurat.object.tsne2) <- colnames(seurat.object)
 
   ggData$tSNE_1 = rep(seurat.object.tsne1, length(geneSet))
   ggData$tSNE_2 = rep(seurat.object.tsne2, length(geneSet))
 
-  ggData$Cell_ID = rep(seurat.object@cell.names, length(geneSet))
+  ggData$Cell_ID = rep(colnames(seurat.object), length(geneSet))
 
   ggData$Gene <- factor(ggData$Gene, levels = geneSet)
   pl <- ggplot(ggData, aes(tSNE_1, tSNE_2, color=Expression)) + geom_point(size=pt.size) + xlab("t-SNE 1") + ylab("t-SNE 2") +
     scale_color_gradient2(low="#d9d9d9", mid="red", high="brown", midpoint=min(ggData$Expression) +
-                            (max(ggData$Expression)-min(ggData$Expression))/2, name="") +
+                            (max(ggData$Expression)-min(ggData$Expression))/2, name="") + theme_bw() +
     theme(strip.text.x = element_text(size = 14))
   if (length(geneSet) > 1) {
     pl <- pl + facet_wrap(~Gene)
@@ -166,7 +231,6 @@ do_box_plot <- function(seurat.object, geneSet, figure.title = NULL, num_col = N
 ### genes for input to ggplot2. Tracks cluster identities.   ###
 ################################################################
 getMultiGeneExpressionData <- function(seurat.object, geneSet, use.log10 = FALSE) {
-  ### Run below to get expression plot for a set of genes
   expression <- c()
   geneName <- c()
   cluster <- c()
@@ -177,9 +241,9 @@ getMultiGeneExpressionData <- function(seurat.object, geneSet, use.log10 = FALSE
   }
   # Iterate through the genes and fill the vectors
   for (gene in geneSet) {
-    expression <- append(expression, log.fun(exp(seurat.object@data[gene, ])))
-    geneName <- append(geneName, rep(gene, length(seurat.object@data[gene, ])))
-    cluster <- append(cluster, as.character(seurat.object@ident))
+    expression <- append(expression, log.fun(exp(GetAssayData(seurat.object)[gene, ])))
+    geneName <- append(geneName, rep(gene, length(GetAssayData(seurat.object)[gene, ])))
+    cluster <- append(cluster, as.character(Idents(seurat.object)))
   }
   #create a data-frame for ggplot and return
   ggData <- data.frame(Expression=expression, Gene=geneName, Cluster=cluster)
