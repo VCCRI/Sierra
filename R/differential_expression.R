@@ -82,10 +82,14 @@ apply_DEXSeq_test <- function(apa.seurat.object, population.1, population.2 = NU
   colnames(profile.set1) <- paste0("Population1_", 1:length(cell.sets1))
 
   ## create a profile set for second cluster
-  if (length(population.2) == 1) {
-    cells.2 <- names(Idents(apa.seurat.object))[which(Idents(apa.seurat.object) == population.2)]
+  if (is.null(population.2)) {
+    cells.2 <- setdiff(colnames(apa.seurat.object), cells.1)
   } else {
-    cells.2 <- population.2
+    if (length(population.2) == 1) {
+      cells.2 <- names(Idents(apa.seurat.object))[which(Idents(apa.seurat.object) == population.2)]
+    } else {
+      cells.2 <- population.2
+    }
   }
 
   cells.2 = sample(cells.2)
