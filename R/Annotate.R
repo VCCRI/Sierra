@@ -23,8 +23,8 @@
 #' @param annotationType can be assigned "within" or "all". Default is "within" which states that the peak with gr must be within annotation feature (eg exon)
 #' @param transcriptDetails Boolean. If false will only return gene name. If true will return internal transcript position feature (eg exon/intron)
 #' @param gtf_TxDb  same as gtf_gr but as a TxDb object.
-#' @param annotation_correction Boolean. When multiple overlapping genes are identified will 
-#' prioritise gene based on annotation. 3'UTR annotation trumps all other annotation. 
+#' @param annotation_correction Boolean. When multiple overlapping genes are identified will
+#' prioritise gene based on annotation. 3'UTR annotation trumps all other annotation.
 #' @return a dataframe with appended columns containing annotation
 ##
 ## Written March 2019
@@ -52,19 +52,19 @@ annotate_gr_from_gtf <- function(gr, invert_strand = FALSE, gtf_gr = NULL,
       warning("No samples matched")
       return(-1)
     }
-    
+
     identified_gene_symbols <- reference_gr[S4Vectors::subjectHits(all_hits)]$gene_name
     idx_to_annotate <- S4Vectors::queryHits(all_hits)
-    
+
     multi_annotations <- which(table(idx_to_annotate) > 1)
     unique_annotations <- unique(idx_to_annotate)
-  
+
     multi_gene_IDs <- unlist(sapply(names(multi_annotations),FUN=function(x) {
       newID <- paste(unique(identified_gene_symbols[which(x== idx_to_annotate)]),collapse=",")
      # rep(newID, length(which(x== idx_to_annotate)))
       }))
     multi_idx <- as.numeric(names(multi_gene_IDs))  # These are the indexes to annotate
- 
+
     to_convert <- lapply(multi_idx,FUN = function(x) {which(idx_to_annotate == x)})
 
     if (length(to_convert) > 0)
@@ -73,26 +73,26 @@ annotate_gr_from_gtf <- function(gr, invert_strand = FALSE, gtf_gr = NULL,
           identified_gene_symbols[to_convert[[i]]] <- multi_gene_IDs[[i]]
         }
     }
-    
+
     return(list (identified_gene_symbols=identified_gene_symbols, idx_to_annotate=idx_to_annotate))
   }
 
   # check for compatibility between chromosome labels:
-  if (length(intersect(seqlevels(gr),seqlevels(gtf_gr))) == 0)
+  if (length(intersect(GenomeInfoDb::seqlevels(gr), GenomeInfoDb::seqlevels(gtf_gr))) == 0)
   { # remove chr prefix from both data sets
-    seqlevels(gr) <-   gsub(pattern = "chr",replacement = "",x = seqlevels(gr))
-    seqlevels(gtf_gr) <- gsub(pattern = "chr",replacement = "",x = seqlevels(gtf_gr))
+    GenomeInfoDb::seqlevels(gr) <-   gsub(pattern = "chr",replacement = "",x = GenomeInfoDb::seqlevels(gr))
+    GenomeInfoDb::seqlevels(gtf_gr) <- gsub(pattern = "chr",replacement = "",x = GenomeInfoDb::seqlevels(gtf_gr))
   }
-  
+
   genes_gr <- gtf_gr[gtf_gr$type == "gene"]
-  
+
   annotate_info <- gene_Labels(gr, genes_gr,annotationType)
-  
+
   df <- as.data.frame(gr)
   df$gene_id <- ""
 #  df$gene_id[idx_to_annotate] <-  identified_gene_symbols
 #  df$gene_id[multi_idx] <- multi_gene_IDs
-  
+
   df$gene_id[annotate_info$idx_to_annotate] <- annotate_info$identified_gene_symbols # identified_gene_symbols
   df_with_gene_labels <- df    # Making a copy. Annotation tracks will be labelled with gene IDs rather than "YES"
 
@@ -113,25 +113,25 @@ annotate_gr_from_gtf <- function(gr, invert_strand = FALSE, gtf_gr = NULL,
       listed_annotations <- names(table(gtf_gr$type))
       if (length(grep(pattern = "three_prime_utr",x = listed_annotations)))
       {### working here
-        
-#  browser()      
+
+#  browser()
         UTR_3_GR <- gtf_gr[gtf_gr$type == "three_prime_utr"]
         UTR_annotate_info <- gene_Labels(gr, UTR_3_GR ,annotationType)
-        df_with_gene_labels$UTR3 <- rep(NA, nrow(df_with_gene_labels)) 
+        df_with_gene_labels$UTR3 <- rep(NA, nrow(df_with_gene_labels))
         df_with_gene_labels$UTR3[UTR_annotate_info$idx_to_annotate] <- UTR_annotate_info$identified_gene_symbols
-        
+
       }
       else
       {
-        
+
         UTR_GR <- gtf_gr[gtf_gr$type == "UTR"]   # This will be used to retrieve gene names from ALL UTRs
         real_3UTRs_idx <- GenomicAlignments::findOverlaps(UTR_GR , UTR_3_GR,type = annotationType)
-        
+
         UTR_annotate_info <- gene_Labels(gr, UTR_GR[S4Vectors::queryHits(real_3UTRs_idx)] ,annotationType)
-        df_with_gene_labels$UTR3 <- rep(NA, nrow(df_with_gene_labels)) 
+        df_with_gene_labels$UTR3 <- rep(NA, nrow(df_with_gene_labels))
         df_with_gene_labels$UTR3[UTR_annotate_info$idx_to_annotate] <- UTR_annotate_info$identified_gene_symbols
       }
-      
+
       # Copy relevant updated annotations
       # Grab index of annotated entries and copy to main df.
       df$gene_id[UTR_annotate_info$idx_to_annotate] <- UTR_annotate_info$identified_gene_symbols
@@ -149,7 +149,7 @@ annotate_gr_from_gtf <- function(gr, invert_strand = FALSE, gtf_gr = NULL,
       idx_to_annotate_5UTR <- intersect(idx_to_annotate_5UTR, ok_to_annotate)
     }
     df$UTR5[idx_to_annotate_5UTR] <- "YES"
-    
+
 
     cat("\nAnnotating introns")
     df$intron <- ""
