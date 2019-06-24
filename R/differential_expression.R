@@ -15,6 +15,9 @@
 #' @param adj.pval.thresh threshold for adjusted P-value for returned results
 #' @param num.splits the number of pseudo-bulk profiles to create per identity class (default: 6)
 #' @param feature.type genomic feature types to run analysis on (degault: all)
+#' @param verbose whether to print outputs (TRUE by default)
+#' @param doMAPlot make an MA plot of results (FALSE by default)
+#' @param return.dexseq.res return the raw and unfiltered DEXSeq results object (FALSE by default)
 #' @return a data-frame of results.
 #' @examples
 #' apply_DEXSeq_test(apa.seurat.object, population.1 = "1", population.2 = "2")
@@ -24,7 +27,7 @@
 apply_DEXSeq_test <- function(apa.seurat.object, population.1, population.2 = NULL, exp.thresh = 0.1,
                               fc.thresh=0.25, adj.pval.thresh = 0.05, num.splits = 6,
                               feature.type = c("UTR3", "UTR5", "exon", "intron"), verbose = TRUE,
-                              do.MAPlot = FALSE) {
+                              do.MAPlot = FALSE, return.dexseq.res = FALSE) {
 
   if (!'DEXSeq' %in% rownames(x = installed.packages())) {
     stop("Please install DEXSeq before using this function
@@ -141,6 +144,8 @@ apply_DEXSeq_test <- function(apa.seurat.object, population.1, population.2 = NU
   if (do.MAPlot) DEXSeq::plotMA(dxr1, alpha = adj.pval.thresh,
                                 ylim = c(min(dxr1$log2fold_target_comparison), max(dxr1$log2fold_target_comparison)))
 
+  if (return.dexseq.res) return(dxr1)
+  
   ## subset the results according to adjusted P-value and fold-change and pull out
   ## relevant data to return
   dxrSig <- subset(as.data.frame(dxr1), padj < adj.pval.thresh & abs(log2fold_target_comparison) > fc.thresh)
