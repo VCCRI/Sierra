@@ -42,6 +42,6 @@ between clusters. Selects genes that have at least one differential peak, but ex
 multiple peaks.
 }
 \examples{
-find_de_polya(apa.seurat, cluster1 = "1", cluster2 = "2")
+find_de_polya(apa.seurat.object, cluster1 = "1", cluster2 = "2")
 
 }

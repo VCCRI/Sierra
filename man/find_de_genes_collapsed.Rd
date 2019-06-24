@@ -36,6 +36,6 @@ Collapses polyA sites into a single gene-level count for each gene. Performs dif
 gene expression analysis on the collapsed gene-level counts.
 }
 \examples{
-find_de_genes_collapsed(apa.seurat, cluster1 = "1", cluster2 = "2")
+find_de_genes_collapsed(apa.seurat.object, cluster1 = "1", cluster2 = "2")
 
 }

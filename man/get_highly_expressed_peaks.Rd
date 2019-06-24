@@ -25,7 +25,7 @@ background cluster. Considers peaks expressed in some x\% of cells to be highly 
 union of peaks identified from the target and background cluster
 }
 \examples{
-get_highly_expressed_peaks(apa.seurat, "1")
-get_highly_expressed_peaks(apa.seurat, cluster1 = "1", cluster2 = "2")
+get_highly_expressed_peaks(seurat.object, "1")
+get_highly_expressed_peaks(seurat.object, cluster1 = "1", cluster2 = "2")
 
 }

@@ -30,6 +30,6 @@ a data-frame of results
 Use the logistic regression method by Lior Patcher group to calculate differential polyA
 }
 \examples{
-res.table = lr_de_test(apa.seurat, cluster1 = "1", cluster2 = "2")
+res.table = lr_de_test(apa.seurat.object, cluster1 = "1", cluster2 = "2")
 
 }

@@ -29,5 +29,4 @@ Creates a new polyA Seurat object from the peak counts and annotation table
 \examples{
 apa.seurat = polya_seurat_from_gene_object(apa.data, genes.seurat, annot.info)
 
-
 }

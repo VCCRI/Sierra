@@ -5,7 +5,8 @@
 \title{Annotates a granges object with overlapping genes from gtf file.}
 \usage{
 annotate_gr_from_gtf(gr, invert_strand = FALSE, gtf_gr = NULL,
-  annotationType = "within", transcriptDetails = FALSE, gtf_TxDb)
+  annotationType = "within", transcriptDetails = FALSE, gtf_TxDb,
+  annotation_correction = TRUE)
 }
 \arguments{
 \item{gr}{a granges object of peaks to annotate}
@@ -19,13 +20,16 @@ annotate_gr_from_gtf(gr, invert_strand = FALSE, gtf_gr = NULL,
 \item{transcriptDetails}{Boolean. If false will only return gene name. If true will return internal transcript position feature (eg exon/intron)}
 
 \item{gtf_TxDb}{same as gtf_gr but as a TxDb object.}
+
+\item{annotation_correction}{Boolean. When multiple overlapping genes are identified will
+prioritise gene based on annotation. 3'UTR annotation trumps all other annotation.}
 }
 \value{
 a dataframe with appended columns containing annotation
 }
 \description{
 gr is the genomic ranges that need to be annotation. Ideally original input should be in the format:
-      chr1:1234-2345:+    # chr:start-end:strand
+      chr8:70331172-70331574:+   # chr:start-end:strand
   This could already exist within an R object or you can copy it in via readClipboard.
 }
 \details{
@@ -33,6 +37,8 @@ gr <- GRanges(readClipboard())
 
 You need to run the following code:
         gtf_file <- "u:/Reference/hg38/hg38_gene.gtf.gz"
+        gtf_file <- "u:/Reference/mm10/mm10_gene.gtf.gz"
+        gtf_file <- "u:/Reference/mm10/cellranger_genes.gtf.gz"
        gtf_gr <- rtracklayer::import(gtf_file)
        gtf_TxDb <- GenomicFeatures::makeTxDbFromGFF(gtf_file, format="gtf")
 

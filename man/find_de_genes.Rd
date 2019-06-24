@@ -32,6 +32,6 @@ a gene-level Seurat object to obtain differentially expressed genes for a direct
 with results from differential testing at the polyA level.
 }
 \examples{
-find_de_genes(apa.seurat, cluster1 = "1", cluster2 = "2")
+find_de_genes(apa.seurat.object, cluster1 = "1", cluster2 = "2")
 
 }

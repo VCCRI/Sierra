@@ -35,6 +35,6 @@ a data-frame of results.
 Apply a differential expression test to polyA sites, i.e. treats polyA sites as independent.
 }
 \examples{
-find_de_polya(apa.seurat, cluster1 = "1", cluster2 = "2")
+find_de_polya(apa.seurat.object, cluster1 = "1", cluster2 = "2")
 
 }

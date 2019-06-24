@@ -2,10 +2,11 @@
 
 export(apply_DEXSeq_test)
 export(count_polyA)
+export(find_de_genes_collapsed)
 export(find_polyA)
 export(new_polya_seurat)
+export(new_polya_seurat_v2)
 export(polya_seurat_from_gene_object)
-export(readMEX)
 export(select_gene_polyas)
 import(GenomicRanges)
 import(ggplot2)

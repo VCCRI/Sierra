@@ -23,6 +23,6 @@ Get a list of Log2 fold-change values for a gene list between a specified cluste
 and either all remaining cells (default) or an alternative cluster
 }
 \examples{
-foldchange.list = get_log2FC_list(apa.seurat, geneList, "1")
+foldchange.list = get_log2FC_list(seurat.object, geneList, "1")
 
 }
