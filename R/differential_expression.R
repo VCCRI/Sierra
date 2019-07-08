@@ -25,7 +25,7 @@
 #' @export
 #'
 apply_DEXSeq_test <- function(apa.seurat.object, population.1, population.2 = NULL, exp.thresh = 0.1,
-                              fc.thresh=0.25, adj.pval.thresh = 0.05, num.splits = 6,
+                              fc.thresh=0.25, adj.pval.thresh = 0.05, num.splits = 6, seed.use = 1,
                               feature.type = c("UTR3", "UTR5", "exon", "intron"), verbose = TRUE,
                               do.MAPlot = FALSE, return.dexseq.res = FALSE) {
 
@@ -59,7 +59,8 @@ apply_DEXSeq_test <- function(apa.seurat.object, population.1, population.2 = NU
   if (verbose) print(paste(length(peaks.use), "Individual peak sites to test"))
 
   ## make pseudo-bulk profiles out of cells
-  set.seed(1)
+  ## set a seed to allow replication of results
+  set.seed(seed.use)
   if (length(population.1) == 1) {
     cells.1 <- names(Idents(apa.seurat.object))[which(Idents(apa.seurat.object) == population.1)]
   } else{
@@ -145,7 +146,7 @@ apply_DEXSeq_test <- function(apa.seurat.object, population.1, population.2 = NU
                                 ylim = c(min(dxr1$log2fold_target_comparison), max(dxr1$log2fold_target_comparison)))
 
   if (return.dexseq.res) return(dxr1)
-  
+
   ## subset the results according to adjusted P-value and fold-change and pull out
   ## relevant data to return
   dxrSig <- subset(as.data.frame(dxr1), padj < adj.pval.thresh & abs(log2fold_target_comparison) > fc.thresh)
@@ -197,7 +198,7 @@ apply_DEXSeq_test <- function(apa.seurat.object, population.1, population.2 = NU
 #' @examples
 #' find_de_polya(apa.seurat.object, cluster1 = "1", cluster2 = "2")
 #'
-find_de_polya <- function(apa.seurat.object, cluster1, cluster2, exp.thresh = 0.05,
+find_de_polya <- function(apa.seurat.object, cluster1, cluster2 = NULL, exp.thresh = 0.05,
                              fc.thresh = 0.25, adj.pval.thresh = 1e-05, test.use = "MAST",
                              feature.type = c("UTR3", "UTR5", "exon", "intron"),
                              use.all.peaks = FALSE, add.annot.info = TRUE, print.output = TRUE) {
@@ -218,7 +219,7 @@ find_de_polya <- function(apa.seurat.object, cluster1, cluster2, exp.thresh = 0.
     cells.fg = cluster1
   }
   if (is.null(cluster2)) {
-    remainder.set = names(Idents(apa.seurat.object)[Idents(apa.seurat.object)!=cluster1])
+    cells.bg = names(Idents(apa.seurat.object)[Idents(apa.seurat.object)!=cluster1])
   } else {
     if (length(cluster2) == 1) { # cluster identity used as input
       cells.bg = names(Idents(apa.seurat.object)[Idents(apa.seurat.object)==cluster2])
