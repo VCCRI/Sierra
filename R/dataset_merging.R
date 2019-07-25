@@ -271,7 +271,8 @@ generate_self_similarity_table <- function(peaks.1, ncores = 1) {
 #'
 #' @importFrom magrittr "%>%"
 #'
-generate_self_merged_peaks <- function(apa.similarity.table, sim.thresh = 0.75, allow.match.var = 0.25) {
+generate_self_merged_peaks <- function(apa.similarity.table, sim.thresh = 0.75, allow.match.var = 0.25,
+                                       return.peaks = TRUE) {
 
   apa.similarity.table %>%
     dplyr::mutate(Matched_Similarity =
@@ -315,8 +316,11 @@ generate_self_merged_peaks <- function(apa.similarity.table, sim.thresh = 0.75, 
 
   ## Combined the merged and unique peaks
   combined.peaks = c(peak.mapping.table.unique$MergedPeak, table1.distinct.subset$Peak)
-
-  return(combined.peaks)
+  if (return.peaks) {
+    return(combined.peaks)
+    } else{
+    return(peak.mapping.table) ## return a table of peaks that should be merged
+  }
 }
 
 
@@ -441,6 +445,7 @@ generate_merged_peak_table <- function(dataset.1, peak.dataset.list, self.merged
                                           Class = c(rep("Merged", nrow(peak.mapping.table.unique)),
                                                     rep(paste0("Unique_", dataset.1), length(peaks.unique))),
                                           OriginalPeak = c(peak.mapping.table.unique$OriginalPeak, peaks.unique),
+                                          DataOrigin = rep(dataset.1, times = (nrow(peak.mapping.table.unique) + length(peaks.unique))),
                                           stringsAsFactors = FALSE)
   return(combined.peak.output.table)
 }
@@ -526,25 +531,100 @@ do_peak_merging <- function(peak.dataset.table, output.file, sim.thresh = 0.75,
   ## Add the set of unique peaks that aren't already in the merged list
   unique.peaks = unique.peaks[which(!(unique.peaks$Peak %in% merged.peaks.unique$Peak)), ]
 
-  final.merged.peaks = rbind(merged.peaks.unique, unique.peaks)
+  all.merged.peaks = rbind(merged.peaks.unique, unique.peaks)
+
+  ### Run a final check on the peaks to clean up any that should be further merged
+  final.peak.similarity.table = generate_self_similarity_table(all.merged.peaks$Peak, ncores = ncores)
+  peaks.to.merge = generate_self_merged_peaks(final.peak.similarity.table, sim.thresh = sim.thresh,
+                                              allow.match.var = allow.match.var, return.peaks = FALSE)
+
+  peaks.to.replace <- peaks.to.merge$Data1_Peak
+  peaks.merge.index <- which(all.merged.peaks$Peak %in% peaks.to.replace)
+  peaks.retain.index <- setdiff(1:nrow(all.merged.peaks), peaks.merge.index)
+  all.merged.peaks.retained <- all.merged.peaks[peaks.retain.index, ] ## Keep these ones for later
+
+  peaks.to.remerge <- all.merged.peaks[peaks.merge.index, ]
+  final.peaks.combined <- all.merged.peaks.retained
+
+  ## Iteratively check for peak similarity and merge until all peaks are considered unique
+  while (nrow(peaks.to.merge) > 0) {
+    ## First update the peak names to the merged peak names
+    peaks.to.remerge$Peak <- plyr::mapvalues(peaks.to.remerge$Peak,
+                                             from = peaks.to.merge$Data1_Peak,
+                                             to = peaks.to.merge$MergedPeak)
+    ## reduce to the set of unique merged peaks
+    peaks.to.remerge %>% dplyr::distinct(Peak, .keep_all = TRUE) -> peaks.to.remerge
+
+    ## Generate an updated similarity table and check for peaks to merge
+    new.peak.similarity.table = generate_self_similarity_table(peaks.to.remerge$Peak, ncores = ncores)
+    peaks.to.merge = generate_self_merged_peaks(new.peak.similarity.table, sim.thresh = sim.thresh,
+                                                allow.match.var = allow.match.var, return.peaks = FALSE)
+
+    ## Separate peaks by those that can be retained now and those that
+    ## will go through another round of mering
+    peaks.to.replace <- peaks.to.merge$Data1_Peak
+    peaks.merge.index <- which(peaks.to.remerge$Peak %in% peaks.to.replace)
+    peaks.retain.index <- setdiff(1:nrow(peaks.to.remerge), peaks.merge.index)
+
+    ## Append the retained peaks to the output table.
+    merged.peaks.retained <- peaks.to.remerge[peaks.retain.index, ]
+    final.peaks.combined <- rbind(final.peaks.combined, merged.peaks.retained)
+
+    ## Peaks to remerge (if any)
+    peaks.to.remerge <- peaks.to.remerge[peaks.merge.index, ]
+  }
+
+  final.merged.peaks <- final.peaks.combined
 
   final.merged.peaks %>% dplyr::mutate(Gene = sub("(.*):.*:.*-.*:.*", "\\1", Peak),
                                        Chr = sub(".*:(.*):.*-.*:.*", "\\1", Peak),
                                        Strand = sub(".*:.*:.*-.*:(.*)", "\\1", Peak),
                                        Fit.start = sub(".*:.*:(.*)-.*:.*", "\\1", Peak),
                                        Fit.end = sub(".*:.*:.*-(.*):.*", "\\1", Peak)) -> output.table
-  output.table = output.table[, c("Gene", "Chr", "Strand", "Fit.start", "Fit.end", "Peak", "Class")]
-  colnames(output.table) = c("Gene", "Chr", "Strand", "Fit.start", "Fit.end", "Peak.ID", "Peak.origin")
+  output.table = output.table[, c("Gene", "Chr", "Strand", "Fit.start", "Fit.end", "Peak", "Class",
+                                  "OriginalPeak", "DataOrigin")]
+  colnames(output.table) = c("Gene", "Chr", "Strand", "Fit.start", "Fit.end",
+                             "Peak.ID", "Peak.origin", "OriginalPeak", "DataOrigin")
 
   ## Filter peaks
 
-  ## Make sure the positions are numeric 
-  output.table$Fit.end <- as.numeric(output.table$Fit.end) 
-  output.table$Fit.start <- as.numeric(output.table$Fit.start) 
+  ## Make sure the positions are numeric
+  output.table$Fit.end <- as.numeric(output.table$Fit.end)
+  output.table$Fit.start <- as.numeric(output.table$Fit.start)
 
   sites.diffs = output.table$Fit.end - output.table$Fit.start
   sites.keep = which(sites.diffs > 0)
   output.table = output.table[sites.keep, ]
+  
+  ## As a final step, map back status on junctions from the original input files
+  data.classes <- unique(output.table$DataOrigin)
+  
+  peak.junctions.list = c()
+  for (i in 1:nrow(peak.dataset.table)) {
+    peak.table <- read.table(as.character(peak.dataset.table[i, "Peak_file"]),
+                             header = TRUE, stringsAsFactors = FALSE)
+    junction.table = peak.table[, c("polyA_ID", "exon.intron")]
+    junction.table %>% dplyr::distinct(polyA_ID, .keep_all = TRUE) -> junction.table
+    rownames(junction.table) <- junction.table$polyA_ID
+    peak.junctions.list = c(peak.junctions.list, list(junction.table))
+    
+  }
+  names(peak.junctions.list) = as.character(peak.dataset.table$Identifier)
+  
+  junction.status <- rep("Unknown", nrow(output.table))
+  output.table$JunctionType <- junction.status
+  
+  for (dataset.name in peak.dataset.table$Identifier) {
+    dataset.index <- which(output.table$DataOrigin == dataset.name)
+    original.peaks <- output.table[dataset.index, "OriginalPeak"]
+    this.junction.table <- peak.junctions.list[[dataset.name]]
+    original.peaks.overlap <- intersect(original.peaks, rownames(this.junction.table))
+    this.junction.labels <- this.junction.table[original.peaks.overlap, "exon.intron"]
+    
+    ## add the junction labels to the output table
+    peak.overlap.index <- which(output.table$OriginalPeak %in% original.peaks.overlap)
+    output.table[peak.overlap.index, "JunctionType"] <- this.junction.labels
+  }
 
   write.table(output.table, file = output.file, sep="\t", quote = FALSE, row.names = FALSE)
 }
