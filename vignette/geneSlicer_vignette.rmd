@@ -1,0 +1,214 @@
+---
+title: "geneSlicer: Extracting transcript isoform use from single cell RNAseq"
+author: 
+  - name: Ralph Patrick
+    affilitation: Developmental and stem cell biology division, Victor Chang Cardirac Research Institute
+  - name: David Humphreys
+    affiliation: Genomics Core, Victor Chang Cardiac Research Institute
+  - name: Kitty Lo
+    affiliation: School of Mathematics and Statistics, University of Sydney
+thanks: "https://github.com/kittyl/scpolya"
+abstract: "This vignette provides walkthroughs on how to install to use geneSlicer on single cell RNAseq data that enriches poly(A) transcripts (i.e. a 3' targetted protocol)."
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+output: 
+    BiocStyle::html_document:
+    highlight: pygments
+    toc: true
+    #number_sections: true  ## if you want number sections at each table header
+    #theme: united 
+keywords: single cell RNASeq, scRNA-Seq, RNA-Sequencing, RNA-Seq, transcript isoform
+vignette: >
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteIndexEntry{geneSlicer}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup,echo=FALSE}
+library(knitr)
+library(BiocStyle)
+```
+
+
+
+
+# Introduction
+
+Single cell RNA sequencing is a powerful technology that is utilised to extract gene expression information from thousands of cells. While there are a number of described single cell RNA-Seq methods many are based on the principle of capturing and sequencing the 3' end of transcripts. 
+
+Many bioinformatic principles of single cell RNA seq are applied from bulk RNA-Seq methods. This includes building a gene count matrix from which secondary analysis can be performed on. This matrix is built by counting sequence reads and assigning them to specific genes when they fall within exonic coordinates of existing gene models. Genes that have multiple transcript isoforms are collapsed and counts are accumulated. Geneslicer resolves transcript isoform usage at the gene level....
+
+
+
+
+
+
+\end{abstract}
+
+# Quickstart
+
+The following demonstrates how to download Ularcirc, install the required databases, and then visualise canonical and backsplice junctions counts of the gene Slc8a1.  
+
+
+STEP1: Install gene slicer
+
+```
+if (!requireNamespace("BiocManager", quietly=TRUE))
+        install.packages("BiocManager")
+BiocManager::install("Ularcirc")
+```
+
+
+
+
+# Preparing input data sets
+
+## Required inputs
+
+
+
+1. Bam file We require as input a bam file, ideally one that was created from CellRanger. scPolyA uses the CellRanger formatted tags that contains the UMI and cell barcode information in the bam file for doing the counting.
+
+2. Junctions file scPolya also requires a junctions file as a mandatory input into the peak caller. This file can be created using the regtools program.
+
+```
+regtools junctions extract indexed_alignments.bam
+```
+
+
+3. Reference annotation file
+
+    Whitelist of cell barcodes
+
+
+
+
+## REquired packages
+
+The following R packages are required to run scPolyA:
+
+    GenomicRanges
+    GenomicAlignments
+    reshape2
+    dplyr
+    doParallel
+
+
+
+# Pipeline
+
+Peak calling, counting, 
+
+## Peak calling
+
+
+    output.file: name of the output file which will contain the location of the peaks
+    reference.file: file with the gene annotations
+    bamfile: bam file of your data, it is essential this bam file contains the UMI and barcode information in the tags
+    junctions.file: file made with regtools using the same bamfile as your input
+
+```{r}
+find_polyA(output.file, reference.file, bamfile, junctions.file) 
+```
+
+
+
+## Counting per peak 
+
+After you finish peak calling, you will have a file with the peak location information and we can now recount the data to create a per peak counts table. 
+
+* polyA.sites.file: name of the output file from the `find_polyA()` function
+* reference.file: file with the gene annotations 
+* bamfile: bam file of your data, it is essential this bam file contains the UMI and barcode information in the tags 
+* whitelist.file: file with a whitelist of the barcodes used 
+* output.file: name of the file with the resulting counts data 
+
+```{r} 
+count_polyA(polyA.sites.file, reference.file, bamfile, whitelist.file, output.file) 
+```
+
+## Integrating multiple data-sets
+
+If you have multiple data-sets, you will need to run an extra step to merge together the peaks called from the different sequencing runs so that counting is run on a unified set of peaks. To run peak merging, create a table with two columns: 'Peak_file', containing the files of peaks generated with find_polyA, and 'Identifier', containing labels for the data-sets. Specify an output file name (output.file) where the merged peaks will be written. Number of cores can be set to speed up the process. 
+
+```{r}
+peak.dataset.table = data.frame(Peak_file = c("Condition1_peaks.txt", "Condition2_peaks.txt"),
+                                Identifier = c("Condition1", "Condition2"), stringsAsFactors = FALSE)
+
+output.file = "conditions_merged_peaks.txt"
+
+merged.peak.table = do_peak_merging(peak.dataset.table, output.file = output.file, ncores = 4)
+```
+
+After the peak merging has been run, the merged peaks file (output.file) can be used as input to the counting function described above.
+
+
+
+
+## Differential expression analysis
+
+devtools::load_all("~/Dropbox/RProjects/scpolya")
+library(Seurat)
+
+### Read in the counts
+peak.counts = readMEX(mm.file = "TIP_vignette_peak_data_MEX/matrix.mtx",
+                      barcodes.file = "TIP_vignette_peak_data_MEX/barcodes.tsv",
+                      genes.file = "TIP_vignette_peak_data_MEX/sitenames.tsv")
+
+### load annotation object
+load("TIP_vignette_annotations.RData")
+
+### Load the gene-level object
+
+```{r}
+load("TIP_vignette_gene_Seurat.RData")
+
+Create peak-level Seurat object
+Since we're using a reduced matrix need to set min.cells and min.peaks to 0 or 
+else everything gets filtered out
+
+peaks.seurat = polya_seurat_from_gene_object(peak.data = peak.counts, 
+                                             genes.seurat = genes.seurat, 
+                                             annot.info = annot.df, min.cells = 0, min.peaks = 0, 
+                                             norm.scale.factor = 1000)
+```
+t-SNE plot of populations
+```{r}
+DimPlot(peaks.seurat, reduction = 'tsne', label = TRUE, pt.size = 0.5)
+```
+
+Differential usage analysis with DEXSeq
+For this test we'll just compare the two biggest fibrobalst and EC clusters
+
+```{r}
+res.table = apply_DEXSeq_test(peaks.seurat, population.1 = "F-SL", population.2 = "EC1",
+                              exp.thresh = 0.05, feature.type = c("UTR3", "exon"))
+head(res.table)
+```
+
+
+Compare gene-level expression to peaks
+
+```{r}
+pl1 <- FeaturePlot(genes.seurat, "Cxcl12", cols = c("lightgrey", "red"))
+peaks.to.plot <- rownames(subset(res.table, gene_name == "Cxcl12"))
+pl2 <- FeaturePlot(peaks.seurat, peaks.to.plot[1], cols = c("lightgrey", "red"))
+pl3 <- FeaturePlot(peaks.seurat, peaks.to.plot[2], cols = c("lightgrey", "red"))
+
+cowplot::plot_grid(pl1, NULL, pl2, pl3, nrow = 2)
+```
+
+Look at peaks on an 'arrow plot'
+```{r}
+do_arrow_plot(peaks.seurat, "Cxcl12", population.ids = c("F-SL", "EC1"))
+
+```
+
+
+
+# Session Information-----------------------------------
+
+```{r sessionInfo}
+sessionInfo()
+```
+
+
