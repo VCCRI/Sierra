@@ -2,6 +2,7 @@
 
 export(apply_DEXSeq_test)
 export(count_polyA)
+export(do_arrow_plot)
 export(find_de_genes_collapsed)
 export(find_polyA)
 export(new_polya_seurat)

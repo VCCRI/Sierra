@@ -15,7 +15,7 @@
 #' do_arrow_plot(peaks.seurat.object, gene_name = Favouritegene1)
 #'
 #' @import ggplot2
-#'
+#' @export
 do_arrow_plot <- function(peaks.seurat.object, gene_name, peaks.use = NULL, population.ids = NULL,
                           return.plot = FALSE) {
   
@@ -52,13 +52,13 @@ do_arrow_plot <- function(peaks.seurat.object, gene_name, peaks.use = NULL, popu
                            Expression = as.vector(ave.expression))
   gggenesData = cbind(gggenesData, peak.info)
   
-  pl <- ggplot(gggenesData, aes(xmin = start, xmax = end, y = Cluster, fill = Expression)) +
-    gggenes::geom_gene_arrow() + ggtitle(paste0(gene_name, " peak-specific expression")) +
-    facet_wrap(~ Cluster, scales = "free", ncol = 1) +
-    gggenes::theme_genes() + scale_fill_gradient2(low="#d9d9d9", mid="red", high="brown", 
+  pl <- ggplot2::ggplot(gggenesData, ggplot2::aes(xmin = start, xmax = end, y = Cluster, fill = Expression)) +
+    gggenes::geom_gene_arrow() + ggplot2::ggtitle(paste0(gene_name, " peak-specific expression")) +
+    ggplot2::facet_wrap(~ Cluster, scales = "free", ncol = 1) +
+    gggenes::theme_genes() + ggplot2::scale_fill_gradient2(low="#d9d9d9", mid="red", high="brown", 
     midpoint=min(gggenesData$Expression) + (max(gggenesData$Expression)-min(gggenesData$Expression))/2, 
-    name="Expression (log2)") + theme(legend.position = "bottom", legend.box = "horizontal") +
-    guides(fill = guide_colourbar(barwidth = 10))
+    name="Expression (log2)") + ggplot2::theme(legend.position = "bottom", legend.box = "horizontal") +
+    ggplot2::guides(fill = ggplot2::guide_colourbar(barwidth = 10))
   print(pl)
   
   if (return.plot) return(pl)
