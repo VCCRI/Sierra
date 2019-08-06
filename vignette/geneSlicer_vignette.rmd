@@ -146,25 +146,34 @@ After the peak merging has been run, the merged peaks file (output.file) can be 
 
 ## Differential expression analysis
 
+```{r}
 devtools::load_all("~/Dropbox/RProjects/scpolya")
 library(Seurat)
+```
 
 ### Read in the counts
-peak.counts = readMEX(mm.file = "TIP_vignette_peak_data_MEX/matrix.mtx",
-                      barcodes.file = "TIP_vignette_peak_data_MEX/barcodes.tsv",
-                      genes.file = "TIP_vignette_peak_data_MEX/sitenames.tsv")
+```{r}
+extdata_path <- system.file("extdata",package = "scpolya")
+
+mm_filename <- paste(extdata_path,"TIP_vignette_peak_data_MEX/matrix.mtx",sep="")
+barcode_filename <- paste(extdata_path,"TIP_vignette_peak_data_MEX/barcodes.tsv",sep="")
+genes_filename <- paste(extdata_path,"TIP_vignette_peak_data_MEX/sitenames.tsv",sep="")
+
+peak.counts = readMEX(mm.file = mm_filename,
+                      barcodes.file = barcode_filename,
+                      genes.file = genes_filename)
+```
 
 ### load annotation object
 load("TIP_vignette_annotations.RData")
 
 ### Load the gene-level object
+Create peak-level Seurat object.
+Since we're using a reduced matrix need to set min.cells and min.peaks to 0 or 
+else everything gets filtered out
 
 ```{r}
 load("TIP_vignette_gene_Seurat.RData")
-
-Create peak-level Seurat object
-Since we're using a reduced matrix need to set min.cells and min.peaks to 0 or 
-else everything gets filtered out
 
 peaks.seurat = polya_seurat_from_gene_object(peak.data = peak.counts, 
                                              genes.seurat = genes.seurat, 
