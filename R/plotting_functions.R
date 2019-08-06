@@ -7,8 +7,8 @@
 #' @param peaks.seurat.object a Seurat object containing t-SNE coordinates and cluster ID's in @ident slot
 #' @param col.set a vector of colour codes corresponding to the number of clusters
 #' @param gene_name optional plot title
-#' @param peaks.use whether to print the plot to output (default: TRUE).
-#' @param population.ids size of the point (default: 0.75)
+#' @param peaks.use 
+#' @param population.ids names of identified cell populations
 #' @param return.plot whether to return the ggplot object (default: FALSE)
 #' @return NULL by default. Returns a ggplot2 object if return.plot = TRUE
 #' @examples
@@ -32,7 +32,8 @@ do_arrow_plot <- function(peaks.seurat.object, gene_name, peaks.use = NULL, popu
   
   ave.expression = Seurat::AverageExpression(peaks.seurat.object, features = rownames(peak.data), verbose = FALSE)
   ave.expression = t(as.matrix(ave.expression$RNA))
-  ave.expression = ave.expression[cl.use, ]
+#  ave.expression = ave.expression[cl.use, ]   # Ralph to check if the following line is an OK replacement
+  ave.expression = ave.expression[population.ids, ]
   ave.expression = log2(ave.expression + 1)
 
   peak.info = c()

@@ -155,13 +155,9 @@ library(Seurat)
 ```{r}
 extdata_path <- system.file("extdata",package = "scpolya")
 
-mm_filename <- paste(extdata_path,"TIP_vignette_peak_data_MEX/matrix.mtx",sep="")
-barcode_filename <- paste(extdata_path,"TIP_vignette_peak_data_MEX/barcodes.tsv",sep="")
-genes_filename <- paste(extdata_path,"TIP_vignette_peak_data_MEX/sitenames.tsv",sep="")
-
-peak.counts = readMEX(mm.file = mm_filename,
-                      barcodes.file = barcode_filename,
-                      genes.file = genes_filename)
+peak.counts = readMEX(mm.file = paste(extdata_path,"matrix.mtx",sep="/"),
+                      barcodes.file = paste(extdata_path,"barcodes.tsv",sep="/"),
+                      genes.file = paste(extdata_path,"sitenames.tsv",sep="/"))
 ```
 
 ### load annotation object
