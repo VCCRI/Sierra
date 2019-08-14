@@ -1,0 +1,361 @@
+---
+title: "geneSlicer: Extracting transcript isoform use from single cell RNAseq"
+author: 
+  - name: Ralph Patrick
+    affilitation: Developmental and stem cell biology division, Victor Chang Cardirac Research Institute
+  - name: David Humphreys
+    affiliation: Genomics Core, Victor Chang Cardiac Research Institute
+  - name: Kitty Lo
+    affiliation: School of Mathematics and Statistics, University of Sydney
+thanks: "https://github.com/kittyl/scpolya"
+abstract: "This vignette provides walkthroughs on how to install to use geneSlicer on single cell RNAseq data that enriches poly(A) transcripts (i.e. a 3' targetted protocol)."
+date: "August 14, 2019"
+output: 
+    BiocStyle::html_document:
+    highlight: pygments
+    toc: true
+    #number_sections: true  ## if you want number sections at each table header
+    #theme: united 
+keywords: single cell RNASeq, scRNA-Seq, RNA-Sequencing, RNA-Seq, transcript isoform
+vignette: >
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteIndexEntry{geneSlicer}
+  %\VignetteEncoding{UTF-8}
+---
+
+
+
+
+
+
+# Introduction
+
+Single cell RNA sequencing is a powerful technology that is utilised to extract gene expression information from thousands of cells. While there are a number of described single cell RNA-Seq methods many are based on the principle of capturing and sequencing the 3' end of transcripts. 
+
+Many bioinformatic principles of single cell RNA seq are applied from bulk RNA-Seq methods. This includes building a gene count matrix from which secondary analysis can be performed on. This matrix is built by counting sequence reads and assigning them to specific genes when they fall within exonic coordinates of existing gene models. Genes that have multiple transcript isoforms are collapsed and counts are accumulated. Geneslicer resolves transcript isoform usage at the gene level....
+
+
+
+
+
+
+\end{abstract}
+
+# Quickstart
+
+The following demonstrates how to download Ularcirc, install the required databases, and then visualise canonical and backsplice junctions counts of the gene Slc8a1.  
+
+
+STEP1: Install gene slicer
+
+```
+if (!requireNamespace("BiocManager", quietly=TRUE))
+        install.packages("BiocManager")
+BiocManager::install("Ularcirc")
+```
+
+
+
+
+# Preparing input data sets
+
+## Required inputs
+
+
+
+1. Bam file We require as input a bam file, ideally one that was created from CellRanger. scPolyA uses the CellRanger formatted tags that contains the UMI and cell barcode information in the bam file for doing the counting.
+
+2. Junctions file scPolya also requires a junctions file as a mandatory input into the peak caller. This file can be created using the regtools program.
+
+```
+regtools junctions extract indexed_alignments.bam
+```
+
+
+3. Reference annotation file
+
+    Whitelist of cell barcodes
+
+
+
+
+## REquired packages
+
+The following R packages are required to run scPolyA:
+
+    GenomicRanges
+    GenomicAlignments
+    reshape2
+    dplyr
+    doParallel
+
+
+
+# Pipeline
+
+Peak calling, counting, 
+
+## Peak calling
+
+
+    output.file: name of the output file which will contain the location of the peaks
+    reference.file: file with the gene annotations
+    bamfile: bam file of your data, it is essential this bam file contains the UMI and barcode information in the tags
+    junctions.file: file made with regtools using the same bamfile as your input
+
+
+```r
+find_polyA(output.file, reference.file, bamfile, junctions.file) 
+```
+
+```
+## Error in find_polyA(output.file, reference.file, bamfile, junctions.file): could not find function "find_polyA"
+```
+
+
+
+## Counting per peak 
+
+After you finish peak calling, you will have a file with the peak location information and we can now recount the data to create a per peak counts table. 
+
+* polyA.sites.file: name of the output file from the `find_polyA()` function
+* reference.file: file with the gene annotations 
+* bamfile: bam file of your data, it is essential this bam file contains the UMI and barcode information in the tags 
+* whitelist.file: file with a whitelist of the barcodes used 
+* output.file: name of the file with the resulting counts data 
+
+
+```r
+count_polyA(polyA.sites.file, reference.file, bamfile, whitelist.file, output.file) 
+```
+
+```
+## Error in count_polyA(polyA.sites.file, reference.file, bamfile, whitelist.file, : could not find function "count_polyA"
+```
+
+## Integrating multiple data-sets
+
+If you have multiple data-sets, you will need to run an extra step to merge together the peaks called from the different sequencing runs so that counting is run on a unified set of peaks. To run peak merging, create a table with two columns: 'Peak_file', containing the files of peaks generated with find_polyA, and 'Identifier', containing labels for the data-sets. Specify an output file name (output.file) where the merged peaks will be written. Number of cores can be set to speed up the process. 
+
+
+```r
+peak.dataset.table = data.frame(Peak_file = c("Condition1_peaks.txt", "Condition2_peaks.txt"),
+                                Identifier = c("Condition1", "Condition2"), stringsAsFactors = FALSE)
+
+output.file = "conditions_merged_peaks.txt"
+
+merged.peak.table = do_peak_merging(peak.dataset.table, output.file = output.file, ncores = 4)
+```
+
+```
+## Error in do_peak_merging(peak.dataset.table, output.file = output.file, : could not find function "do_peak_merging"
+```
+
+After the peak merging has been run, the merged peaks file (output.file) can be used as input to the counting function described above.
+
+
+
+
+## Differential expression analysis
+
+
+```r
+devtools::load_all("~/Dropbox/RProjects/scpolya")
+```
+
+```
+## Error in normalizePath(path.expand(path), winslash, mustWork): path[1]="C:/Users/davhum/Documents/Dropbox/RProjects/scpolya": The system cannot find the path specified
+```
+
+```r
+library(Seurat)
+```
+
+```
+## Warning: package 'Seurat' was built under R version 3.5.3
+```
+
+### Read in the counts
+
+```r
+extdata_path <- system.file("extdata",package = "scpolya")
+
+peak.counts = readMEX(mm.file = paste(extdata_path,"matrix.mtx",sep="/"),
+                      barcodes.file = paste(extdata_path,"barcodes.tsv",sep="/"),
+                      genes.file = paste(extdata_path,"sitenames.tsv",sep="/"))
+```
+
+```
+## Error in readMEX(mm.file = paste(extdata_path, "matrix.mtx", sep = "/"), : could not find function "readMEX"
+```
+
+### load annotation object
+
+```r
+load(paste(extdata_path,"TIP_vignette_annotations.RData",sep="/"))
+```
+### Load the gene-level object
+Create peak-level Seurat object.
+Since we're using a reduced matrix need to set min.cells and min.peaks to 0 or 
+else everything gets filtered out
+
+
+```r
+load(paste(extdata_path,"TIP_vignette_gene_Seurat.RData",sep="/"))
+
+peaks.seurat = polya_seurat_from_gene_object(peak.data = peak.counts, 
+                                             genes.seurat = genes.seurat, 
+                                             annot.info = annot.df, min.cells = 0, min.peaks = 0, 
+                                             norm.scale.factor = 1000)
+```
+
+```
+## Error in polya_seurat_from_gene_object(peak.data = peak.counts, genes.seurat = genes.seurat, : could not find function "polya_seurat_from_gene_object"
+```
+t-SNE plot of populations
+
+```r
+DimPlot(peaks.seurat, reduction = 'tsne', label = TRUE, pt.size = 0.5)
+```
+
+```
+## Error in is.data.frame(x): object 'peaks.seurat' not found
+```
+
+Differential usage analysis with DEXSeq
+For this test we'll just compare the two biggest fibrobalst and EC clusters
+
+
+```r
+res.table = apply_DEXSeq_test(peaks.seurat, population.1 = "F-SL", population.2 = "EC1",
+                              exp.thresh = 0.05, feature.type = c("UTR3", "exon"))
+```
+
+```
+## Error in apply_DEXSeq_test(peaks.seurat, population.1 = "F-SL", population.2 = "EC1", : could not find function "apply_DEXSeq_test"
+```
+
+```r
+head(res.table)
+```
+
+```
+## Error in head(res.table): object 'res.table' not found
+```
+
+
+Compare gene-level expression to peaks
+
+
+```r
+pl1 <- FeaturePlot(genes.seurat, "Cxcl12", cols = c("lightgrey", "red"))
+peaks.to.plot <- rownames(subset(res.table, gene_name == "Cxcl12"))
+```
+
+```
+## Error in subset(res.table, gene_name == "Cxcl12"): object 'res.table' not found
+```
+
+```r
+pl2 <- FeaturePlot(peaks.seurat, peaks.to.plot[1], cols = c("lightgrey", "red"))
+```
+
+```
+## Error in default_order %in% names(object@reductions): object 'peaks.seurat' not found
+```
+
+```r
+pl3 <- FeaturePlot(peaks.seurat, peaks.to.plot[2], cols = c("lightgrey", "red"))
+```
+
+```
+## Error in default_order %in% names(object@reductions): object 'peaks.seurat' not found
+```
+
+```r
+cowplot::plot_grid(pl1, NULL, pl2, pl3, nrow = 2)
+```
+
+```
+## Error in cowplot::plot_grid(pl1, NULL, pl2, pl3, nrow = 2): object 'pl2' not found
+```
+
+Look at peaks on an 'arrow plot'
+
+```r
+do_arrow_plot(peaks.seurat, "Cxcl12", population.ids = c("F-SL", "EC1"))
+```
+
+```
+## Error in do_arrow_plot(peaks.seurat, "Cxcl12", population.ids = c("F-SL", : could not find function "do_arrow_plot"
+```
+
+
+
+# Session Information-----------------------------------
+
+
+```r
+sessionInfo()
+```
+
+```
+## R version 3.5.2 (2018-12-20)
+## Platform: x86_64-w64-mingw32/x64 (64-bit)
+## Running under: Windows >= 8 x64 (build 9200)
+## 
+## Matrix products: default
+## 
+## locale:
+## [1] LC_COLLATE=English_Australia.1252  LC_CTYPE=English_Australia.1252   
+## [3] LC_MONETARY=English_Australia.1252 LC_NUMERIC=C                      
+## [5] LC_TIME=English_Australia.1252    
+## 
+## attached base packages:
+## [1] stats     graphics  grDevices utils     datasets  methods   base     
+## 
+## other attached packages:
+## [1] Seurat_3.0.2     BiocStyle_2.10.0 knitr_1.22      
+## 
+## loaded via a namespace (and not attached):
+##   [1] Rtsne_0.15          colorspace_1.4-0    ggridges_0.5.1     
+##   [4] rprojroot_1.3-2     fs_1.2.6            rstudioapi_0.9.0   
+##   [7] listenv_0.7.0       npsurv_0.4-0        remotes_2.0.2      
+##  [10] ggrepel_0.8.0       codetools_0.2-15    splines_3.5.2      
+##  [13] R.methodsS3_1.7.1   lsei_1.2-0          pkgload_1.0.2      
+##  [16] jsonlite_1.6        ica_1.0-2           cluster_2.0.7-1    
+##  [19] png_0.1-7           R.oo_1.22.0         sctransform_0.2.0  
+##  [22] BiocManager_1.30.4  compiler_3.5.2      httr_1.4.0         
+##  [25] backports_1.1.3     assertthat_0.2.0    Matrix_1.2-15      
+##  [28] lazyeval_0.2.1      cli_1.0.1           htmltools_0.3.6    
+##  [31] prettyunits_1.0.2   tools_3.5.2         bindrcpp_0.2.2     
+##  [34] rsvd_1.0.1          igraph_1.2.4.1      gtable_0.2.0       
+##  [37] glue_1.3.0          RANN_2.6.1          reshape2_1.4.3     
+##  [40] dplyr_0.7.8         Rcpp_1.0.0          gdata_2.18.0       
+##  [43] ape_5.3             nlme_3.1-137        gbRd_0.4-11        
+##  [46] lmtest_0.9-37       xfun_0.5            stringr_1.3.1      
+##  [49] globals_0.12.4      ps_1.3.0            irlba_2.3.3        
+##  [52] gtools_3.8.1        devtools_2.0.1      future_1.14.0      
+##  [55] MASS_7.3-51.1       zoo_1.8-4           scales_1.0.0       
+##  [58] parallel_3.5.2      RColorBrewer_1.1-2  yaml_2.2.0         
+##  [61] curl_3.3            memoise_1.1.0       reticulate_1.12    
+##  [64] pbapply_1.4-1       gridExtra_2.3       ggplot2_3.1.0      
+##  [67] stringi_1.2.4       highr_0.7           desc_1.2.0         
+##  [70] caTools_1.17.1.1    pkgbuild_1.0.2      bibtex_0.4.2       
+##  [73] Rdpack_0.11-0       SDMTools_1.1-221.1  rlang_0.4.0        
+##  [76] pkgconfig_2.0.2     bitops_1.0-6        evaluate_0.13      
+##  [79] lattice_0.20-38     ROCR_1.0-7          purrr_0.3.0        
+##  [82] bindr_0.1.1         htmlwidgets_1.3     cowplot_1.0.0      
+##  [85] processx_3.2.1      tidyselect_0.2.5    plyr_1.8.4         
+##  [88] magrittr_1.5        R6_2.3.0            gplots_3.0.1.1     
+##  [91] pillar_1.3.1        withr_2.1.2         fitdistrplus_1.0-14
+##  [94] survival_2.43-3     tibble_2.0.1        future.apply_1.3.0 
+##  [97] tsne_0.1-3          crayon_1.3.4        KernSmooth_2.23-15 
+## [100] plotly_4.9.0        rmarkdown_1.12      usethis_1.4.0      
+## [103] grid_3.5.2          data.table_1.12.2   callr_3.1.1        
+## [106] metap_1.1           digest_0.6.18       tidyr_0.8.3        
+## [109] R.utils_2.7.0       munsell_0.5.0       viridisLite_0.3.0  
+## [112] sessioninfo_1.1.1
+```
+
+
