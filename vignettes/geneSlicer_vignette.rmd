@@ -106,7 +106,7 @@ Peak calling, counting,
     bamfile: bam file of your data, it is essential this bam file contains the UMI and barcode information in the tags
     junctions.file: file made with regtools using the same bamfile as your input
 
-```{r}
+```
 scpolya::find_polyA(output.file, reference.file, bamfile, junctions.file) 
 ```
 
