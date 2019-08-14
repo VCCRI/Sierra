@@ -32,7 +32,7 @@ do_arrow_plot <- function(peaks.seurat.object, gene_name, peaks.use = NULL, popu
   
   ave.expression = Seurat::AverageExpression(peaks.seurat.object, features = rownames(peak.data), verbose = FALSE)
   ave.expression = t(as.matrix(ave.expression$RNA))
-  ave.expression = ave.expression[cl.use, ]
+  ave.expression = ave.expression[population.ids, ]
   ave.expression = log2(ave.expression + 1)
 
   peak.info = c()
@@ -163,7 +163,8 @@ plot_expression_tsne <- function(seurat.object, geneSet, do.plot=TRUE, figure.ti
   ggData$Gene <- factor(ggData$Gene, levels = geneSet)
   pl <- ggplot(ggData, aes(tSNE_1, tSNE_2, color=Expression)) + geom_point(size=pt.size) + xlab("t-SNE 1") + ylab("t-SNE 2") +
     scale_color_gradient2(low="#d9d9d9", mid="red", high="brown", midpoint=min(ggData$Expression) +
-                            (max(ggData$Expression)-min(ggData$Expression))/2, name="") + theme_bw() +
+                            (max(ggData$Expression)-min(ggData$Expression))/2, name="") + 
+    theme_bw(base_size = 14) + theme(panel.grid = element_blank()) +
     theme(strip.text.x = element_text(size = 14))
   if (length(geneSet) > 1) {
     pl <- pl + facet_wrap(~Gene)
@@ -197,12 +198,12 @@ do_box_plot <- function(seurat.object, geneSet, figure.title = NULL, num_col = N
   ggData = getMultiGeneExpressionData(seurat.object, geneSet)
 
   if (is.null(col.set)){
-    col.set = scales::hue_pal()(length(table(seurat.object@ident)))
+    col.set = scales::hue_pal()(length(table(Idents(seurat.object))))
   }
 
   ## Boxplot
   ggData$Gene = factor(ggData$Gene, levels = geneSet)
-  ggData$Cluster = factor(ggData$Cluster, levels = names(table(seurat.object@ident)))
+  ggData$Cluster = factor(ggData$Cluster, levels = names(table(Idents(seurat.object))))
   pl <- ggplot(ggData, aes(y=Expression, x=Cluster, fill=Cluster)) + geom_boxplot(colour = "black", outlier.size = 0.75) +
     ylab("Log2 (normalised expression + 1)") + scale_fill_manual(values=col.set) + theme_bw(base_size = 16) +
     theme(legend.position="bottom", axis.ticks.x = element_blank(), axis.text.x = element_blank(), text = element_text(size = 16)) + xlab("")

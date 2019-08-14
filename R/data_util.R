@@ -13,6 +13,7 @@
 #' @examples
 #' count.mat = readMEX(mm.file, barcodes.file, genes.file)
 #'
+#' @export
 readMEX <- function(mm.file, barcodes.file, genes.file) {
   count.mat = Matrix::readMM(mm.file)
 
