@@ -107,7 +107,7 @@ Peak calling, counting,
     junctions.file: file made with regtools using the same bamfile as your input
 
 ```
-scpolya::find_polyA(output.file, reference.file, bamfile, junctions.file) 
+find_polyA(output.file, reference.file, bamfile, junctions.file) 
 ```
 
 
@@ -122,7 +122,7 @@ After you finish peak calling, you will have a file with the peak location infor
 * whitelist.file: file with a whitelist of the barcodes used 
 * output.file: name of the file with the resulting counts data 
 
-```{r} 
+``` 
 count_polyA(polyA.sites.file, reference.file, bamfile, whitelist.file, output.file) 
 ```
 
@@ -130,7 +130,7 @@ count_polyA(polyA.sites.file, reference.file, bamfile, whitelist.file, output.fi
 
 If you have multiple data-sets, you will need to run an extra step to merge together the peaks called from the different sequencing runs so that counting is run on a unified set of peaks. To run peak merging, create a table with two columns: 'Peak_file', containing the files of peaks generated with find_polyA, and 'Identifier', containing labels for the data-sets. Specify an output file name (output.file) where the merged peaks will be written. Number of cores can be set to speed up the process. 
 
-```{r}
+```
 peak.dataset.table = data.frame(Peak_file = c("Condition1_peaks.txt", "Condition2_peaks.txt"),
                                 Identifier = c("Condition1", "Condition2"), stringsAsFactors = FALSE)
 
@@ -146,7 +146,7 @@ After the peak merging has been run, the merged peaks file (output.file) can be 
 
 ## Differential expression analysis
 
-```{r}
+```
 devtools::load_all("~/Dropbox/RProjects/scpolya")
 library(Seurat)
 
@@ -159,7 +159,7 @@ peak.counts = scpolya::readMEX(mm.file = paste(extdata_path,"matrix.mtx",sep="/"
 ```
 
 ### load annotation object
-```{r}
+```
 load(paste(extdata_path,"TIP_vignette_annotations.RData",sep="/"))
 ```
 ### Load the gene-level object
@@ -167,7 +167,7 @@ Create peak-level Seurat object.
 Since we're using a reduced matrix need to set min.cells and min.peaks to 0 or 
 else everything gets filtered out
 
-```{r}
+```
 load(paste(extdata_path,"TIP_vignette_gene_Seurat.RData",sep="/"))
 
 peaks.seurat = scpolya::polya_seurat_from_gene_object(peak.data = peak.counts, 
@@ -176,14 +176,14 @@ peaks.seurat = scpolya::polya_seurat_from_gene_object(peak.data = peak.counts,
                                              norm.scale.factor = 1000)
 ```
 t-SNE plot of populations
-```{r}
+```
 DimPlot(peaks.seurat, reduction = 'tsne', label = TRUE, pt.size = 0.5)
 ```
 
 Differential usage analysis with DEXSeq
 For this test we'll just compare the two biggest fibrobalst and EC clusters
 
-```{r}
+```
 res.table = scpolya::apply_DEXSeq_test(peaks.seurat, population.1 = "F-SL", population.2 = "EC1",
                               exp.thresh = 0.05, feature.type = c("UTR3", "exon"))
 head(res.table)
@@ -192,7 +192,7 @@ head(res.table)
 
 Compare gene-level expression to peaks
 
-```{r}
+```
 pl1 <- FeaturePlot(genes.seurat, "Cxcl12", cols = c("lightgrey", "red"))
 peaks.to.plot <- rownames(subset(res.table, gene_name == "Cxcl12"))
 pl2 <- FeaturePlot(peaks.seurat, peaks.to.plot[1], cols = c("lightgrey", "red"))
@@ -202,7 +202,7 @@ cowplot::plot_grid(pl1, NULL, pl2, pl3, nrow = 2)
 ```
 
 Look at peaks on an 'arrow plot'
-```{r}
+```
 scpolya::do_arrow_plot(peaks.seurat, "Cxcl12", population.ids = c("F-SL", "EC1"))
 
 ```
