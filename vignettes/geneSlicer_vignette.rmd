@@ -107,7 +107,7 @@ Peak calling, counting,
     junctions.file: file made with regtools using the same bamfile as your input
 
 ```{r}
-find_polyA(output.file, reference.file, bamfile, junctions.file) 
+scpolya::find_polyA(output.file, reference.file, bamfile, junctions.file) 
 ```
 
 
@@ -136,7 +136,7 @@ peak.dataset.table = data.frame(Peak_file = c("Condition1_peaks.txt", "Condition
 
 output.file = "conditions_merged_peaks.txt"
 
-merged.peak.table = do_peak_merging(peak.dataset.table, output.file = output.file, ncores = 4)
+merged.peak.table = scpolya::do_peak_merging(peak.dataset.table, output.file = output.file, ncores = 4)
 ```
 
 After the peak merging has been run, the merged peaks file (output.file) can be used as input to the counting function described above.
@@ -149,13 +149,11 @@ After the peak merging has been run, the merged peaks file (output.file) can be 
 ```{r}
 devtools::load_all("~/Dropbox/RProjects/scpolya")
 library(Seurat)
-```
 
 ### Read in the counts
-```{r}
 extdata_path <- system.file("extdata",package = "scpolya")
 
-peak.counts = readMEX(mm.file = paste(extdata_path,"matrix.mtx",sep="/"),
+peak.counts = scpolya::readMEX(mm.file = paste(extdata_path,"matrix.mtx",sep="/"),
                       barcodes.file = paste(extdata_path,"barcodes.tsv",sep="/"),
                       genes.file = paste(extdata_path,"sitenames.tsv",sep="/"))
 ```
@@ -172,7 +170,7 @@ else everything gets filtered out
 ```{r}
 load(paste(extdata_path,"TIP_vignette_gene_Seurat.RData",sep="/"))
 
-peaks.seurat = polya_seurat_from_gene_object(peak.data = peak.counts, 
+peaks.seurat = scpolya::polya_seurat_from_gene_object(peak.data = peak.counts, 
                                              genes.seurat = genes.seurat, 
                                              annot.info = annot.df, min.cells = 0, min.peaks = 0, 
                                              norm.scale.factor = 1000)
@@ -186,7 +184,7 @@ Differential usage analysis with DEXSeq
 For this test we'll just compare the two biggest fibrobalst and EC clusters
 
 ```{r}
-res.table = apply_DEXSeq_test(peaks.seurat, population.1 = "F-SL", population.2 = "EC1",
+res.table = scpolya::apply_DEXSeq_test(peaks.seurat, population.1 = "F-SL", population.2 = "EC1",
                               exp.thresh = 0.05, feature.type = c("UTR3", "exon"))
 head(res.table)
 ```
@@ -205,7 +203,7 @@ cowplot::plot_grid(pl1, NULL, pl2, pl3, nrow = 2)
 
 Look at peaks on an 'arrow plot'
 ```{r}
-do_arrow_plot(peaks.seurat, "Cxcl12", population.ids = c("F-SL", "EC1"))
+scpolya::do_arrow_plot(peaks.seurat, "Cxcl12", population.ids = c("F-SL", "EC1"))
 
 ```
 
