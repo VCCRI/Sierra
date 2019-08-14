@@ -5,7 +5,7 @@
 \title{Merge a set of peaks}
 \usage{
 generate_self_merged_peaks(apa.similarity.table, sim.thresh = 0.75,
-  allow.match.var = 0.25, return.type = "peak_list")
+  allow.match.var = 0.25)
 }
 \arguments{
 \item{apa.similarity.table}{the set of peaks to merge}
@@ -13,11 +13,9 @@ generate_self_merged_peaks(apa.similarity.table, sim.thresh = 0.75,
 \item{sim.thresh}{The required similarity threshold for merging (default: 0.75)}
 
 \item{allow.match.var}{The allowance for deviation from the sim.thresh for comparison peaks (default: 0.25)}
-
-\item{return.peaks}{Whether to return a full table of results or simply a vector of merged peaks}
 }
 \value{
-a table of merged peaks with original merged peaks or a vector of merged peaks
+a vector of merged peaks
 }
 \description{
 Given a self-similarity table of peaks, identify peaks that should be merged. Merged peaks are

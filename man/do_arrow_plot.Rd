@@ -12,9 +12,9 @@ do_arrow_plot(peaks.seurat.object, gene_name, peaks.use = NULL,
 
 \item{gene_name}{optional plot title}
 
-\item{peaks.use}{}
+\item{peaks.use}{whether to print the plot to output (default: TRUE).}
 
-\item{population.ids}{names of identified cell populations}
+\item{population.ids}{size of the point (default: 0.75)}
 
 \item{return.plot}{whether to return the ggplot object (default: FALSE)}
 

@@ -4,11 +4,10 @@
 \alias{find_de_polya}
 \title{Apply a differential expression test to polyA sites.}
 \usage{
-find_de_polya(apa.seurat.object, cluster1, cluster2 = NULL,
-  exp.thresh = 0.05, fc.thresh = 0.25, adj.pval.thresh = 1e-05,
-  test.use = "MAST", feature.type = c("UTR3", "UTR5", "exon",
-  "intron"), use.all.peaks = FALSE, add.annot.info = TRUE,
-  print.output = TRUE)
+find_de_polya(apa.seurat.object, cluster1, cluster2, exp.thresh = 0.05,
+  fc.thresh = 0.25, adj.pval.thresh = 1e-05, test.use = "MAST",
+  feature.type = c("UTR3", "UTR5", "exon", "intron"),
+  use.all.peaks = FALSE, add.annot.info = TRUE, print.output = TRUE)
 }
 \arguments{
 \item{apa.seurat.object}{a polyA Seurat object}
