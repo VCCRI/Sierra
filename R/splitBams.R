@@ -14,6 +14,9 @@
 #' 
 #' @return 
 #' 
+#' @examples
+#' 
+#' extdata_path <- system.file("extdata",package = "scpolya")
 #' load(paste(extdata_path,"TIP_vignette_gene_Seurat.RData",sep="/"))
 #' cellbc.df <- data.frame(celltype=genes.seurat@active.ident, cellbc= names(genes.seurat@active.ident))
 #' bam <- "c:/BAM/Harvey/scpolyA/one_percent.bam"
@@ -22,7 +25,10 @@
 #' @export 
 #' 
 splitBam <- function(bam, cellbc.df, outdir, yieldSize = 1000000) { 
-   message("splitting bam file: ", bam) 
+ # require(GenomicAlignments)
+#  require(rtracklayer)
+  
+  message("splitting bam file: ", bam) 
 
    param <- Rsamtools::ScanBamParam(tag=c("CB", "UB"))
   
@@ -37,7 +43,11 @@ splitBam <- function(bam, cellbc.df, outdir, yieldSize = 1000000) {
       open(bamfile)
       while (length(chunk0 <- GenomicAlignments::readGAlignments(bamfile,param=param))) {
         cat("chunk0:", length(chunk0), "length of aln: ", length(aln.per.type), "\n")
-        aln.per.type <- c(aln.per.type, chunk0[which(mcols(chunk0)$CB %in% cellbc)])
+        
+        if (length(aln.per.type) == 0)
+          aln.per.type <- chunk0[which(S4Vectors::mcols(chunk0)$CB %in% cellbc)]
+        else
+          aln.per.type <- c(aln.per.type, chunk0[which(S4Vectors::mcols(chunk0)$CB %in% cellbc)])
       } # read in yieldSize number of records per iteration
       close(bamfile)
      
@@ -46,7 +56,9 @@ splitBam <- function(bam, cellbc.df, outdir, yieldSize = 1000000) {
       }
       else {
         message("Writing to ", outfile) 
-        rtracklayer::export(aln.per.type, BamFile(outfile))
+
+       # as(aln.per.type, "GAlignments")
+        rtracklayer::export(aln.per.type, Rsamtools::BamFile(outfile))
       }
       
    } ## Loop over cell types 
