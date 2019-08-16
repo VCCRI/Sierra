@@ -6,8 +6,9 @@
 \usage{
 apply_DEXSeq_test(apa.seurat.object, population.1, population.2 = NULL,
   exp.thresh = 0.1, fc.thresh = 0.25, adj.pval.thresh = 0.05,
-  num.splits = 6, feature.type = c("UTR3", "UTR5", "exon", "intron"),
-  verbose = TRUE, do.MAPlot = FALSE, return.dexseq.res = FALSE)
+  num.splits = 6, seed.use = 1, feature.type = c("UTR3", "UTR5",
+  "exon", "intron"), verbose = TRUE, do.MAPlot = FALSE,
+  return.dexseq.res = FALSE)
 }
 \arguments{
 \item{apa.seurat.object}{Seurat object of peaks}
