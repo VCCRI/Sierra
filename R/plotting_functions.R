@@ -251,3 +251,68 @@ getMultiGeneExpressionData <- function(seurat.object, geneSet, use.log10 = FALSE
   return(ggData)
 }
 
+
+
+
+#####################################################################
+##
+#' plotCoverage
+#'
+#' Produces miggle like plots 
+#' 
+#' @param wg_data can be a data frame or a genomic ranges object
+#' @return NULL by default. 
+#' @examples
+#' 
+#' gtf_file <- "u:/Reference/mm10/cellranger_genes.gtf.gz"
+#' gtf_gr <- rtracklayer::import(gtf_file)
+#' 
+#' endothelial_cov <- read.table(file="c:/BAM/Harvey/scpolyA/Porrello_Support_Files/Porrello_Endothelial.F-CycCl_vs_F-Act.wig.txt.gz", sep = "\t", header = TRUE)
+#' df <- endothelial_cov[,c("Chromosome","Start","End","Probe.Strand", "MIP1_1.BAM")]
+#' df <- cbind(endothelial_cov[,c("Chromosome","Start","End","Probe.Strand")],endothelial_cov[, 13:15])
+#' colnames(df)[1:4] <- c("chrom", "start","end", "strand")
+#' wig_data<- GenomicRanges::makeGRangesFromDataFrame(df,keep.extra.columns=TRUE)
+#'  plotCoverage(genome_gr=gtf_gr, geneSymbol="Prkar1a", wig_data= wig_data)
+#' 
+#' @import Gviz
+plotCoverage<-function(genome_gr, geneSymbol="", wig_data)
+{
+  # Need check that gene_name field exists
+  idx <-which(genome_gr$gene_name == geneSymbol)
+  
+  # Work out the genomic range to extract from
+  start <- min(start(ranges(genome_gr[idx])))
+  end <- max(end(ranges(genome_gr[idx])))
+  chrom <- as.character(GenomicRanges::seqnames(gtf_gr[idx]))[1]  # should I check that all returned chromosomes are the same?
+  toExtract_gr <- GenomicRanges::GRanges(seqnames=chrom, ranges=IRanges::IRanges(start-1 , width=end-start+3))
+  
+  # Assemble gene annotation track  
+  gene_gr <- IRanges::subsetByOverlaps(genome_gr, toExtract_gr)
+  GenomeInfoDb::seqlevelsStyle(gene_gr) <- "UCSC" 
+  seqlevels(gene_gr) <- chrom
+  gene_txdb <- makeTxDbFromGRanges(gene_gr)
+  gtrack <- Gviz::GeneRegionTrack(gene_txdb, start = start, end = end, chromosome=chrom, name= "gene model")
+  
+  # Assemble data track(s)
+  if (typeof(wig_data) != "S4")  # assume a dataframe or list which we can create several df.
+  { nc <- ncol(wig_data)  # 4 columns are chrom, start, end, strand. Thereafter are sample data
+    wig_data <-  GenomicRanges::makeGRangesFromDataFrame(wig_data,keep.extra.columns=TRUE) 
+  }
+  GenomeInfoDb::seqlevelsStyle(wig_data) <- "UCSC" 
+  dtrack_gr <- IRanges::subsetByOverlaps(wig_data, toExtract_gr)
+  seqlevels(dtrack_gr) <- chrom
+  sample_col_idx <- 1: ncol(mcols(wig_data))
+  dtrack <- list()
+  for(i in sample_col_idx) # Assemble dtrack, one sample at a time
+  {
+    tmp_gr <- dtrack_gr
+    mcols(tmp_gr) <- mcols(tmp_gr)[i]
+    dtrack_name <- names(mcols(tmp_gr))
+    dtrack[[length(dtrack)+1]] <- Gviz::DataTrack(tmp_gr, name=dtrack_name) 
+  }
+
+  
+  plotTracks(c(gtrack, dtrack), from = start, to = end, chromosome= chrom,
+             stackHeight = 0.3, type = "histogram", transcriptAnnotation = "gene")
+  
+}
