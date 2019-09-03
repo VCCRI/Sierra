@@ -10,11 +10,15 @@
 #' @param bam CellRanger outputted bam file with the CB field 
 #' @param cellbc.df data frame of the cell barcode, needs to have the column names: "celltype" and "cellbc" 
 #' @param outdir directory to output the bam files. The bam files will be called [celltype].bam 
-#' @param yieldSize number of lines of bam files to load. Default: 1000000 
+#' @param yieldSize number of lines of bam files to load. Default: 1000000
+#' @gtf_gr gene model genomic ranges. Only used if geneSymbol is defined. 
+#' @geneSymbol Gene symbol. Used to identify the genomic coordinates to extract reads from.
+#' @gi_ext The number of nucleotides to extend the genomic interval in extracting reads from (default 50).
 #' 
 #' @return 
 #' 
 #' @examples
+#' 
 #' 
 #' extdata_path <- system.file("extdata",package = "scpolya")
 #' load(paste(extdata_path,"TIP_vignette_gene_Seurat.RData",sep="/"))
@@ -22,26 +26,66 @@
 #' bam <- "c:/BAM/Harvey/scpolyA/one_percent.bam"
 #' splitBam(bam, cellbc.df, "c:/TEMP/")
 #' 
-#' @export 
 #' 
-splitBam <- function(bam, cellbc.df, outdir, yieldSize = 1000000) { 
+#' # Example 2 extract reads that overlap a gene
+#' 
+#' gtf_file <- "u:/Reference/mm10/cellranger_genes.gtf.gz"
+#' gtf_gr <- rtracklayer::import(gtf_file)
+#' extdata_path <- system.file("extdata",package = "scpolya")
+#' load(paste(extdata_path,"TIP_vignette_gene_Seurat.RData",sep="/"))
+#' cellbc.df <- data.frame(celltype=genes.seurat@active.ident, cellbc= names(genes.seurat@active.ident))
+#' bam <- "R:/scpolyA_BAM_link/possorted_genome_bam.bam"
+#' splitBam(bam, cellbc.df, outdir="c:/TEMP/", gtf_gr=gtf_gr, geneSymbol="Dnajc19")
+#' 
+#' 
+#' @export 
+splitBam <- function(bam, cellbc.df, outdir, yieldSize = 1000000, 
+                     gtf_gr = NULL, geneSymbol=NULL, gi_ext = 50) { 
  # require(GenomicAlignments)
 #  require(rtracklayer)
-  
-  message("splitting bam file: ", bam) 
 
-   param <- Rsamtools::ScanBamParam(tag=c("CB", "UB"))
+  message("splitting bam file: ", bam) 
+  
+  
+  if (! is.null(geneSymbol))
+  {
+    # Need check that gene_name field exists
+    idx <-which(gtf_gr$gene_name == geneSymbol)
+    if (length(idx) == 0)
+    { warning("Could not find gene name. Please check spelling (and case)")
+      return(NULL)
+    }
+    GenomeInfoDb::seqlevelsStyle(gtf_gr) <- "NCBI" 
+    
+    # Work out the genomic range to extract from
+    start <- min(start(ranges(gtf_gr[idx])))
+    end <- max(end(ranges(gtf_gr[idx])))
+    chrom <- as.character(GenomicRanges::seqnames(gtf_gr[idx]))[1]  # should I check that all returned chromosomes are the same?
+    gene_strand <- as.character(strand(gtf_gr[idx]))[1]
+    toExtract_gr <- GenomicRanges::GRanges(seqnames=chrom, ranges=IRanges::IRanges(start-gi_ext , width=end-start+gi_ext), strand=gene_strand)
+    param <- Rsamtools::ScanBamParam(tag=c("CB", "UB"),which = toExtract_gr)
+  }
+  else
+  {
+    param <- Rsamtools::ScanBamParam(tag=c("CB", "UB"))
+    geneSymbol <- "all"   # This will be incorporated into filename
+  }
   
    ctypes <- unique(cellbc.df$celltype) 
    print(ctypes)    
    for(eachtype in ctypes) {
       message("processing cell type ", eachtype)
-      outfile <- paste0(outdir, eachtype, ".bam") 
+      outfile <- paste0(outdir, eachtype, ".", geneSymbol,".bam") 
       aln.per.type <- NULL
       cellbc <- subset(cellbc.df, celltype == eachtype)$cellbc
       bamfile <- Rsamtools::BamFile(bam, yieldSize=yieldSize)
       open(bamfile)
       while (length(chunk0 <- GenomicAlignments::readGAlignments(bamfile,param=param))) {
+        if (! is.null(geneSymbol))
+        { # Only want to reads that are same strand as gene
+          idx <- which(strand(chunk0) == gene_strand) 
+          chunk0 <- chunk0[idx]
+        }
         cat("chunk0:", length(chunk0), "length of aln: ", length(aln.per.type), "\n")
         
         if (length(aln.per.type) == 0)

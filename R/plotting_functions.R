@@ -258,9 +258,10 @@ getMultiGeneExpressionData <- function(seurat.object, geneSet, use.log10 = FALSE
 ##
 #' plotCoverage
 #'
-#' Produces miggle like plots 
+#'  
 #' 
-#' @param wg_data can be a data frame or a genomic ranges object
+#' @param wig_data can be a data frame or a genomic ranges object. Must be stranded.
+#' @param wig_same_strand Display same strand or opposing strand of wig data (compared to reference gene)
 #' @return NULL by default. 
 #' @examples
 #' 
@@ -275,23 +276,38 @@ getMultiGeneExpressionData <- function(seurat.object, geneSet, use.log10 = FALSE
 #'  plotCoverage(genome_gr=gtf_gr, geneSymbol="Prkar1a", wig_data= wig_data)
 #' 
 #' @import Gviz
-plotCoverage<-function(genome_gr, geneSymbol="", wig_data)
+plotCoverage<-function(genome_gr, geneSymbol="", wig_data, wig_same_strand=TRUE)
 {
   # Need check that gene_name field exists
   idx <-which(genome_gr$gene_name == geneSymbol)
+  if (length(idx) == 0)
+  { warning("Could not find gene name. Please check spelling (and case)")
+    return(NULL)
+  }
   
   # Work out the genomic range to extract from
   start <- min(start(ranges(genome_gr[idx])))
   end <- max(end(ranges(genome_gr[idx])))
-  chrom <- as.character(GenomicRanges::seqnames(gtf_gr[idx]))[1]  # should I check that all returned chromosomes are the same?
-  toExtract_gr <- GenomicRanges::GRanges(seqnames=chrom, ranges=IRanges::IRanges(start-1 , width=end-start+3))
+  # should I check that all returned chromosomes and strands are the same? They should be the same
+  # Currently just grabbing first entry
+  chrom <- as.character(GenomicRanges::seqnames(gtf_gr[idx]))[1]  
+  gene_strand <- as.character(strand(genome_gr[idx]))[1]
+  toExtract_gr <- GenomicRanges::GRanges(seqnames=chrom, ranges=IRanges::IRanges(start-1 , width=end-start+3), strand=gene_strand)
   
   # Assemble gene annotation track  
   gene_gr <- IRanges::subsetByOverlaps(genome_gr, toExtract_gr)
   GenomeInfoDb::seqlevelsStyle(gene_gr) <- "UCSC" 
   seqlevels(gene_gr) <- chrom
+  
+  # Following lines is a hack to get gene symbol to be name of transcripts.
+  gene_name_idx <- which(names(elementMetadata(gene_gr)) == "gene_name")  
+  gene_id_idx <- which(names(elementMetadata(gene_gr)) == "gene_id")
+  names(elementMetadata(gene_gr))[gene_id_idx] <- "ensemble_id"
+  names(elementMetadata(gene_gr))[gene_name_idx] <- "gene_id"
+  
   gene_txdb <- makeTxDbFromGRanges(gene_gr)
-  gtrack <- Gviz::GeneRegionTrack(gene_txdb, start = start, end = end, chromosome=chrom, name= "gene model")
+  
+  gtrack <- Gviz::GeneRegionTrack(gene_txdb, start = start, end = end, chromosome=chrom, name= geneSymbol)
   
   # Assemble data track(s)
   if (typeof(wig_data) != "S4")  # assume a dataframe or list which we can create several df.
@@ -299,8 +315,13 @@ plotCoverage<-function(genome_gr, geneSymbol="", wig_data)
     wig_data <-  GenomicRanges::makeGRangesFromDataFrame(wig_data,keep.extra.columns=TRUE) 
   }
   GenomeInfoDb::seqlevelsStyle(wig_data) <- "UCSC" 
+
+  if (! wig_same_strand)
+  {  toExtract_gr <- GenomicRanges::invertStrand(toExtract_gr)  }
   dtrack_gr <- IRanges::subsetByOverlaps(wig_data, toExtract_gr)
-  seqlevels(dtrack_gr) <- chrom
+
+  
+  seqlevels(dtrack_gr) <- chrom 
   sample_col_idx <- 1: ncol(mcols(wig_data))
   dtrack <- list()
   for(i in sample_col_idx) # Assemble dtrack, one sample at a time
