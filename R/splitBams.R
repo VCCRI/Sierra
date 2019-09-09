@@ -107,4 +107,36 @@ splitBam <- function(bam, cellbc.df, outdir, yieldSize = 1000000,
       
    } ## Loop over cell types 
 
-} 
+}
+
+
+
+
+#######################################################################
+#' merge_bam_coverage
+#'
+#' @param bamfile : A list of BAM files that are to be merged
+#' 
+#' @export
+merge_bam_coverage <- function(bamfiles, to_extract)
+{
+
+  warning("Function is not finished .. expect errors?")
+  for(i in bamfiles)
+  {
+    bf <-Rsamtools::BamFile(i)
+    
+    open(bf)
+    chunk0 <- GenomicAlignments::readGAlignments(bf)
+    # gr <-GenomicRanges::GRanges(chunk0)
+    GenomeInfoDb::seqlevelsStyle(chunk0) <- "UCSC"
+    close(bf)
+    idx <- which(as.character(BiocGenerics::strand(chunk0)) == gene_strand)
+    tmp <-GenomicRanges::coverage
+    
+    gr <- GenomicRanges::GRanges(seqnames=chrom, ranges=IRanges::IRanges(start:end, width=1), strand=gene_strand)
+    S4Vectors::mcols(gr) <- as.numeric(tmp[[chrom]])[start:end]
+  
+  }
+  return (bam_coverage)
+}
