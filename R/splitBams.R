@@ -9,13 +9,14 @@
 #' 
 #' @param bam CellRanger outputted bam file with the CB field 
 #' @param cellbc.df data frame of the cell barcode, needs to have the column names: "celltype" and "cellbc" 
-#' @param outdir directory to output the bam files. The bam files will be called [celltype].bam 
+#' @param outdir directory to output the bam files. The bam files will be called [celltype].bam. If NULL no BAM file created. 
 #' @param yieldSize number of lines of bam files to load. Default: 1000000
-#' @gtf_gr gene model genomic ranges. Only used if geneSymbol is defined. 
-#' @geneSymbol Gene symbol. Used to identify the genomic coordinates to extract reads from.
-#' @gi_ext The number of nucleotides to extend the genomic interval in extracting reads from (default 50).
+#' @param gtf_gr gene model genomic ranges. Only used if geneSymbol is defined. 
+#' @param geneSymbol Gene symbol. Used to identify the genomic coordinates to extract reads from.
+#' @param gi_ext The number of nucleotides to extend the genomic interval in extracting reads from (default 50).
+#' @param rle_output: If TRUE will generate and return rle_list object
 #' 
-#' @return 
+#' @return a rleList of coverage for each cell type 
 #' 
 #' @examples
 #' 
@@ -39,8 +40,9 @@
 #' 
 #' 
 #' @export 
-splitBam <- function(bam, cellbc.df, outdir, yieldSize = 1000000, 
-                     gtf_gr = NULL, geneSymbol=NULL, gi_ext = 50) { 
+splitBam <- function(bam, cellbc.df, outdir=NULL, yieldSize = 1000000, 
+                     gtf_gr = NULL, geneSymbol=NULL, gi_ext = 50,
+                     rle_output=FALSE) { 
  # require(GenomicAlignments)
 #  require(rtracklayer)
 
@@ -70,12 +72,13 @@ splitBam <- function(bam, cellbc.df, outdir, yieldSize = 1000000,
     param <- Rsamtools::ScanBamParam(tag=c("CB", "UB"))
     geneSymbol <- "all"   # This will be incorporated into filename
   }
+
+   cov_rle <- RleList(compress=FALSE)     # Coverage list (i.e wig like). Populated for each cell type
   
    ctypes <- unique(cellbc.df$celltype) 
    print(ctypes)    
    for(eachtype in ctypes) {
       message("processing cell type ", eachtype)
-      outfile <- paste0(outdir, eachtype, ".", geneSymbol,".bam") 
       aln.per.type <- NULL
       cellbc <- subset(cellbc.df, celltype == eachtype)$cellbc
       bamfile <- Rsamtools::BamFile(bam, yieldSize=yieldSize)
@@ -95,18 +98,28 @@ splitBam <- function(bam, cellbc.df, outdir, yieldSize = 1000000,
       } # read in yieldSize number of records per iteration
       close(bamfile)
      
+      outfile <- ''
       if (length(aln.per.type) == 0) {
         message("No data found for ", eachtype)
       }
+      else if (is.null(outdir)){
+        message(eachtype)
+      }
       else {
+        outfile <- paste0(outdir, eachtype, ".", geneSymbol,".bam") 
         message("Writing to ", outfile) 
 
        # as(aln.per.type, "GAlignments")
         rtracklayer::export(aln.per.type, Rsamtools::BamFile(outfile))
       }
+      if(rle_output)
+      { 
+        cov_rle  <- c(cov_rle, GenomicRanges::coverage(aln.per.type)[chrom])
+        names(cov_rle)[length(cov_rle)] <- paste0(eachtype, ".", geneSymbol,".bam")
+      }
       
    } ## Loop over cell types 
-
+  invisible(cov_rle)
 }
 
 
@@ -117,7 +130,7 @@ splitBam <- function(bam, cellbc.df, outdir, yieldSize = 1000000,
 #'
 #' @param bamfile : A list of BAM files that are to be merged
 #' 
-#' @export
+#'
 merge_bam_coverage <- function(bamfiles, to_extract)
 {
 

@@ -281,6 +281,7 @@ getMultiGeneExpressionData <- function(seurat.object, geneSet, use.log10 = FALSE
 #' plotCoverage(genome_gr=gtf_gr, geneSymbol="Dnajc19", bamfiles = "c:/TEMP/Bams/F-SH.Dnajc19.bam",wig_data= wig_data)
 #' 
 #' @import Gviz
+#' @export 
 plotCoverage<-function(genome_gr, geneSymbol="", wig_data, bamfiles=NULL, wig_same_strand=TRUE, genome=NULL, pdf_output = FALSE, output_file_name='')
 {
   # Need check that gene_name field exists
