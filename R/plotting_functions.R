@@ -252,3 +252,139 @@ getMultiGeneExpressionData <- function(seurat.object, geneSet, use.log10 = FALSE
   return(ggData)
 }
 
+
+
+
+#####################################################################
+##
+#' plotCoverage
+#'
+#'  
+#' 
+#' @param wig_data can be a data frame or a genomic ranges object. Must be stranded.
+#' @param bamfiles : BAM filenames that are to be displayed as data tracks
+#' @param wig_same_strand Display same strand or opposing strand of wig data (compared to reference gene)
+#' @param pdf_output : If true will create output pdf files
+#' @param output_file_name : Used if pdf_output is true. Location of where files will be placed.
+#' @return NULL by default. 
+#' @examples
+#' 
+#' gtf_file <- "u:/Reference/mm10/cellranger_genes.gtf.gz"
+#' gtf_gr <- rtracklayer::import(gtf_file)
+#' 
+#' endothelial_cov <- read.table(file="c:/BAM/Harvey/scpolyA/Porrello_Support_Files/Porrello_Endothelial.F-CycCl_vs_F-Act.wig.txt.gz", sep = "\t", header = TRUE)
+#' df <- endothelial_cov[,c("Chromosome","Start","End","Probe.Strand", "MIP1_1.BAM")]
+#' df <- cbind(endothelial_cov[,c("Chromosome","Start","End","Probe.Strand")],endothelial_cov[, 13:15])
+#' colnames(df)[1:4] <- c("chrom", "start","end", "strand")
+#' wig_data<- GenomicRanges::makeGRangesFromDataFrame(df,keep.extra.columns=TRUE)
+#'  plotCoverage(genome_gr=gtf_gr, geneSymbol="Prkar1a", wig_data= wig_data)
+#' 
+#' plotCoverage(genome_gr=gtf_gr, geneSymbol="Dnajc19", bamfiles = "c:/TEMP/Bams/F-SH.Dnajc19.bam",wig_data= wig_data)
+#' 
+#' @import Gviz
+#' @export 
+plotCoverage<-function(genome_gr, geneSymbol="", wig_data, bamfiles=NULL, wig_same_strand=TRUE, genome=NULL, pdf_output = FALSE, output_file_name='')
+{
+  # Need check that gene_name field exists
+  idx <-which(genome_gr$gene_name == geneSymbol)
+  if (length(idx) == 0)
+  { warning("Could not find gene name. Please check spelling (and case)")
+    return(NULL)
+  }
+  # Work out the genomic range to extract from
+  start <- min(IRanges::start(IRanges::ranges(genome_gr[idx])))
+  end <- max(IRanges::end(IRanges::ranges(genome_gr[idx])))
+  # should I check that all returned chromosomes and strands are the same? They should be the same
+  # Currently just grabbing first entry
+  chrom <- as.character(GenomicRanges::seqnames(gtf_gr[idx]))[1]  
+  gene_strand <- as.character(BiocGenerics::strand(genome_gr[idx]))[1]
+  toExtract_gr <- GenomicRanges::GRanges(seqnames=chrom, ranges=IRanges::IRanges(start-1 , width=end-start+3), strand=gene_strand)
+  
+  # Assemble gene annotation track  
+  gene_gr <- IRanges::subsetByOverlaps(genome_gr, toExtract_gr)
+  GenomeInfoDb::seqlevelsStyle(gene_gr) <- "UCSC" 
+  GenomeInfoDb::seqlevels(gene_gr) <- chrom
+  
+  # Following lines is a hack to get gene symbol to be name of transcripts.
+  gene_name_idx <- which(names(GenomicRanges::elementMetadata(gene_gr)) == "gene_name")  
+  gene_id_idx <- which(names(GenomicRanges::elementMetadata(gene_gr)) == "gene_id")
+  names(GenomicRanges::elementMetadata(gene_gr))[gene_id_idx] <- "ensemble_id"
+  names(GenomicRanges::elementMetadata(gene_gr))[gene_name_idx] <- "gene_id"
+  
+  gene_txdb <- GenomicFeatures::makeTxDbFromGRanges(gene_gr)
+  
+  gtrack <- Gviz::GeneRegionTrack(gene_txdb, start = start, end = end, chromosome=chrom, name= geneSymbol)
+  
+  ##### Assemble data track(s)
+  ## First assemble wig tracks
+  if (typeof(wig_data) != "S4")  # assume a dataframe or list which we can create several df.
+  { nc <- ncol(wig_data)  # 4 columns are chrom, start, end, strand. Thereafter are sample data
+    wig_data <-  GenomicRanges::makeGRangesFromDataFrame(wig_data,keep.extra.columns=TRUE) 
+  }
+  GenomeInfoDb::seqlevelsStyle(wig_data) <- "UCSC" 
+
+  if (! wig_same_strand)
+  {  toExtract_gr <- GenomicRanges::invertStrand(toExtract_gr)  }
+  dtrack_gr <- IRanges::subsetByOverlaps(wig_data, toExtract_gr)
+
+  
+  GenomeInfoDb::seqlevels(dtrack_gr) <- chrom 
+  sample_col_idx <- 1: ncol(S4Vectors::mcols(wig_data))
+  dtrack <- list()
+  for(i in sample_col_idx) # Assemble dtrack, one sample at a time
+  {
+    tmp_gr <- dtrack_gr
+    S4Vectors::mcols(tmp_gr) <- S4Vectors::mcols(tmp_gr)[i]
+    dtrack_name <- names(S4Vectors::mcols(tmp_gr))
+    dtrack[[length(dtrack)+1]] <- Gviz::DataTrack(tmp_gr, name=dtrack_name, type = "histogram", genome=genome) 
+  }
+
+  ## Now assemble BAM files
+  if (length(bamfiles) > 0)
+  { 
+    #bamFile <- system.file(bamfiles[1], package = "Gviz")
+
+    for(i in bamfiles)
+    {
+      bf <-Rsamtools::BamFile(i)
+
+      open(bf)
+      chunk0 <- GenomicAlignments::readGAlignments(bf)
+     # gr <-GenomicRanges::GRanges(chunk0)
+      GenomeInfoDb::seqlevelsStyle(chunk0) <- "UCSC"
+      close(bf)
+      idx <- which(as.character(BiocGenerics::strand(chunk0)) == gene_strand)
+      if (length(idx) == 0)
+      {        next; }
+      tmp <-GenomicRanges::coverage(chunk0[idx])
+
+
+      gr <- GenomicRanges::GRanges(seqnames=chrom, ranges=IRanges::IRanges(start:end, width=1), strand=gene_strand)
+      S4Vectors::mcols(gr) <- as.numeric(tmp[[chrom]])[start:end]
+      dtrack[[length(dtrack)+1]] <- Gviz::DataTrack(gr, name=i, type = "histogram", genome=genome) 
+    }
+  }
+
+  toPlot <- c(gtrack, dtrack) 
+
+
+  if (pdf_output)
+  {
+    if (output_file_name == '')
+    { warning("No file name provided")
+      pdf_output = FALSE
+    }
+    else
+    {  pdf(file=output_file_name,width = 24,height = 18)
+    }
+
+  }
+  
+  Gviz::plotTracks(toPlot, from = start, to = end, chromosome= chrom, transcriptAnnotation = "gene")
+  
+  if (pdf_output)
+  {  dev.off() }
+  
+}
+
+
