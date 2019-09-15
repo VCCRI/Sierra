@@ -2,7 +2,7 @@
 #'
 #' Produce an arrow plot of peak expression
 #'
-#' Produce an arrow plot of peak expression, utlising the gggenes package. 
+#' Produce an arrow plot of peak expression, utlising the gggenes package.
 #'
 #' @param peaks.seurat.object a Seurat object containing t-SNE coordinates and cluster ID's in @ident slot
 #' @param col.set a vector of colour codes corresponding to the number of clusters
@@ -18,18 +18,18 @@
 #'
 do_arrow_plot <- function(peaks.seurat.object, gene_name, peaks.use = NULL, population.ids = NULL,
                           return.plot = FALSE) {
-  
+
   if (!'gggenes' %in% rownames(x = installed.packages())) {
     stop("Please install the gggenes package (dev. version) before using this function
          (https://github.com/wilkox/gggenes)")
   }
-  
+
   peak.data = subset(Tool(peaks.seurat.object, "GeneSLICER"), Gene_name == gene_name)
   if (!is.null(peaks.use)) peak.data = subset(peak.data, rownames(peak.data) %in% peaks.use)
   n.peaks = nrow(peak.data)
-  
+
   if (is.null(population.ids)) population.ids = names(table(Idents(peaks.seurat.object)))
-  
+
   ave.expression = Seurat::AverageExpression(peaks.seurat.object, features = rownames(peak.data), verbose = FALSE)
   ave.expression = t(as.matrix(ave.expression$RNA))
   ave.expression = ave.expression[population.ids, ]
@@ -46,20 +46,20 @@ do_arrow_plot <- function(peaks.seurat.object, gene_name, peaks.use = NULL, popu
   }
   peak.info$strand = plyr::mapvalues(peak.info$strand, from = c("+", "-"), to = c("forward", "reverse"))
   peak.info$direction = plyr::mapvalues(peak.info$direction, from = c("+", "-"), to = c("1", "-1"))
-  
-  gggenesData = data.frame(Cluster = rep(rownames(ave.expression), n.peaks), 
+
+  gggenesData = data.frame(Cluster = rep(rownames(ave.expression), n.peaks),
                            Expression = as.vector(ave.expression))
   gggenesData = cbind(gggenesData, peak.info)
-  
+
   pl <- ggplot(gggenesData, aes(xmin = start, xmax = end, y = Cluster, fill = Expression)) +
     gggenes::geom_gene_arrow() + ggtitle(paste0(gene_name, " peak-specific expression")) +
     facet_wrap(~ Cluster, scales = "free", ncol = 1) +
-    gggenes::theme_genes() + scale_fill_gradient2(low="#d9d9d9", mid="red", high="brown", 
-    midpoint=min(gggenesData$Expression) + (max(gggenesData$Expression)-min(gggenesData$Expression))/2, 
+    gggenes::theme_genes() + scale_fill_gradient2(low="#d9d9d9", mid="red", high="brown",
+    midpoint=min(gggenesData$Expression) + (max(gggenesData$Expression)-min(gggenesData$Expression))/2,
     name="Expression (log2)") + theme(legend.position = "bottom", legend.box = "horizontal") +
     guides(fill = guide_colourbar(barwidth = 10))
   print(pl)
-  
+
   if (return.plot) return(pl)
 }
 
@@ -163,7 +163,7 @@ plot_expression_tsne <- function(seurat.object, geneSet, do.plot=TRUE, figure.ti
   ggData$Gene <- factor(ggData$Gene, levels = geneSet)
   pl <- ggplot(ggData, aes(tSNE_1, tSNE_2, color=Expression)) + geom_point(size=pt.size) + xlab("t-SNE 1") + ylab("t-SNE 2") +
     scale_color_gradient2(low="#d9d9d9", mid="red", high="brown", midpoint=min(ggData$Expression) +
-                            (max(ggData$Expression)-min(ggData$Expression))/2, name="") + 
+                            (max(ggData$Expression)-min(ggData$Expression))/2, name="") +
     theme_bw(base_size = 14) + theme(panel.grid = element_blank()) +
     theme(strip.text.x = element_text(size = 14))
   if (length(geneSet) > 1) {
@@ -205,8 +205,9 @@ do_box_plot <- function(seurat.object, geneSet, figure.title = NULL, num_col = N
   ggData$Gene = factor(ggData$Gene, levels = geneSet)
   ggData$Cluster = factor(ggData$Cluster, levels = names(table(Idents(seurat.object))))
   pl <- ggplot(ggData, aes(y=Expression, x=Cluster, fill=Cluster)) + geom_boxplot(colour = "black", outlier.size = 0.75) +
-    ylab("Log2 (normalised expression + 1)") + scale_fill_manual(values=col.set) + theme_bw(base_size = 16) +
-    theme(legend.position="bottom", axis.ticks.x = element_blank(), axis.text.x = element_blank(), text = element_text(size = 16)) + xlab("")
+    ylab("Log2 (normalised expression + 1)") + scale_fill_manual(values=col.set) + theme_bw(base_size = 18) +
+    theme(legend.position="none", text = element_text(size = 18), axis.text.x = element_text(angle=90, hjust=1, vjust=0.5)) +
+    xlab("")
 
   if (!is.null(num_col)) {
     pl <- pl + facet_wrap(~ Gene, ncol = num_col)
