@@ -73,7 +73,7 @@ splitBam <- function(bam, cellbc.df, outdir=NULL, yieldSize = 1000000,
     geneSymbol <- "all"   # This will be incorporated into filename
   }
 
-   cov_rle <- RleList(compress=FALSE)     # Coverage list (i.e wig like). Populated for each cell type
+   cov_rle <- IRanges::RleList(compress=FALSE)     # Coverage list (i.e wig like). Populated for each cell type
   
    ctypes <- unique(cellbc.df$celltype) 
    print(ctypes)    
@@ -86,7 +86,7 @@ splitBam <- function(bam, cellbc.df, outdir=NULL, yieldSize = 1000000,
       while (length(chunk0 <- GenomicAlignments::readGAlignments(bamfile,param=param))) {
         if (! is.null(geneSymbol))
         { # Only want to reads that are same strand as gene
-          idx <- which(strand(chunk0) == gene_strand) 
+          idx <- which(as.character(strand(chunk0)) == gene_strand) 
           chunk0 <- chunk0[idx]
         }
         cat("chunk0:", length(chunk0), "length of aln: ", length(aln.per.type), "\n")
