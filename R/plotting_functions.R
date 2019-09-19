@@ -265,6 +265,7 @@ getMultiGeneExpressionData <- function(seurat.object, geneSet, use.log10 = FALSE
 #' @param wig_same_strand Display same strand or opposing strand of wig data (compared to reference gene)
 #' @param pdf_output : If true will create output pdf files
 #' @param output_file_name : Used if pdf_output is true. Location of where files will be placed.
+#' @param zoom_UTR : If TRUE will create a second figure which will zoom in on 3'UTR.
 #' @return NULL by default. 
 #' @examples
 #' 
@@ -281,27 +282,29 @@ getMultiGeneExpressionData <- function(seurat.object, geneSet, use.log10 = FALSE
 #' plotCoverage(genome_gr=gtf_gr, geneSymbol="Dnajc19", bamfiles = "c:/TEMP/Bams/F-SH.Dnajc19.bam",wig_data= wig_data)
 #' 
 #' @import Gviz
-#' @export 
-plotCoverage<-function(genome_gr, geneSymbol="", wig_data, bamfiles=NULL, wig_same_strand=TRUE, genome=NULL, pdf_output = FALSE, output_file_name='')
+#' 
+plotCoverage<-function(genome_gr, geneSymbol="", wig_data, bamfiles=NULL, wig_same_strand=TRUE, genome=NULL, pdf_output = FALSE, 
+                       output_file_name='', zoom_3UTR=FALSE)
 {
   # Need check that gene_name field exists
+  GenomeInfoDb::seqlevelsStyle(genome_gr) <- "UCSC"
   idx <-which(genome_gr$gene_name == geneSymbol)
   if (length(idx) == 0)
   { warning("Could not find gene name. Please check spelling (and case)")
     return(NULL)
   }
   # Work out the genomic range to extract from
-  start <- min(IRanges::start(IRanges::ranges(genome_gr[idx])))
-  end <- max(IRanges::end(IRanges::ranges(genome_gr[idx])))
+  genome_gr <- genome_gr[idx]
+  start <- min(IRanges::start(IRanges::ranges(genome_gr)))
+  end <- max(IRanges::end(IRanges::ranges(genome_gr)))
   # should I check that all returned chromosomes and strands are the same? They should be the same
   # Currently just grabbing first entry
-  chrom <- as.character(GenomicRanges::seqnames(gtf_gr[idx]))[1]  
-  gene_strand <- as.character(BiocGenerics::strand(genome_gr[idx]))[1]
+  chrom <- as.character(GenomicRanges::seqnames(genome_gr))[1]  
+  gene_strand <- as.character(BiocGenerics::strand(genome_gr))[1]
   toExtract_gr <- GenomicRanges::GRanges(seqnames=chrom, ranges=IRanges::IRanges(start-1 , width=end-start+3), strand=gene_strand)
   
   # Assemble gene annotation track  
   gene_gr <- IRanges::subsetByOverlaps(genome_gr, toExtract_gr)
-  GenomeInfoDb::seqlevelsStyle(gene_gr) <- "UCSC" 
   GenomeInfoDb::seqlevels(gene_gr) <- chrom
   
   # Following lines is a hack to get gene symbol to be name of transcripts.
@@ -330,7 +333,41 @@ plotCoverage<-function(genome_gr, geneSymbol="", wig_data, bamfiles=NULL, wig_sa
   GenomeInfoDb::seqlevels(dtrack_gr) <- chrom 
   sample_col_idx <- 1: ncol(S4Vectors::mcols(wig_data))
   dtrack <- list()
-  for(i in sample_col_idx) # Assemble dtrack, one sample at a time
+  
+  ## First load any BAM files onto dtrack
+  if (length(bamfiles) > 0)
+  { 
+    toExtract_gr <- GenomicRanges::GRanges(seqnames=chrom, ranges=IRanges::IRanges(start-50 , width=end-start+50), strand=gene_strand)
+
+    
+    for(i in bamfiles)
+    {   
+      bamHeader <- Rsamtools::scanBamHeader(i)
+      if (length(grep(pattern = chrom,x = names(bamHeader[[i]]$targets))) == 0)
+      {   GenomeInfoDb::seqlevelsStyle(toExtract_gr) <- "NCBI" }
+      else
+      {   GenomeInfoDb::seqlevelsStyle(toExtract_gr) <- "UCSC" }
+      
+      param <- Rsamtools::ScanBamParam(which = toExtract_gr)    
+      bf <-Rsamtools::BamFile(i)
+      
+      open(bf)
+      chunk0 <- GenomicAlignments::readGAlignments(bf,param=param)
+      GenomeInfoDb::seqlevelsStyle(chunk0) <- "UCSC"
+      close(bf)
+      idx <- which(as.character(BiocGenerics::strand(chunk0)) == gene_strand)
+      if (length(idx) == 0)
+      {        next; }
+      tmp <-GenomicRanges::coverage(chunk0[idx])
+      
+      gr <- GenomicRanges::GRanges(seqnames=chrom, ranges=IRanges::IRanges(start:end, width=1), strand=gene_strand)
+      S4Vectors::mcols(gr) <- as.numeric(tmp[[chrom]])[start:end]
+      dtrack[[length(dtrack)+1]] <- Gviz::DataTrack(gr, name=i, type = "histogram", genome=genome) 
+    }
+  }
+  
+  # Now assemble coverage plots
+  for(i in sample_col_idx) 
   {
     tmp_gr <- dtrack_gr
     S4Vectors::mcols(tmp_gr) <- S4Vectors::mcols(tmp_gr)[i]
@@ -338,34 +375,7 @@ plotCoverage<-function(genome_gr, geneSymbol="", wig_data, bamfiles=NULL, wig_sa
     dtrack[[length(dtrack)+1]] <- Gviz::DataTrack(tmp_gr, name=dtrack_name, type = "histogram", genome=genome) 
   }
 
-  ## Now assemble BAM files
-  if (length(bamfiles) > 0)
-  { 
-    #bamFile <- system.file(bamfiles[1], package = "Gviz")
-
-    for(i in bamfiles)
-    {
-      bf <-Rsamtools::BamFile(i)
-
-      open(bf)
-      chunk0 <- GenomicAlignments::readGAlignments(bf)
-     # gr <-GenomicRanges::GRanges(chunk0)
-      GenomeInfoDb::seqlevelsStyle(chunk0) <- "UCSC"
-      close(bf)
-      idx <- which(as.character(BiocGenerics::strand(chunk0)) == gene_strand)
-      if (length(idx) == 0)
-      {        next; }
-      tmp <-GenomicRanges::coverage(chunk0[idx])
-
-
-      gr <- GenomicRanges::GRanges(seqnames=chrom, ranges=IRanges::IRanges(start:end, width=1), strand=gene_strand)
-      S4Vectors::mcols(gr) <- as.numeric(tmp[[chrom]])[start:end]
-      dtrack[[length(dtrack)+1]] <- Gviz::DataTrack(gr, name=i, type = "histogram", genome=genome) 
-    }
-  }
-
   toPlot <- c(gtrack, dtrack) 
-
 
   if (pdf_output)
   {
@@ -376,10 +386,18 @@ plotCoverage<-function(genome_gr, geneSymbol="", wig_data, bamfiles=NULL, wig_sa
     else
     {  pdf(file=output_file_name,width = 24,height = 18)
     }
-
+  }
+  Gviz::plotTracks(toPlot, from = start, to = end, chromosome= chrom, transcriptAnnotation = "gene")
+  
+  if (zoom_3UTR)
+  {
+    idx <- which(genome_gr$type == 'three_prime_utr')
+    # Work out the genomic range of UTR
+    start <- min(IRanges::start(IRanges::ranges(genome_gr[idx])))
+    end <- max(IRanges::end(IRanges::ranges(genome_gr[idx])))
+    Gviz::plotTracks(toPlot, from = start, to = end, chromosome= chrom, transcriptAnnotation = "gene")
   }
   
-  Gviz::plotTracks(toPlot, from = start, to = end, chromosome= chrom, transcriptAnnotation = "gene")
   
   if (pdf_output)
   {  dev.off() }
