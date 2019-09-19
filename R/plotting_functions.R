@@ -1,3 +1,51 @@
+##########################################################
+#'
+#' Calculate relative expression between two or more peaks
+#'
+#' Calculate a relative expression between two or more peaks by dividing
+#' the expression of each peak by the mean of the peak expression for that gene -
+#' or set of provided peaks
+#'
+#' @param seurat.object Seurat object
+#' @param peak.set set of peaks
+#' @param gene_name gene name for retrieving a set of peaks
+#' @param feature.type features to consider. 3'UTR and exon by default.
+#'
+#' @return a matrix of relative expression
+#'
+#' @examples
+#' get_relatuve_expression(peaks.seurat, gene_name = "Cxcl12")
+#'
+get_relative_expression <- function(seurat.object, peak.set = NULL, gene_name = NULL,
+                                    feature.type = c("UTR3", "exon")) {
+
+  ## make sure either a gene or peak set has been provided
+  if (is.null(gene_name) & is.null(peak.set)) {
+    print("Please provide a gene or set of peaks")
+  }
+
+  ## if no peaks are provided, use the gene name to select peaks
+  if (is.null(peak.set)) {
+    peak.set <- select_gene_polyas(seurat.object, this.gene, feature.type = feature.type)
+  }
+
+  ## access expression data for this set of peaks
+  expression.data <- GetAssayData(apa.seurat)[peak.set, ]
+
+  if (length(peak.set) == 1) {
+    return(expression.data)
+  }
+
+  ## calculate relative expression by dividing each peak by the sum of the peak expression
+  mat.col.mean <- apply(as.matrix(expression.data), 2, function(x){mean(exp(x) - 1)})
+  mat.col.mean[which(mat.col.mean == 0)] <- 1
+
+  relative.exp.data <- as(t( ( exp(t(as.matrix(expression.data))) - 1) / mat.col.mean ), "sparseMatrix")
+
+  return(relative.exp.data)
+}
+
+
 #########################################################
 #'
 #' Produce an arrow plot of peak expression
@@ -61,6 +109,72 @@ do_arrow_plot <- function(peaks.seurat.object, gene_name, peaks.use = NULL, popu
   print(pl)
 
   if (return.plot) return(pl)
+}
+
+##########################################################
+#'
+#' Generate a t-SNE plot using relative expression
+#'
+#' Given two or more peaks to plot,
+#'
+#' @param seurat.object Seurat object
+#' @param peaks.to.plot Set of peaks to plot
+#' @param do.plot Whether to plot to output (TRUE by default)
+#' @param figure.title Optional figure title
+#' @param pt.size size of the points on the t-SNE plot
+#'
+#' @return a ggplot2 object
+#'
+#' @examples
+#' relative_expression_tsne(peaks.seurat, this.peak.set)
+#'
+#' @import ggplot2
+#'
+relative_expression_tsne <- function(seurat.object, peaks.to.plot, do.plot=TRUE, figure.title=NULL,
+                                     return.plot = TRUE, pt.size = 0.5) {
+
+  ## Check multiple peaks have been provided
+  if (length(peaks.to.plot) < 2) {
+    stop("Please provide at least two peaks for plotting relative expression")
+  }
+
+  relative.exp.data <- get_relative_expression(seurat.object, peak.set = peaks.to.plot)
+
+  ggData <- data.frame(Expression = as.vector(t(as.matrix(relative.exp.data))),
+                       Peak = unlist(lapply(peaks.to.plot, function(x) rep(x, ncol(relative.exp.data)))))
+
+  # Pull out the t-SNE coordinates
+  seurat.object.tsne1 <- seurat.object@reductions$tsne@cell.embeddings[, 1]
+  names(seurat.object.tsne1) <- colnames(seurat.object)
+
+  seurat.object.tsne2 <- seurat.object@reductions$tsne@cell.embeddings[, 2]
+  names(seurat.object.tsne2) <- colnames(seurat.object)
+
+  ggData$tSNE_1 = rep(seurat.object.tsne1, length(peaks.to.plot))
+  ggData$tSNE_2 = rep(seurat.object.tsne2, length(peaks.to.plot))
+
+  ggData$Cell_ID = rep(colnames(seurat.object), length(peaks.to.plot))
+
+  ggData$Peak <- factor(ggData$Peak, levels = peaks.to.plot)
+  pl <- ggplot(ggData, aes(tSNE_1, tSNE_2, color=Expression)) + geom_point(size=pt.size) + xlab("t-SNE 1") + ylab("t-SNE 2") +
+    scale_color_gradient2(low="#d9d9d9", mid="red", high="brown", midpoint=min(ggData$Expression) +
+                            (max(ggData$Expression)-min(ggData$Expression))/2, name="") +
+    theme_bw(base_size = 14) + theme(panel.grid = element_blank()) +
+    theme(strip.text.x = element_text(size = 14)) + facet_wrap(~ Peak)
+
+  if (is.null(figure.title)) {
+    pl <- pl + ggtitle("Relative peak expression")
+  } else {
+    pl <- pl + ggtitle(figure.title)
+  }
+
+  if (do.plot) {
+    plot(pl)
+  }
+
+  if (return.plot) {
+    return(pl)
+  }
 }
 
 
@@ -259,30 +373,30 @@ getMultiGeneExpressionData <- function(seurat.object, geneSet, use.log10 = FALSE
 ##
 #' plotCoverage
 #'
-#'  
-#' 
+#'
+#'
 #' @param wig_data can be a data frame or a genomic ranges object. Must be stranded.
 #' @param bamfiles : BAM filenames that are to be displayed as data tracks
 #' @param wig_same_strand Display same strand or opposing strand of wig data (compared to reference gene)
 #' @param pdf_output : If true will create output pdf files
 #' @param output_file_name : Used if pdf_output is true. Location of where files will be placed.
-#' @return NULL by default. 
+#' @return NULL by default.
 #' @examples
-#' 
+#'
 #' gtf_file <- "u:/Reference/mm10/cellranger_genes.gtf.gz"
 #' gtf_gr <- rtracklayer::import(gtf_file)
-#' 
+#'
 #' endothelial_cov <- read.table(file="c:/BAM/Harvey/scpolyA/Porrello_Support_Files/Porrello_Endothelial.F-CycCl_vs_F-Act.wig.txt.gz", sep = "\t", header = TRUE)
 #' df <- endothelial_cov[,c("Chromosome","Start","End","Probe.Strand", "MIP1_1.BAM")]
 #' df <- cbind(endothelial_cov[,c("Chromosome","Start","End","Probe.Strand")],endothelial_cov[, 13:15])
 #' colnames(df)[1:4] <- c("chrom", "start","end", "strand")
 #' wig_data<- GenomicRanges::makeGRangesFromDataFrame(df,keep.extra.columns=TRUE)
 #'  plotCoverage(genome_gr=gtf_gr, geneSymbol="Prkar1a", wig_data= wig_data)
-#' 
+#'
 #' plotCoverage(genome_gr=gtf_gr, geneSymbol="Dnajc19", bamfiles = "c:/TEMP/Bams/F-SH.Dnajc19.bam",wig_data= wig_data)
-#' 
+#'
 #' @import Gviz
-#' @export 
+#' @export
 plotCoverage<-function(genome_gr, geneSymbol="", wig_data, bamfiles=NULL, wig_same_strand=TRUE, genome=NULL, pdf_output = FALSE, output_file_name='')
 {
   # Need check that gene_name field exists
@@ -296,39 +410,39 @@ plotCoverage<-function(genome_gr, geneSymbol="", wig_data, bamfiles=NULL, wig_sa
   end <- max(IRanges::end(IRanges::ranges(genome_gr[idx])))
   # should I check that all returned chromosomes and strands are the same? They should be the same
   # Currently just grabbing first entry
-  chrom <- as.character(GenomicRanges::seqnames(gtf_gr[idx]))[1]  
+  chrom <- as.character(GenomicRanges::seqnames(gtf_gr[idx]))[1]
   gene_strand <- as.character(BiocGenerics::strand(genome_gr[idx]))[1]
   toExtract_gr <- GenomicRanges::GRanges(seqnames=chrom, ranges=IRanges::IRanges(start-1 , width=end-start+3), strand=gene_strand)
-  
-  # Assemble gene annotation track  
+
+  # Assemble gene annotation track
   gene_gr <- IRanges::subsetByOverlaps(genome_gr, toExtract_gr)
-  GenomeInfoDb::seqlevelsStyle(gene_gr) <- "UCSC" 
+  GenomeInfoDb::seqlevelsStyle(gene_gr) <- "UCSC"
   GenomeInfoDb::seqlevels(gene_gr) <- chrom
-  
+
   # Following lines is a hack to get gene symbol to be name of transcripts.
-  gene_name_idx <- which(names(GenomicRanges::elementMetadata(gene_gr)) == "gene_name")  
+  gene_name_idx <- which(names(GenomicRanges::elementMetadata(gene_gr)) == "gene_name")
   gene_id_idx <- which(names(GenomicRanges::elementMetadata(gene_gr)) == "gene_id")
   names(GenomicRanges::elementMetadata(gene_gr))[gene_id_idx] <- "ensemble_id"
   names(GenomicRanges::elementMetadata(gene_gr))[gene_name_idx] <- "gene_id"
-  
+
   gene_txdb <- GenomicFeatures::makeTxDbFromGRanges(gene_gr)
-  
+
   gtrack <- Gviz::GeneRegionTrack(gene_txdb, start = start, end = end, chromosome=chrom, name= geneSymbol)
-  
+
   ##### Assemble data track(s)
   ## First assemble wig tracks
   if (typeof(wig_data) != "S4")  # assume a dataframe or list which we can create several df.
   { nc <- ncol(wig_data)  # 4 columns are chrom, start, end, strand. Thereafter are sample data
-    wig_data <-  GenomicRanges::makeGRangesFromDataFrame(wig_data,keep.extra.columns=TRUE) 
+    wig_data <-  GenomicRanges::makeGRangesFromDataFrame(wig_data,keep.extra.columns=TRUE)
   }
-  GenomeInfoDb::seqlevelsStyle(wig_data) <- "UCSC" 
+  GenomeInfoDb::seqlevelsStyle(wig_data) <- "UCSC"
 
   if (! wig_same_strand)
   {  toExtract_gr <- GenomicRanges::invertStrand(toExtract_gr)  }
   dtrack_gr <- IRanges::subsetByOverlaps(wig_data, toExtract_gr)
 
-  
-  GenomeInfoDb::seqlevels(dtrack_gr) <- chrom 
+
+  GenomeInfoDb::seqlevels(dtrack_gr) <- chrom
   sample_col_idx <- 1: ncol(S4Vectors::mcols(wig_data))
   dtrack <- list()
   for(i in sample_col_idx) # Assemble dtrack, one sample at a time
@@ -336,12 +450,12 @@ plotCoverage<-function(genome_gr, geneSymbol="", wig_data, bamfiles=NULL, wig_sa
     tmp_gr <- dtrack_gr
     S4Vectors::mcols(tmp_gr) <- S4Vectors::mcols(tmp_gr)[i]
     dtrack_name <- names(S4Vectors::mcols(tmp_gr))
-    dtrack[[length(dtrack)+1]] <- Gviz::DataTrack(tmp_gr, name=dtrack_name, type = "histogram", genome=genome) 
+    dtrack[[length(dtrack)+1]] <- Gviz::DataTrack(tmp_gr, name=dtrack_name, type = "histogram", genome=genome)
   }
 
   ## Now assemble BAM files
   if (length(bamfiles) > 0)
-  { 
+  {
     #bamFile <- system.file(bamfiles[1], package = "Gviz")
 
     for(i in bamfiles)
@@ -361,11 +475,11 @@ plotCoverage<-function(genome_gr, geneSymbol="", wig_data, bamfiles=NULL, wig_sa
 
       gr <- GenomicRanges::GRanges(seqnames=chrom, ranges=IRanges::IRanges(start:end, width=1), strand=gene_strand)
       S4Vectors::mcols(gr) <- as.numeric(tmp[[chrom]])[start:end]
-      dtrack[[length(dtrack)+1]] <- Gviz::DataTrack(gr, name=i, type = "histogram", genome=genome) 
+      dtrack[[length(dtrack)+1]] <- Gviz::DataTrack(gr, name=i, type = "histogram", genome=genome)
     }
   }
 
-  toPlot <- c(gtrack, dtrack) 
+  toPlot <- c(gtrack, dtrack)
 
 
   if (pdf_output)
@@ -379,12 +493,12 @@ plotCoverage<-function(genome_gr, geneSymbol="", wig_data, bamfiles=NULL, wig_sa
     }
 
   }
-  
+
   Gviz::plotTracks(toPlot, from = start, to = end, chromosome= chrom, transcriptAnnotation = "gene")
-  
+
   if (pdf_output)
   {  dev.off() }
-  
+
 }
 
 
