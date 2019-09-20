@@ -178,6 +178,53 @@ relative_expression_tsne <- function(seurat.object, peaks.to.plot, do.plot=TRUE,
 }
 
 
+relative_expression_umap <- function(seurat.object, peaks.to.plot, do.plot=TRUE, figure.title=NULL,
+                                     return.plot = TRUE, pt.size = 0.5) {
+  
+  ## Check multiple peaks have been provided
+  if (length(peaks.to.plot) < 2) {
+    stop("Please provide at least two peaks for plotting relative expression")
+  }
+  
+  relative.exp.data <- get_relative_expression(seurat.object, peak.set = peaks.to.plot)
+  
+  ggData <- data.frame(Expression = as.vector(t(as.matrix(relative.exp.data))),
+                       Peak = unlist(lapply(peaks.to.plot, function(x) rep(x, ncol(relative.exp.data)))))
+  
+  # Pull out the t-SNE coordinates
+  seurat.object.umap1 <- seurat.object@reductions$umap@cell.embeddings[, 1]
+  names(seurat.object.umap1) <- colnames(seurat.object)
+  
+  seurat.object.umap2 <- seurat.object@reductions$umap@cell.embeddings[, 2]
+  names(seurat.object.umap2) <- colnames(seurat.object)
+  
+  ggData$UMAP_1 = rep(seurat.object.umap1, length(peaks.to.plot))
+  ggData$UMAP_2 = rep(seurat.object.umap2, length(peaks.to.plot))
+  
+  ggData$Cell_ID = rep(colnames(seurat.object), length(peaks.to.plot))
+  
+  ggData$Peak <- factor(ggData$Peak, levels = peaks.to.plot)
+  pl <- ggplot(ggData, aes(UMAP_1, UMAP_2, color=Expression)) + geom_point(size=pt.size) + xlab("UMAP 1") + ylab("UMAP 2") +
+    scale_color_gradient2(low="#d9d9d9", mid="red", high="brown", midpoint=min(ggData$Expression) +
+                            (max(ggData$Expression)-min(ggData$Expression))/2, name="") +
+    theme_bw(base_size = 14) + theme(panel.grid = element_blank()) +
+    theme(strip.text.x = element_text(size = 14)) + facet_wrap(~ Peak)
+  
+  if (is.null(figure.title)) {
+    pl <- pl + ggtitle("Relative peak expression")
+  } else {
+    pl <- pl + ggtitle(figure.title)
+  }
+  
+  if (do.plot) {
+    plot(pl)
+  }
+  
+  if (return.plot) {
+    return(pl)
+  }
+}
+
 #########################################################
 #'
 #' t-SNE plot of cell populations
