@@ -139,11 +139,27 @@ polya_seurat_from_gene_object <- function(peak.data, genes.seurat, annot.info, p
   apa.seurat = AddMetaData(object = apa.seurat, metadata = clusters.overlap, col.name = "geneLvlID")
   Idents(apa.seurat) = apa.seurat@meta.data$geneLvlID
 
-  ## Add t-SNE coordinates to APA object
-  tsne.embeddings = Embeddings(genes.seurat, reduction = 'tsne')
-  tsne.embeddings = tsne.embeddings[colnames(apa.seurat), ]
-  new.embedding = CreateDimReducObject(embeddings = tsne.embeddings, key = "tSNE_", assay = "RNA")
-  apa.seurat@reductions$tsne = new.embedding
+  ## Add t-SNE coordinates to peak count object
+  tryCatch({
+    tsne.embeddings = Embeddings(genes.seurat, reduction = 'tsne')
+    tsne.embeddings = tsne.embeddings[colnames(apa.seurat), ]
+    new.embedding = CreateDimReducObject(embeddings = tsne.embeddings, key = "tSNE_", assay = "RNA")
+    apa.seurat@reductions$tsne = new.embedding
+    print("t-SNE coordinates added")
+  }, error = function(err) {
+    print("No t-SNE coodinates detected")
+  })
+  
+  ## Add UMAP coordinates to peak count object
+  tryCatch({
+    umap.embeddings = Embeddings(genes.seurat, reduction = 'umap')
+    umap.embeddings = umap.embeddings[colnames(apa.seurat), ]
+    new.embedding = CreateDimReducObject(embeddings = umap.embeddings, key = "UMAP_", assay = "RNA")
+    apa.seurat@reductions$umap = new.embedding
+    print("UMAP coordinates added")
+  }, error = function(err) {
+    print("No UMAP coordinates detected")
+  })
 
   return(apa.seurat)
 }
