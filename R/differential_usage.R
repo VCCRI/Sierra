@@ -1,4 +1,162 @@
 
+
+#######################################################################
+#'
+#' Apply DEXSeq to detect differential peak usage
+#'
+#' Apply DEXSeq to detect differential peak usage been select populations. Works by building
+#' a 'pseudo-bulk' profile of cell populations by aggregating counts from individual cells
+#' into a smaller number of profiles, defined by num.splits.
+#'
+#' @param peaks.object Either a Seurat or SCE object of peaks
+#' @param population.1 a target population of cells (can be an ID/cluster label or a set of cell barcode IDs)
+#' @param population.2 comparison population of cells. If NULL (default), uses all non-population.1 cells
+#' @param exp.thresh minimum percent expression threshold (for a population of cells) to include a peak
+#' @param fc.thresh threshold for log2 fold-change difference for returned results
+#' @param adj.pval.thresh threshold for adjusted P-value for returned results
+#' @param num.splits the number of pseudo-bulk profiles to create per identity class (default: 6)
+#' @param feature.type genomic feature types to run analysis on (degault: all)
+#' @param verbose whether to print outputs (TRUE by default)
+#' @param doMAPlot make an MA plot of results (FALSE by default)
+#' @param return.dexseq.res return the raw and unfiltered DEXSeq results object (FALSE by default)
+#' @return a data-frame of results.
+#' @examples
+#' DUTest(apa.seurat.object, population.1 = "1", population.2 = "2")
+#'
+#' @export
+#'
+DUTest <- function(peaks.object, population.1, population.2 = NULL, exp.thresh = 0.1,
+                                     fc.thresh=0.25, adj.pval.thresh = 0.05, num.splits = 6, seed.use = 1,
+                                     feature.type = c("UTR3", "exon"), verbose = TRUE,
+                                     do.MAPlot = FALSE, return.dexseq.res = FALSE, ncores = 1) {
+
+  if (class(peaks.object) == "Seurat") {
+    res.table <- apply_DEXSeq_test_seurat(apa.seurat.object = peaks.object,
+                                          population.1 = population.1, population.2 = population.2,
+                                          exp.thresh = exp.thresh, fc.thresh = fc.thresh,
+                                          adj.pval.thresh = adj.pval.thresh, num.splits = num.splits,
+                                          seed.use = seed.use, feature.type = feature.type,
+                                          verbose = verbose, do.MAPlot = do.MAPlot,
+                                          return.dexseq.res = return.dexseq.res, ncores = ncores)
+    return(res.table)
+
+  } else if (class(peaks.object) == "SCE") {
+    print ("Feature not yet implemented")
+  }
+
+
+}
+
+#######################################################################
+#'
+#' Find alternative transcript usage between two single-cell populations
+#'
+#' Apply DEXSeq to detect differential peak usage been select populations. Works by building
+#' a 'pseudo-bulk' profile of cell populations by aggregating counts from individual cells
+#' into a smaller number of profiles, defined by num.splits.
+#'
+#' @param peaks.object Either a Seurat or SCE object of peaks
+#' @param gtf_gr GenomicRanges object from a GTF file
+#' @param gtf_TxDb TxDb from gtf file
+#' @param population.1 a target population of cells (can be an ID/cluster label or a set of cell barcode IDs)
+#' @param population.2 comparison population of cells. If NULL (default), uses all non-population.1 cells
+#' @param exp.thresh minimum percent expression threshold (for a population of cells) to include a peak
+#' @param fc.thresh threshold for log2 fold-change difference for returned results
+#' @param adj.pval.thresh threshold for adjusted P-value for returned results
+#' @param num.splits the number of pseudo-bulk profiles to create per identity class (default: 6)
+#' @param verbose whether to print outputs (TRUE by default)
+#' @param doMAPlot make an MA plot of results (FALSE by default)
+#' @return a data-frame of results.
+#' @examples
+#' DUTest(apa.seurat.object, population.1 = "1", population.2 = "2")
+#'
+#' @export
+#'
+DetectATU <- function(peaks.object, gtf_gr, gtf_TxDb, population.1, population.2 = NULL, exp.thresh = 0.1,
+                    fc.thresh=0.25, adj.pval.thresh = 0.05, num.splits = 6, seed.use = 1,
+                    verbose = TRUE, do.MAPlot = FALSE, ncores = 1) {
+
+  res.table <- DUTest(peaks.object = peaks.object, population.1 = population.1,
+                      population.2 = population.2, exp.thresh = exp.thresh, fc.thresh = fc.thresh,
+                      adj.pval.thresh = adj.pval.thresh, num.splits = num.splits,
+                      seed.use = seed.use, feature.type = c("UTR3"),
+                      verbose = verbose, do.MAPlot = do.MAPlot, ncores = ncores)
+
+  ## format differentially used peaks from GRanges
+  all.peaks = rownames(res.table)
+  strand = sub(".*:.*:.*-.*:(.*)", "\\1", all.peaks)
+  strand = plyr::mapvalues(x = strand, from = c("1", "-1"), to = c("+", "-"))
+  peak.remainder = sub(".*:(.*:.*-.*):.*", "\\1", all.peaks)
+  peaks.use = paste0(peak.remainder, ":", strand)
+  res.table$granges_peaks <- peaks.use
+  du.peaks.gr <- GenomicRanges::GRanges(peaks.use)
+
+  ## format expressed peaks using GRanges
+  ## get peaks that are expressed
+  peaks.expressed <- get_highly_expressed_peaks(peaks.object, cluster1 = population.1,
+                                                cluster2 = population.2, threshold=exp.thresh)
+
+  genes.expressed <- sub("(.*):.*:.*-.*:.*", "\\1", peaks.expressed)
+  peaks.use.idx <- which(genes.expressed %in% as.character(res.table$gene_name))
+  peaks.expressed <- peaks.expressed[peaks.use.idx]
+
+  strand = sub(".*:.*:.*-.*:(.*)", "\\1", peaks.expressed)
+  strand = plyr::mapvalues(x = strand, from = c("1", "-1"), to = c("+", "-"))
+  peak.remainder = sub(".*:(.*:.*-.*):.*", "\\1", peaks.expressed)
+  peaks.expressed.granges = paste0(peak.remainder, ":", strand)
+  expressed.peaks.gr <- GenomicRanges::GRanges(peaks.expressed.granges)
+
+  ## make a table mapping peaks to granges peaks for later
+  granges_peaks_mapping_table <- data.frame(PeakID = peaks.expressed,
+                                            row.names = peaks.expressed.granges, stringsAsFactors = FALSE)
+
+  utr3.ref <- GenomicFeatures::threeUTRsByTranscript(gtf_TxDb)
+  utr3.ref <- unlist(utr3.ref)
+
+  all_UTR_3_hits <- findOverlaps(expressed.peaks.gr , utr3.ref, type = "any")
+  utr3.mappings <- as.data.frame(all_UTR_3_hits)
+
+  query.hit.df <- as.data.frame(expressed.peaks.gr[utr3.mappings$queryHits, ])
+  subject.hit.df <- as.data.frame(utr3.ref[utr3.mappings$subjectHits, ],
+                                  row.names = as.character(1:nrow(utr3.mappings)))
+
+  query.hit.df %>% mutate(granges_peak = paste0(seqnames,":",start,"-",end,":",strand)) ->
+    query.hit.df
+
+  utr3.mappings$exon_name <- subject.hit.df$exon_name
+  utr3.mappings$granges_peak <- query.hit.df$granges_peak
+  peak.ids <- granges_peaks_mapping_table[as.character(query.hit.df$granges_peak), 'PeakID']
+  utr3.mappings$peakID <- peak.ids
+  utr3.mappings %>% mutate(Gene_name = sub("(.*):.*:.*-.*:.*", "\\1", peakID)) -> utr3.mappings
+  utr3.mappings %>% mutate(Start = sub(".*:(.*)-.*:.*", "\\1", granges_peak),
+                           End = sub(".*:.*-(.*):.*", "\\1", granges_peak)) -> utr3.mappings
+
+  res.table$peak_name <- rownames(res.table)
+  diff.transcript.check.values <- apply(as.matrix(res.table), 1, function(x) {
+    diff.site <- x["peak_name"]
+
+    this.gene <- x["gene_name"]
+    all.sites <- select_gene_polyas(peaks.object, gene = this.gene, feature.type = "UTR3")
+    sites.expressed <- intersect(all.sites, peaks.expressed)
+
+    exons.diff <- unique(subset(utr3.mappings, peakID %in% diff.site)$exon_name)
+
+    remaining.sites <- setdiff(all.sites, diff.site)
+    remaining.exons <- unique(subset(utr3.mappings, peakID %in% remaining.sites)$exon_name)
+
+    diff.transcript.check <- ifelse(length(setdiff(remaining.exons, exons.diff)) > 0, TRUE, FALSE)
+    return(diff.transcript.check)
+  })
+
+  res.table$Diff_transcript <- diff.transcript.check.values
+
+  res.table <- subset(res.table, Diff_transcript == TRUE)
+  if (verbose) print(paste0(nrow(res.table), " peaks called at alternative transcript usage"))
+
+  return(res.table)
+}
+
+
 #######################################################################
 #'
 #' Apply DEXSeq to detect differential peak usage
@@ -22,9 +180,8 @@
 #' @examples
 #' apply_DEXSeq_test(apa.seurat.object, population.1 = "1", population.2 = "2")
 #'
-#' @export
 #'
-apply_DEXSeq_test <- function(apa.seurat.object, population.1, population.2 = NULL, exp.thresh = 0.1,
+apply_DEXSeq_test_seurat <- function(apa.seurat.object, population.1, population.2 = NULL, exp.thresh = 0.1,
                               fc.thresh=0.25, adj.pval.thresh = 0.05, num.splits = 6, seed.use = 1,
                               feature.type = c("UTR3", "UTR5", "exon", "intron"), verbose = TRUE,
                               do.MAPlot = FALSE, return.dexseq.res = FALSE, ncores = 1) {
@@ -193,81 +350,6 @@ apply_DEXSeq_test <- function(apa.seurat.object, population.1, population.2 = NU
 }
 
 
-
-
-############################################################
-#'
-#' Calculate log2 fold-changes for a list of genes
-#'
-#' Get a list of Log2 fold-change values for a gene list between a specified cluster
-#' and either all remaining cells (default) or an alternative cluster
-#'
-#' @param seurat.object A polyA Seurat object
-#' @param geneList list of genes to calculate log2 fold-changes for
-#' @param cluster1 target cluster
-#' @param cluster2 background cluster. If null uses all non-cluster1 cells.
-#' @return a list of log2 fold-changes
-#' @examples
-#' foldchange.list = get_log2FC_list(seurat.object, geneList, "1")
-#'
-get_log2FC_list <- function(seurat.object, geneList, cluster1, cluster2=NULL) {
-
-  ### Need to check whether the input is a cluster label or vector of cell names
-  if (length(cluster1) == 1){ # cluster identity used as input
-    foreground.set = names(Idents(seurat.object)[Idents(seurat.object)==cluster1])
-  } else { # cell identity used as input
-    foreground.set = cluster1
-  }
-  if (is.null(cluster2)) {
-    remainder.set = setdiff(colnames(seurat.object), foreground.set)
-  } else {
-    if (length(cluster2) == 1) { # cluster identity used as input
-      remainder.set = names(Idents(seurat.object)[Idents(seurat.object)==cluster2])
-    } else { # cell identity used as input
-      remainder.set = cluster2
-    }
-  }
-  log2.fc.values = apply(GetAssayData(seurat.object)[geneList, c(foreground.set, remainder.set)], 1, function(x)
-    get_log2FC(x[foreground.set], x[remainder.set]))
-  return(log2.fc.values)
-}
-
-############################################################
-#'
-#' Calculate log2 fold-changes for a list of genes
-#'
-#' Get a list of Log2 fold-change values for a gene list between a specified cluster
-#' and either all remaining cells (default) or an alternative cluster
-#'
-#' @param seurat.object A polyA Seurat object
-#' @param geneList list of genes to calculate log2 fold-changes for
-#' @param cluster1 target cluster
-#' @param cluster2 background cluster. If null uses all non-cluster1 cells.
-#' @return a list of log2 fold-changes
-#' @examples
-#' foldchange.list = get_log2FC_list(seurat.object, geneList, "1")
-#'
-get_log2FC_list_v2 <- function(seurat.object, geneList, cluster1, cluster2=NULL) {
-
-  ### Need to check whether the input is a cluster label or vector of cell names
-  if (length(cluster1) == 1){ # cluster identity used as input
-    foreground.set = names(seurat.object@ident[seurat.object@ident==cluster1])
-  } else { # cell identity used as input
-    foreground.set = cluster1
-  }
-  if (is.null(cluster2)) {
-    remainder.set = setdiff(seurat.object@cell.names, foreground.set)
-  } else {
-    if (length(cluster2) == 1) { # cluster identity used as input
-      remainder.set = names(seurat.object@ident[seurat.object@ident==cluster2])
-    } else { # cell identity used as input
-      remainder.set = cluster2
-    }
-  }
-  log2.fc.values = apply(seurat.object@data[geneList, c(foreground.set, remainder.set)], 1, function(x)
-    get_log2FC(x[foreground.set], x[remainder.set]))
-  return(log2.fc.values)
-}
 
 
 ############################################################
