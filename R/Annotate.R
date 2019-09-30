@@ -1,13 +1,14 @@
 
 ################################################################################################
-## 
+##
 ## This function has been designed to be called from annotate_gr_from_gtf
 #'
+#' This function has been designed to be called from annotate_gr_from_gtf
 #'
 #' @param gr a granges object of peaks to annotate
 #' @param reference_gr a granges object of annotation info
 #' @param annotationType a granges object of peaks to annotate
-#' 
+#'
 gene_Labels<- function(gr, reference_gr, annotationType)
 {
   all_hits <- GenomicAlignments::findOverlaps(gr , reference_gr, type= annotationType)
@@ -16,30 +17,30 @@ gene_Labels<- function(gr, reference_gr, annotationType)
     warning("No samples matched")
     return(-1)
   }
-  
+
   identified_gene_symbols <- reference_gr[S4Vectors::subjectHits(all_hits)]$gene_name
   idx_to_annotate <- S4Vectors::queryHits(all_hits)
-  
+
   multi_annotations <- which(table(idx_to_annotate) > 1)
   unique_annotations <- unique(idx_to_annotate)
-  
+
   multi_gene_IDs <- unlist(sapply(names(multi_annotations),FUN=function(x) {
     newID <- paste(unique(identified_gene_symbols[which(x== idx_to_annotate)]),collapse=",")
     # rep(newID, length(which(x== idx_to_annotate)))
   }))
   multi_idx <- as.numeric(names(multi_gene_IDs))  # These are the indexes to annotate
-  
+
   to_convert <- lapply(multi_idx,FUN = function(x) {which(idx_to_annotate == x)})
-  
+
   if (length(to_convert) > 0)
   {   for(i in 1:length(to_convert))
   {
     identified_gene_symbols[to_convert[[i]]] <- multi_gene_IDs[[i]]
   }
   }
-  
+
   return(list (identified_gene_symbols=identified_gene_symbols, idx_to_annotate=idx_to_annotate))
-} 
+}
 
 #########################################################################################################
 ## annotate_gr_from_gtf
@@ -47,9 +48,9 @@ gene_Labels<- function(gr, reference_gr, annotationType)
 #' Annotates a granges object with overlapping genes from gtf file.
 #'
 #'  gr is the genomic ranges that need to be annotation. Ideally original input should be in the format:
-#'  
+#'
 #'       chr8:70331172-70331574:+   # chr:start-end:strand
-#'       
+#'
 #'   This could already exist within an R object or you can copy it in via readClipboard.
 #'
 #'  gr <- GRanges(readClipboard())
@@ -70,10 +71,10 @@ gene_Labels<- function(gr, reference_gr, annotationType)
 #' @param gtf_TxDb  same as gtf_gr but as a TxDb object.
 #' @param annotation_correction Boolean. When multiple overlapping genes are identified will
 #' prioritise gene based on annotation. 3'UTR annotation trumps all other annotation.
-#' @genome genome object. If NOT NULL then will perform pA motif analysis.
+#' @param genome genome object. If NOT NULL then will perform pA motif analysis.
 #' @param pA_motif_max_position Any AAUAAA after this position are not considered (default 50nt)
 #' @param AAA_motif_min_position Any polyA stretches before this postion are not considered (default 10)
-#' 
+#'
 #' @return a dataframe with appended columns containing annotation
 ##
 ## Written March 2019
@@ -89,7 +90,7 @@ annotate_gr_from_gtf <- function(gr, invert_strand = FALSE, gtf_gr = NULL,
   {warning("No gtf file provided")
     return(NULL)
   }
-  # 
+  #
   if (invert_strand)
   { gr <- invertStrand(gr) }
 
@@ -203,28 +204,28 @@ annotate_gr_from_gtf <- function(gr, invert_strand = FALSE, gtf_gr = NULL,
   }
 
  # browser()
-  
-    
+
+
   if (! is.null(genome))
-  { 
-  
+  {
+
     motif_details <- lapply(X = paste("chr",as.character(gr),sep=''),
                             FUN = function(x) {baseComposition(genome,coord=x)})
-    
-    df$pA_motif <- unlist( lapply(motif_details, FUN= function(x) { 
+
+    df$pA_motif <- unlist( lapply(motif_details, FUN= function(x) {
           pA_motif_position <- (x[1] < pA_motif_max_position)
           if (is.na(pA_motif_position))
-          {  pA_motif_position <- FALSE } 
-          return (pA_motif_position) } )) 
-    
-    df$pA_stretch <- unlist( lapply(motif_details, FUN= function(x) { 
-          pA_stretch_position <- (x[2] > AAA_motif_min_position) 
+          {  pA_motif_position <- FALSE }
+          return (pA_motif_position) } ))
+
+    df$pA_stretch <- unlist( lapply(motif_details, FUN= function(x) {
+          pA_stretch_position <- (x[2] > AAA_motif_min_position)
           if (is.na(pA_stretch_position))
           {  pA_stretch_position <- FALSE }
           return (pA_stretch_position) } ))
-    
+
      # baseComposition(genome=genome, coord = as.character(gr))
-    
+
   }
   return(df)
 }
@@ -237,15 +238,15 @@ annotate_gr_from_gtf <- function(gr, invert_strand = FALSE, gtf_gr = NULL,
 ##
 #' Identify polyA motif and/or polyA stretches from provided genomic coordinates
 #'
-#'  
+#'
 #'       chrom <- chr8
-#'       
+#'
 #'       start <- 70331172
-#'       
+#'
 #'       stop <- 70331574
-#'       
+#'
 #'       strand <- "+"
-#'       
+#'
 #'
 #' You need to run the following code:
 #'      genome <-  GenomicFeatures::makeTxDbFromGFF(gtf_file, format="gtf")
@@ -253,80 +254,80 @@ annotate_gr_from_gtf <- function(gr, invert_strand = FALSE, gtf_gr = NULL,
 #' annotationType can be c("any", "start", "end", "within", "equal"),
 #' @param genome genome object of organism.
 #' @param chrom chromosome
-#' @param start Upstream start position 
+#' @param start Upstream start position
 #' @param end downstream end position
 #' @param strand '+' or '-'. This will define the applied direction of offset
-#' @param 
-#' @param offset The 
+#' @param coord coordinates
+#' @param offset The
 #' @param length How many nucleotides of DNA sequence to return
 #' @return a dataframe with appended columns containing annotation
-#' 
+#'
 #' chrom <- 'chr16'
 #' start <- 49896378
 #' stop  <- 49911102
 #' strand <- '+'
 #' genome <- BSgenome.Mmusculus.UCSC.mm10::BSgenome.Mmusculus.UCSC.mm10
-#' 
+#'
 #' # Tmem126a intronic peak that coincides with a poly(A) rich region.
 #' chrom  <- 'chr7'
 #' start  <- 90451180
 #' stop   <- 90451380
 #' strand <- '-'
-#' 
-#' TO DO: 
-#' * If peak falls at end of exon then need to obtain sequence from next exon. This 
+#'
+#' TO DO:
+#' * If peak falls at end of exon then need to obtain sequence from next exon. This
 #' would require passing exon junction information.
-#' 
+#'
 #' @export
 ##
 ## Written August 2019
-baseComposition <- function(genome=NULL,  chrom=NULL, start=NULL, stop=NULL, strand=NULL, 
+baseComposition <- function(genome=NULL,  chrom=NULL, start=NULL, stop=NULL, strand=NULL,
                             coord = NULL, offset = -50, length = 250)
 {
   # Check inputs
   if (! is.null(coord))
   {
-    if (! is.null(genome) & (! is.null(chrom) | ! is.null(start) | 
+    if (! is.null(genome) & (! is.null(chrom) | ! is.null(start) |
           ! is.null(stop) | ! is.null(strand)))
       warning("Multiple coodinates passed, will be using what was passed to coord")
     # "Cd47:16:49896378-49911102:1"
     # "Cd47:16:49914609-49915010:1"
     # "Tmem126a:7:90451180-90451380:-1"
-    
-    
+
+
     if (length(gregexpr(":",coord)[[1]]) == 3) # coord should look like this "Cd47:16:49896378-49911102:1"
     {
       coord_detail <- strsplit(coord, split = ":")
       chrom <- paste("chr",coord_detail[[1]][2],sep='')
       strand <- coord_detail[[1]][4]
-      
+
       if (strand == 1)
       { strand <- '+'   }
       else if (strand == -1)
       { strand <- '-'   }
-      
+
       coord_detail <- strsplit(coord_detail[[1]][3],"-")
       start <- as.numeric(coord_detail[[1]][1])
       stop <- as.numeric(coord_detail[[1]][2])
-      
+
     }
-    
+
     if (length(gregexpr(":",coord)[[1]]) == 2) # coord should look like this "chr16:49896378-49911102:+"
     {
       coord_detail <- strsplit(coord, split = ":")
       chrom <- coord_detail[[1]][1]
       strand <- coord_detail[[1]][3]
-      
+
       coord_detail <- strsplit(coord_detail[[1]][2],"-")
       start <- as.numeric(coord_detail[[1]][1])
       stop <- as.numeric(coord_detail[[1]][2])
-      
+
     }
-    
-    
+
+
   }
 
-  
+
   # Require start to be smaller number
   if ( start > stop)
   {
@@ -336,25 +337,25 @@ baseComposition <- function(genome=NULL,  chrom=NULL, start=NULL, stop=NULL, str
   }
 
   # Default parameters for '+' strand
-  seq_start_position <- stop 
+  seq_start_position <- stop
   seq_end_position <- stop + length
-  
-  
 
-  # modify start / stop according to strand 
+
+
+  # modify start / stop according to strand
   if (strand == '-')
-  {     seq_start_position <- start - length  
+  {     seq_start_position <- start - length
         seq_end_position <- start
         offset <- offset * -1
   }
-  
+
   # apply offset
   seq_start_position <- seq_start_position + offset
   seq_end_position <- seq_end_position + offset
-  
-  
+
+
   sequ <- BSgenome::getSeq(genome, chrom, seq_start_position, seq_end_position)   # Always get +ve strand
-  
+
   if (strand == '-')
     sequ <- reverseComplement(sequ)
 
@@ -362,8 +363,8 @@ baseComposition <- function(genome=NULL,  chrom=NULL, start=NULL, stop=NULL, str
   #<- longestConsecutive(seq, "A") # returns a integer
   pA_motif  <-  matchPattern(pattern = "AATAAA", subject = sequ)
   pA_stretch <- matchPattern(pattern="AAAAAAAAAAAAA", subject=sequ, max.mismatch=1)
-  
-  
+
+
   return(list(pA_motif_pos = start(pA_motif)[1], pA_stretch_pos = start(pA_stretch)[1], sequence = sequ ))
 }
 
@@ -374,20 +375,20 @@ baseComposition <- function(genome=NULL,  chrom=NULL, start=NULL, stop=NULL, str
 ##    format
 ##
 ##
-##  all_coords_formatted <- unlist(lapply(X = all_coords,convert_coord))  
+##  all_coords_formatted <- unlist(lapply(X = all_coords,convert_coord))
 ##
 convert_coord <- function(coord)
 {
   # Currently will convert the following:
   #
   #  "Prkar1a:11:109669227-109669656:1"     to chr11:109669227-109669656:+
-  
+
   if (length(gregexpr(":",coord)[[1]]) == 3) # coord should look like this "Cd47:16:49896378-49911102:1"
   {
     coord_detail <- strsplit(coord, split = ":")
     chrom <- paste("chr",coord_detail[[1]][2],sep='')
     strand <- coord_detail[[1]][4]
-    
+
     if (strand == 1)
     { strand <- '+'   }
     else if (strand == -1)
