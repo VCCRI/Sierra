@@ -68,7 +68,7 @@ DUTest <- function(peaks.object, population.1, population.2 = NULL, exp.thresh =
 #' @param doMAPlot make an MA plot of results (FALSE by default)
 #' @return a data-frame of results.
 #' @examples
-#' DUTest(apa.seurat.object, population.1 = "1", population.2 = "2")
+#' DetectATU(apa.seurat.object, population.1 = "1", population.2 = "2")
 #'
 #' @export
 #'
@@ -129,11 +129,12 @@ DetectATU <- function(peaks.object, gtf_gr, gtf_TxDb, population.1, population.2
   utr3.mappings$granges_peak <- query.hit.df$granges_peak
   peak.ids <- granges_peaks_mapping_table[as.character(query.hit.df$granges_peak), 'PeakID']
   utr3.mappings$peakID <- peak.ids
-  utr3.mappings %>% mutate(Gene_name = sub("(.*):.*:.*-.*:.*", "\\1", peakID)) -> utr3.mappings
-  utr3.mappings %>% mutate(Start = sub(".*:(.*)-.*:.*", "\\1", granges_peak),
-                           End = sub(".*:.*-(.*):.*", "\\1", granges_peak)) -> utr3.mappings
 
   res.table$peak_name <- rownames(res.table)
+
+  ## For each DU peak, identify all remaining expressed peaks falling on 3'UTRs within the
+  ## relevant gene. If the 3'UTR ID/s of the DU peak are different to the remaining peaks,
+  ## mark the DU peak as differential transcript usage.
   diff.transcript.check.values <- apply(as.matrix(res.table), 1, function(x) {
     diff.site <- x["peak_name"]
 
@@ -180,9 +181,6 @@ DetectATU <- function(peaks.object, gtf_gr, gtf_TxDb, population.1, population.2
   transcript.mappings$granges_peak <- query.hit.df$granges_peak
   peak.ids <- granges_peaks_mapping_table[as.character(query.hit.df$granges_peak), 'PeakID']
   transcript.mappings$peakID <- peak.ids
-  transcript.mappings %>% mutate(Gene_name = sub("(.*):.*:.*-.*:.*", "\\1", peakID)) -> transcript.mappings
-  transcript.mappings %>% mutate(Start = sub(".*:(.*)-.*:.*", "\\1", granges_peak),
-                                 End = sub(".*:.*-(.*):.*", "\\1", granges_peak)) -> transcript.mappings
 
   ## Collapse the transcript names according to peak ID
   transcript.mappings %>% dplyr::group_by(peakID) %>%
