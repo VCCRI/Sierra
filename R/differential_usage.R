@@ -82,6 +82,8 @@ DetectATU <- function(peaks.object, gtf_gr, gtf_TxDb, population.1, population.2
                       seed.use = seed.use, feature.type = c("UTR3"),
                       verbose = verbose, do.MAPlot = do.MAPlot, ncores = ncores)
 
+  if (verbose) print("Filtering for alternative transcript usage")
+
   ## format differentially used peaks from GRanges
   all.peaks = rownames(res.table)
   strand = sub(".*:.*:.*-.*:(.*)", "\\1", all.peaks)
@@ -148,10 +150,54 @@ DetectATU <- function(peaks.object, gtf_gr, gtf_TxDb, population.1, population.2
     return(diff.transcript.check)
   })
 
+  ## Subset results table for peaks called at differential transcript usage
   res.table$Diff_transcript <- diff.transcript.check.values
-
   res.table <- subset(res.table, Diff_transcript == TRUE)
-  if (verbose) print(paste0(nrow(res.table), " peaks called at alternative transcript usage"))
+
+  ## Finally annotate the ATU peaks according to transcript name
+  peaks.to.annotate <- res.table$granges_peaks
+  peaks.gr <- GenomicRanges::GRanges(peaks.to.annotate)
+
+  ## make a table mapping peaks to granges peaks for later
+  granges_peaks_mapping_table <- data.frame(PeakID = rownames(res.table),
+                                            row.names = peaks.to.annotate,
+                                            stringsAsFactors = FALSE)
+
+  transcripts.ref <- GenomicFeatures::transcripts(gtf_TxDb)
+  transcripts.ref <- unlist(transcripts.ref)
+
+  all_transcript_hits <- findOverlaps(peaks.gr , transcripts.ref, type = "any")
+  transcript.mappings <- as.data.frame(all_transcript_hits)
+
+  query.hit.df <- as.data.frame(peaks.gr[transcript.mappings$queryHits, ])
+  subject.hit.df <- as.data.frame(transcripts.ref[transcript.mappings$subjectHits, ],
+                                  row.names = as.character(1:nrow(transcript.mappings)))
+
+  query.hit.df %>% mutate(granges_peak = paste0(seqnames,":",start,"-",end,":",strand)) ->
+    query.hit.df
+
+  transcript.mappings$transcript_name <- subject.hit.df$tx_name
+  transcript.mappings$granges_peak <- query.hit.df$granges_peak
+  peak.ids <- granges_peaks_mapping_table[as.character(query.hit.df$granges_peak), 'PeakID']
+  transcript.mappings$peakID <- peak.ids
+  transcript.mappings %>% mutate(Gene_name = sub("(.*):.*:.*-.*:.*", "\\1", peakID)) -> transcript.mappings
+  transcript.mappings %>% mutate(Start = sub(".*:(.*)-.*:.*", "\\1", granges_peak),
+                                 End = sub(".*:.*-(.*):.*", "\\1", granges_peak)) -> transcript.mappings
+
+  ## Collapse the transcript names according to peak ID
+  transcript.mappings %>% dplyr::group_by(peakID) %>%
+    dplyr::summarize(Transcript_names = paste(transcript_name, collapse = ";")) %>%
+    as.data.frame() -> peak.transcript.table
+  rownames(peak.transcript.table) <- as.character(peak.transcript.table$peakID)
+
+  ## Add the transcript names to the results table
+  peak.transcript.table <- peak.transcript.table[rownames(res.table), ]
+  res.table$Transcript_name <- as.character(peak.transcript.table$Transcript_names)
+
+  res.table <- res.table[, c("gene_name", "genomic_feature(s)", "population1_pct", "population2_pct",
+                             "pvalue", "padj", "Log2_fold_change", "Transcript_name")]
+
+  if (verbose) print(paste0(nrow(res.table), " peaks detected as representing alternative transcript usage"))
 
   return(res.table)
 }
