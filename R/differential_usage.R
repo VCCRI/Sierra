@@ -106,6 +106,16 @@ DetectATU <- function(peaks.object, gtf_gr, gtf_TxDb, population.1, population.2
   strand = plyr::mapvalues(x = strand, from = c("1", "-1"), to = c("+", "-"))
   peak.remainder = sub(".*:(.*:.*-.*):.*", "\\1", peaks.expressed)
   peaks.expressed.granges = paste0(peak.remainder, ":", strand)
+
+  ## filter out duplicate coordinates mapping to different genes
+  duplicate.peaks <- names(table(peaks.expressed.granges))[which( table(peaks.expressed.granges) > 1)]
+  if (length(duplicate.peaks) > 0) {
+    peaks.remove.idx <- which(peaks.expressed.granges %in% duplicate.peaks)
+    peaks.expressed.granges <- peaks.expressed.granges[-peaks.remove.idx]
+    peaks.expressed <- peaks.expressed[-peaks.remove.idx]
+    res.table <- res.table[intersect(rownames(res.table), peaks.expressed)]
+  }
+
   expressed.peaks.gr <- GenomicRanges::GRanges(peaks.expressed.granges)
 
   ## make a table mapping peaks to granges peaks for later
