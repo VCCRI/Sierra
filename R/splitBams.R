@@ -186,6 +186,11 @@ geneToGR <- function(geneID, gtf_gr)
 ##############################################################3
 #'
 #'
+#' Example of how to use function:
+#' 
+#' library("data.table")
+#' endothelial_cov <- fread(file="c:/BAM/Harvey/scpolyA/Porrello_Support_Files/Porrello_Endothelial.F-CycCl_vs_F-Act.wig.txt.gz", sep = "\t", header = TRUE)
+#' EC_coverage.rle <- seqmonk_to_rle(endothelial_cov, col_idx = 13:28)
 #'
 seqmonk_to_rle <- function(df, col_idx = 13:28)
 {
@@ -200,4 +205,37 @@ seqmonk_to_rle <- function(df, col_idx = 13:28)
   }
   names(coverage.rle) <- sampleIDs
   coverage.rle$gr <- GenomicRanges::makeGRangesFromDataFrame(df[,2:5])
+}
+
+##################################################################
+#'
+#'
+seqmonk_file_to_rle <- function(fn)
+{
+  coverage.rle <- list()
+  
+  # Quick scan of file to identify column names
+  temp <- data.table::fread(file=fn, sep = "\t",nrows = 2,header = TRUE)
+  all_col_names <- colnames(temp)
+  col_idx <- 13:length(all_col_names)
+
+  # Read in genomic coordinates and generate a genomic range object
+  col_to_keep <- c("Chromosome","Start","End","Probe Strand")
+  df <- fread(file=fn, sep = "\t", header = TRUE, select = col_to_keep)
+#  browser()
+  
+  colnames(df) <- c("chrom", "start","end", "strand")
+  coverage.rle$gr <- GenomicRanges::makeGRangesFromDataFrame(df)
+  
+  
+  # Now extract all columns as rle objects
+
+  for(i in all_col_names[col_idx])
+  {
+    df <- data.table::fread(file=fn, sep = "\t", header = TRUE, select = i)
+    coverage.rle[[length(coverage.rle)+1]] <- rle(df)
+    print(paste(i , ": complete"))
+  }
+  names(coverage.rle) <- c("gr",all_col_names)
+  return(coverage.rle)  
 }

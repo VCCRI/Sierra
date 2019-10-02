@@ -445,7 +445,7 @@ getMultiGeneExpressionData <- function(seurat.object, geneSet, use.log10 = FALSE
 #'
 #' @import Gviz
 #' @export
-plotCoverage<-function(genome_gr, geneSymbol="", wig_data, bamfiles=NULL, wig_same_strand=TRUE, genome=NULL, pdf_output = FALSE, 
+plotCoverage<-function(genome_gr, geneSymbol="", wig_data=NULL, bamfiles=NULL, wig_same_strand=TRUE, genome=NULL, pdf_output = FALSE, 
                        output_file_name='', zoom_3UTR=FALSE)
 {
   # Need check that gene_name field exists
@@ -481,22 +481,38 @@ plotCoverage<-function(genome_gr, geneSymbol="", wig_data, bamfiles=NULL, wig_sa
   gtrack <- Gviz::GeneRegionTrack(gene_txdb, start = start, end = end, chromosome=chrom, name= geneSymbol)
 
   ##### Assemble data track(s)
-  ## First assemble wig tracks
-  if (typeof(wig_data) != "S4")  # assume a dataframe or list which we can create several df.
-  { nc <- ncol(wig_data)  # 4 columns are chrom, start, end, strand. Thereafter are sample data
-    wig_data <-  GenomicRanges::makeGRangesFromDataFrame(wig_data,keep.extra.columns=TRUE)
+  dtrack <- list()  # Add data tracks assembled on this list
+  
+  ## Assemble wig data tracks
+  wig_tracks <- list()
+  if (! is.null(wig_data))
+  {
+    if (typeof(wig_data) != "S4")  # assume a dataframe or list which we can create several df.
+    { nc <- ncol(wig_data)  # 4 columns are chrom, start, end, strand. Thereafter are sample data
+      wig_data <-  GenomicRanges::makeGRangesFromDataFrame(wig_data,keep.extra.columns=TRUE)
+    }
+    GenomeInfoDb::seqlevelsStyle(wig_data) <- "UCSC"
+  
+    if (! wig_same_strand)
+    {  toExtract_gr <- GenomicRanges::invertStrand(toExtract_gr)  }
+    dtrack_gr <- IRanges::subsetByOverlaps(wig_data, toExtract_gr)
+  
+  
+    GenomeInfoDb::seqlevels(dtrack_gr) <- chrom
+    sample_col_idx <- 1: ncol(S4Vectors::mcols(wig_data))
+    
+    # Now assemble coverage plots
+    for(i in sample_col_idx) 
+    {
+      tmp_gr <- dtrack_gr
+      S4Vectors::mcols(tmp_gr) <- S4Vectors::mcols(tmp_gr)[i]
+      dtrack_name <- names(S4Vectors::mcols(tmp_gr))
+      wig_tracks[[length(wig_tracks)+1]] <- Gviz::DataTrack(tmp_gr, name=dtrack_name, type = "histogram", genome=genome) 
+    }
+    
   }
-  GenomeInfoDb::seqlevelsStyle(wig_data) <- "UCSC"
 
-  if (! wig_same_strand)
-  {  toExtract_gr <- GenomicRanges::invertStrand(toExtract_gr)  }
-  dtrack_gr <- IRanges::subsetByOverlaps(wig_data, toExtract_gr)
-
-
-  GenomeInfoDb::seqlevels(dtrack_gr) <- chrom
-  sample_col_idx <- 1: ncol(S4Vectors::mcols(wig_data))
-  dtrack <- list()
-
+  
   ## First load any BAM files onto dtrack
   if (length(bamfiles) > 0)
   { 
@@ -529,13 +545,9 @@ plotCoverage<-function(genome_gr, geneSymbol="", wig_data, bamfiles=NULL, wig_sa
     }
   }
   
-  # Now assemble coverage plots
-  for(i in sample_col_idx) 
+  if (length(wig_tracks) > 0)
   {
-    tmp_gr <- dtrack_gr
-    S4Vectors::mcols(tmp_gr) <- S4Vectors::mcols(tmp_gr)[i]
-    dtrack_name <- names(S4Vectors::mcols(tmp_gr))
-    dtrack[[length(dtrack)+1]] <- Gviz::DataTrack(tmp_gr, name=dtrack_name, type = "histogram", genome=genome) 
+    dtrack <- c(wig_tracks, dtrack)
   }
 
   toPlot <- c(gtrack, dtrack)
