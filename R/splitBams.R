@@ -221,7 +221,7 @@ seqmonk_file_to_rle <- function(fn)
 
   # Read in genomic coordinates and generate a genomic range object
   col_to_keep <- c("Chromosome","Start","End","Probe Strand")
-  df <- fread(file=fn, sep = "\t", header = TRUE, select = col_to_keep)
+  df <- data.table::fread(file=fn, sep = "\t", header = TRUE, select = col_to_keep)
 #  browser()
   
   colnames(df) <- c("chrom", "start","end", "strand")
