@@ -6,7 +6,8 @@
 \usage{
 annotate_gr_from_gtf(gr, invert_strand = FALSE, gtf_gr = NULL,
   annotationType = "within", transcriptDetails = FALSE, gtf_TxDb,
-  annotation_correction = TRUE)
+  annotation_correction = TRUE, genome = NULL,
+  pA_motif_max_position = 50, AAA_motif_min_position = 10)
 }
 \arguments{
 \item{gr}{a granges object of peaks to annotate}
@@ -23,16 +24,24 @@ annotate_gr_from_gtf(gr, invert_strand = FALSE, gtf_gr = NULL,
 
 \item{annotation_correction}{Boolean. When multiple overlapping genes are identified will
 prioritise gene based on annotation. 3'UTR annotation trumps all other annotation.}
+
+\item{genome}{genome object. If NOT NULL then will perform pA motif analysis.}
+
+\item{pA_motif_max_position}{Any AAUAAA after this position are not considered (default 50nt)}
+
+\item{AAA_motif_min_position}{Any polyA stretches before this postion are not considered (default 10)}
 }
 \value{
 a dataframe with appended columns containing annotation
 }
 \description{
 gr is the genomic ranges that need to be annotation. Ideally original input should be in the format:
-      chr8:70331172-70331574:+   # chr:start-end:strand
-  This could already exist within an R object or you can copy it in via readClipboard.
 }
 \details{
+chr8:70331172-70331574:+   # chr:start-end:strand
+
+This could already exist within an R object or you can copy it in via readClipboard.
+
 gr <- GRanges(readClipboard())
 
 You need to run the following code:
