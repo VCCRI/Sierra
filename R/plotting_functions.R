@@ -496,11 +496,8 @@ getMultiGeneExpressionData <- function(seurat.object, geneSet, use.log10 = FALSE
 #'
 #' @import Gviz
 #' @export
-<<<<<<< HEAD
 plotCoverage<-function(genome_gr, geneSymbol="", wig_data=NULL, bamfiles=NULL, wig_same_strand=TRUE, genome=NULL, pdf_output = FALSE, 
-=======
-plotCoverage<-function(genome_gr, geneSymbol="", wig_data, bamfiles=NULL, wig_same_strand=TRUE, genome=NULL, pdf_output = FALSE,
->>>>>>> 0101392fa19a23e897dfbb9e4249cbbb21068612
+
                        output_file_name='', zoom_3UTR=FALSE)
 {
   # Need check that gene_name field exists
@@ -599,21 +596,11 @@ plotCoverage<-function(genome_gr, geneSymbol="", wig_data, bamfiles=NULL, wig_sa
       dtrack[[length(dtrack)+1]] <- Gviz::DataTrack(gr, name=i, type = "histogram", genome=genome)
     }
   }
-<<<<<<< HEAD
+
   
   if (length(wig_tracks) > 0)
   {
     dtrack <- c(wig_tracks, dtrack)
-=======
-
-  # Now assemble coverage plots
-  for(i in sample_col_idx)
-  {
-    tmp_gr <- dtrack_gr
-    S4Vectors::mcols(tmp_gr) <- S4Vectors::mcols(tmp_gr)[i]
-    dtrack_name <- names(S4Vectors::mcols(tmp_gr))
-    dtrack[[length(dtrack)+1]] <- Gviz::DataTrack(tmp_gr, name=dtrack_name, type = "histogram", genome=genome)
->>>>>>> 0101392fa19a23e897dfbb9e4249cbbb21068612
   }
 
   toPlot <- c(gtrack, dtrack)
