@@ -154,3 +154,50 @@ merge_bam_coverage <- function(bamfiles, to_extract)
   }
   return (bam_coverage)
 }
+
+##################################################################
+#' geneToGR converts a gene sybol to genomic ranges coordinate
+#'
+#' @param geneID : Gene symbol
+#' @param gtf_gr : Gragnes object of a gtf file
+geneToGR <- function(geneID, gtf_gr)
+{
+  if (! is.null(geneSymbol))
+  {
+    # Need check that gene_name field exists
+    idx <-which(gtf_gr$gene_name == geneSymbol)
+    if (length(idx) == 0)
+    { warning("Could not find gene name. Please check spelling (and case)")
+      return(NULL)
+    }
+    GenomeInfoDb::seqlevelsStyle(gtf_gr) <- "NCBI" 
+    
+    # Work out the genomic range to extract from
+    start <- min(start(ranges(gtf_gr[idx])))
+    end <- max(end(ranges(gtf_gr[idx])))
+    chrom <- as.character(GenomicRanges::seqnames(gtf_gr[idx]))[1]  # should I check that all returned chromosomes are the same?
+    gene_strand <- as.character(strand(gtf_gr[idx]))[1]
+    gr <- GenomicRanges::GRanges(seqnames=chrom, ranges=IRanges::IRanges(start-gi_ext , width=end-start+gi_ext), strand=gene_strand)
+  }
+  return(gr)
+}
+
+
+##############################################################3
+#'
+#'
+#'
+seqmonk_to_rle <- function(df, col_idx = 13:28)
+{
+  colnames(df)[2:5] <- c("chrom", "start","end", "strand")
+  sampleIDs <- colnames(df)[col_idx]
+  coverage.rle <- list()
+  
+  for(i in col_idx)
+  {
+    coverage.rle[[length(coverage.rle)+1]] <- rle(df[,..i] )
+    print(length(coverage.rle))
+  }
+  names(coverage.rle) <- sampleIDs
+  coverage.rle$gr <- GenomicRanges::makeGRangesFromDataFrame(df[,2:5])
+}
