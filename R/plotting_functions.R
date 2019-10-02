@@ -46,7 +46,12 @@ get_relative_expression <- function(seurat.object, peak.set = NULL, gene_name = 
 
     ## Calculate relative usage of each peak
     peak.means <- apply(expression.set, 1, function(x){mean(exp(x) - 1)})
-    relative.usage <- peak.means / mean(peak.means)
+    if (mean(peak.means) == 0) {
+      relative.usage <- peak.means
+    } else {
+      relative.usage <- peak.means / mean(peak.means)
+    }
+
     population.relative.usage <- cbind(population.relative.usage, relative.usage)
 
     ## Calculate mean expression across the gene
