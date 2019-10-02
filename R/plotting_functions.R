@@ -14,7 +14,7 @@
 #' @return a matrix of relative expression
 #'
 #' @examples
-#' get_relatuve_expression(peaks.seurat, gene_name = "Cxcl12")
+#' get_relative_expression(peaks.seurat, gene_name = "Cxcl12")
 #'
 get_relative_expression <- function(seurat.object, peak.set = NULL, gene_name = NULL,
                                     feature.type = c("UTR3", "exon")) {
@@ -30,19 +30,49 @@ get_relative_expression <- function(seurat.object, peak.set = NULL, gene_name = 
   }
 
   ## access expression data for this set of peaks
-  expression.data <- GetAssayData(apa.seurat)[peak.set, ]
+  expression.data <- GetAssayData(seurat.object)[peak.set, ]
 
   if (length(peak.set) == 1) {
     return(expression.data)
   }
 
-  ## calculate relative expression by dividing each peak by the sum of the peak expression
-  mat.col.mean <- apply(as.matrix(expression.data), 2, function(x){mean(exp(x) - 1)})
-  mat.col.mean[which(mat.col.mean == 0)] <- 1
+  ## Calculate population-level gene-mean and relative peak expression values
+  population.names <- names(table(Idents(seurat.object)))
+  population.relative.usage <- c()
+  gene.population.means <- c()
+  for (cl in population.names) {
+    cell.set <- colnames(seurat.object)[which(Idents(seurat.object) == cl)]
+    expression.set <- expression.data[, cell.set]
 
-  relative.exp.data <- as(t( ( exp(t(as.matrix(expression.data))) - 1) / mat.col.mean ), "sparseMatrix")
+    ## Calculate relative usage of each peak
+    peak.means <- apply(expression.set, 1, function(x){mean(exp(x) - 1)})
+    relative.usage <- peak.means / mean(peak.means)
+    population.relative.usage <- cbind(population.relative.usage, relative.usage)
 
-  return(relative.exp.data)
+    ## Calculate mean expression across the gene
+    gene.mean <- mean(exp(as.matrix(expression.set)) - 1)
+    gene.population.means <- append(gene.population.means, gene.mean)
+  }
+  colnames(population.relative.usage) <- population.names
+  names(gene.population.means) <- population.names
+
+  ### Divide peak expression for each cell by cell-type expression average
+  relative.expression.data <- c()
+  population.names <- names(table(Idents(seurat.object)))
+  for (cl in population.names) {
+    cell.set <- colnames(seurat.object)[which(Idents(seurat.object) == cl)]
+    expression.set <- expression.data[, cell.set]
+    this.mean <- gene.population.means[cl]
+    rel.values <- population.relative.usage[, cl]
+    relative.exp.values <- ( (exp(expression.set) - 1) / (this.mean + 1) ) * rel.values
+    relative.expression.data <- cbind(relative.expression.data, relative.exp.values)
+  }
+  relative.expression.data <- relative.expression.data[, colnames(seurat.object)]
+
+  relative.expression.data <- log2(relative.expression.data + 1)
+  relative.expression.data <- as(relative.expression.data, "sparseMatrix")
+
+  return(relative.expression.data)
 }
 
 
@@ -115,7 +145,8 @@ do_arrow_plot <- function(peaks.seurat.object, gene_name, peaks.use = NULL, popu
 #'
 #' Generate a t-SNE plot using relative expression
 #'
-#' Given two or more peaks to plot,
+#' Given two or more peaks to plot, a relative expression score and
+#' plot on t-SNE coordinates
 #'
 #' @param seurat.object Seurat object
 #' @param peaks.to.plot Set of peaks to plot
@@ -126,12 +157,12 @@ do_arrow_plot <- function(peaks.seurat.object, gene_name, peaks.use = NULL, popu
 #' @return a ggplot2 object
 #'
 #' @examples
-#' relative_expression_tsne(peaks.seurat, this.peak.set)
+#' PlotRelativeExpressionTSNE(peaks.seurat, this.peak.set)
 #'
 #' @import ggplot2
 #'
-relative_expression_tsne <- function(seurat.object, peaks.to.plot, do.plot=TRUE, figure.title=NULL,
-                                     return.plot = TRUE, pt.size = 0.5) {
+PlotRelativeExpressionTSNE <- function(seurat.object, peaks.to.plot, do.plot=TRUE, figure.title=NULL,
+                                     return.plot = TRUE, pt.size = 0.5, txt.size = 14) {
 
   ## Check multiple peaks have been provided
   if (length(peaks.to.plot) < 2) {
@@ -159,12 +190,10 @@ relative_expression_tsne <- function(seurat.object, peaks.to.plot, do.plot=TRUE,
   pl <- ggplot(ggData, aes(tSNE_1, tSNE_2, color=Expression)) + geom_point(size=pt.size) + xlab("t-SNE 1") + ylab("t-SNE 2") +
     scale_color_gradient2(low="#d9d9d9", mid="red", high="brown", midpoint=min(ggData$Expression) +
                             (max(ggData$Expression)-min(ggData$Expression))/2, name="") +
-    theme_bw(base_size = 14) + theme(panel.grid = element_blank()) +
-    theme(strip.text.x = element_text(size = 14)) + facet_wrap(~ Peak)
+    theme_classic(base_size = txt.size) + theme(panel.grid = element_blank(), strip.background = element_blank()) +
+    theme(strip.text.x = element_text(size = txt.size)) + facet_wrap(~ Peak)
 
-  if (is.null(figure.title)) {
-    pl <- pl + ggtitle("Relative peak expression")
-  } else {
+  if (!is.null(figure.title)) {
     pl <- pl + ggtitle(figure.title)
   }
 
@@ -177,49 +206,66 @@ relative_expression_tsne <- function(seurat.object, peaks.to.plot, do.plot=TRUE,
   }
 }
 
+##########################################################
+#'
+#' Generate a t-SNE plot using relative expression
+#'
+#' Given two or more peaks to plot, calculate a relative expression score and
+#' plot on UMAP coordinates
+#'
+#' @param seurat.object Seurat object
+#' @param peaks.to.plot Set of peaks to plot
+#' @param do.plot Whether to plot to output (TRUE by default)
+#' @param figure.title Optional figure title
+#' @param pt.size size of the points on the t-SNE plot
+#'
+#' @return a ggplot2 object
+#'
+#' @examples
+#' PlotRelativeExpressionUMAP(peaks.seurat, this.peak.set)
+#'
+#' @import ggplot2
+#'
+PlotRelativeExpressionUMAP <- function(seurat.object, peaks.to.plot, do.plot=TRUE, figure.title=NULL,
+                                     return.plot = TRUE, pt.size = 0.5, txt.size = 14) {
 
-relative_expression_umap <- function(seurat.object, peaks.to.plot, do.plot=TRUE, figure.title=NULL,
-                                     return.plot = TRUE, pt.size = 0.5) {
-  
   ## Check multiple peaks have been provided
   if (length(peaks.to.plot) < 2) {
     stop("Please provide at least two peaks for plotting relative expression")
   }
-  
+
   relative.exp.data <- get_relative_expression(seurat.object, peak.set = peaks.to.plot)
-  
+
   ggData <- data.frame(Expression = as.vector(t(as.matrix(relative.exp.data))),
                        Peak = unlist(lapply(peaks.to.plot, function(x) rep(x, ncol(relative.exp.data)))))
-  
+
   # Pull out the t-SNE coordinates
   seurat.object.umap1 <- seurat.object@reductions$umap@cell.embeddings[, 1]
   names(seurat.object.umap1) <- colnames(seurat.object)
-  
+
   seurat.object.umap2 <- seurat.object@reductions$umap@cell.embeddings[, 2]
   names(seurat.object.umap2) <- colnames(seurat.object)
-  
+
   ggData$UMAP_1 = rep(seurat.object.umap1, length(peaks.to.plot))
   ggData$UMAP_2 = rep(seurat.object.umap2, length(peaks.to.plot))
-  
+
   ggData$Cell_ID = rep(colnames(seurat.object), length(peaks.to.plot))
-  
+
   ggData$Peak <- factor(ggData$Peak, levels = peaks.to.plot)
   pl <- ggplot(ggData, aes(UMAP_1, UMAP_2, color=Expression)) + geom_point(size=pt.size) + xlab("UMAP 1") + ylab("UMAP 2") +
     scale_color_gradient2(low="#d9d9d9", mid="red", high="brown", midpoint=min(ggData$Expression) +
                             (max(ggData$Expression)-min(ggData$Expression))/2, name="") +
-    theme_bw(base_size = 14) + theme(panel.grid = element_blank()) +
-    theme(strip.text.x = element_text(size = 14)) + facet_wrap(~ Peak)
-  
-  if (is.null(figure.title)) {
-    pl <- pl + ggtitle("Relative peak expression")
-  } else {
+    theme_classic(base_size = txt.size) + theme(panel.grid = element_blank(), strip.background = element_blank()) +
+    theme(strip.text.x = element_text(size = txt.size)) + facet_wrap(~ Peak)
+
+  if (!is.null(figure.title)) {
     pl <- pl + ggtitle(figure.title)
   }
-  
+
   if (do.plot) {
     plot(pl)
   }
-  
+
   if (return.plot) {
     return(pl)
   }
@@ -428,7 +474,7 @@ getMultiGeneExpressionData <- function(seurat.object, geneSet, use.log10 = FALSE
 #' @param pdf_output : If true will create output pdf files
 #' @param output_file_name : Used if pdf_output is true. Location of where files will be placed.
 #' @param zoom_UTR : If TRUE will create a second figure which will zoom in on 3'UTR.
-#' @return NULL by default. 
+#' @return NULL by default.
 #' @examples
 #'
 #' gtf_file <- "u:/Reference/mm10/cellranger_genes.gtf.gz"
@@ -445,7 +491,11 @@ getMultiGeneExpressionData <- function(seurat.object, geneSet, use.log10 = FALSE
 #'
 #' @import Gviz
 #' @export
+<<<<<<< HEAD
 plotCoverage<-function(genome_gr, geneSymbol="", wig_data=NULL, bamfiles=NULL, wig_same_strand=TRUE, genome=NULL, pdf_output = FALSE, 
+=======
+plotCoverage<-function(genome_gr, geneSymbol="", wig_data, bamfiles=NULL, wig_same_strand=TRUE, genome=NULL, pdf_output = FALSE,
+>>>>>>> 0101392fa19a23e897dfbb9e4249cbbb21068612
                        output_file_name='', zoom_3UTR=FALSE)
 {
   # Need check that gene_name field exists
@@ -461,7 +511,7 @@ plotCoverage<-function(genome_gr, geneSymbol="", wig_data=NULL, bamfiles=NULL, w
   end <- max(IRanges::end(IRanges::ranges(genome_gr)))
   # should I check that all returned chromosomes and strands are the same? They should be the same
   # Currently just grabbing first entry
-  chrom <- as.character(GenomicRanges::seqnames(genome_gr))[1]  
+  chrom <- as.character(GenomicRanges::seqnames(genome_gr))[1]
   gene_strand <- as.character(BiocGenerics::strand(genome_gr))[1]
   toExtract_gr <- GenomicRanges::GRanges(seqnames=chrom, ranges=IRanges::IRanges(start-1 , width=end-start+3), strand=gene_strand)
 
@@ -515,21 +565,21 @@ plotCoverage<-function(genome_gr, geneSymbol="", wig_data=NULL, bamfiles=NULL, w
   
   ## First load any BAM files onto dtrack
   if (length(bamfiles) > 0)
-  { 
+  {
     toExtract_gr <- GenomicRanges::GRanges(seqnames=chrom, ranges=IRanges::IRanges(start-50 , width=end-start+50), strand=gene_strand)
 
-    
+
     for(i in bamfiles)
-    {   
+    {
       bamHeader <- Rsamtools::scanBamHeader(i)
       if (length(grep(pattern = chrom,x = names(bamHeader[[i]]$targets))) == 0)
       {   GenomeInfoDb::seqlevelsStyle(toExtract_gr) <- "NCBI" }
       else
       {   GenomeInfoDb::seqlevelsStyle(toExtract_gr) <- "UCSC" }
-      
-      param <- Rsamtools::ScanBamParam(which = toExtract_gr)    
+
+      param <- Rsamtools::ScanBamParam(which = toExtract_gr)
       bf <-Rsamtools::BamFile(i)
-      
+
       open(bf)
       chunk0 <- GenomicAlignments::readGAlignments(bf,param=param)
       GenomeInfoDb::seqlevelsStyle(chunk0) <- "UCSC"
@@ -538,16 +588,27 @@ plotCoverage<-function(genome_gr, geneSymbol="", wig_data=NULL, bamfiles=NULL, w
       if (length(idx) == 0)
       {        next; }
       tmp <-GenomicRanges::coverage(chunk0[idx])
-      
+
       gr <- GenomicRanges::GRanges(seqnames=chrom, ranges=IRanges::IRanges(start:end, width=1), strand=gene_strand)
       S4Vectors::mcols(gr) <- as.numeric(tmp[[chrom]])[start:end]
       dtrack[[length(dtrack)+1]] <- Gviz::DataTrack(gr, name=i, type = "histogram", genome=genome)
     }
   }
+<<<<<<< HEAD
   
   if (length(wig_tracks) > 0)
   {
     dtrack <- c(wig_tracks, dtrack)
+=======
+
+  # Now assemble coverage plots
+  for(i in sample_col_idx)
+  {
+    tmp_gr <- dtrack_gr
+    S4Vectors::mcols(tmp_gr) <- S4Vectors::mcols(tmp_gr)[i]
+    dtrack_name <- names(S4Vectors::mcols(tmp_gr))
+    dtrack[[length(dtrack)+1]] <- Gviz::DataTrack(tmp_gr, name=dtrack_name, type = "histogram", genome=genome)
+>>>>>>> 0101392fa19a23e897dfbb9e4249cbbb21068612
   }
 
   toPlot <- c(gtrack, dtrack)
@@ -563,7 +624,7 @@ plotCoverage<-function(genome_gr, geneSymbol="", wig_data=NULL, bamfiles=NULL, w
     }
   }
   Gviz::plotTracks(toPlot, from = start, to = end, chromosome= chrom, transcriptAnnotation = "gene")
-  
+
   if (zoom_3UTR)
   {
     idx <- which(genome_gr$type == 'three_prime_utr')
@@ -572,8 +633,8 @@ plotCoverage<-function(genome_gr, geneSymbol="", wig_data=NULL, bamfiles=NULL, w
     end <- max(IRanges::end(IRanges::ranges(genome_gr[idx])))
     Gviz::plotTracks(toPlot, from = start, to = end, chromosome= chrom, transcriptAnnotation = "gene")
   }
-  
-  
+
+
 
   if (pdf_output)
   {  dev.off() }
