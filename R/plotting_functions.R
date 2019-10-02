@@ -258,9 +258,7 @@ PlotRelativeExpressionUMAP <- function(seurat.object, peaks.to.plot, do.plot=TRU
     theme_classic(base_size = txt.size) + theme(panel.grid = element_blank(), strip.background = element_blank()) +
     theme(strip.text.x = element_text(size = txt.size)) + facet_wrap(~ Peak)
 
-  if (is.null(figure.title)) {
-    pl <- pl + ggtitle("Relative peak expression")
-  } else {
+  if (!is.null(figure.title)) {
     pl <- pl + ggtitle(figure.title)
   }
 
