@@ -66,7 +66,7 @@ gene_Labels<- function(gr, reference_gr, annotationType)
 #' @param gr a granges object of peaks to annotate
 #' @param invert_strand Boolean to signifiy if strand of gr peaks should be inversed
 #' @param gtf_gr granges gtf file that contains annotation information
-#' @param annotationType can be assigned "within" or "all". Default is "within" which states that the peak with gr must be within annotation feature (eg exon)
+#' @param annotationType can be assigned "any" or "within". Default is "any" which states that the peak with gr must overlap annotation feature (eg exon)
 #' @param transcriptDetails Boolean. If false will only return gene name. If true will return internal transcript position feature (eg exon/intron)
 #' @param gtf_TxDb  same as gtf_gr but as a TxDb object.
 #' @param annotation_correction Boolean. When multiple overlapping genes are identified will
@@ -79,7 +79,7 @@ gene_Labels<- function(gr, reference_gr, annotationType)
 ##
 ## Written March 2019
 annotate_gr_from_gtf <- function(gr, invert_strand = FALSE, gtf_gr = NULL,
-                       annotationType ="within",
+                       annotationType ="any",
                        transcriptDetails = FALSE, gtf_TxDb,
                        annotation_correction = TRUE, genome = NULL,
                        pA_motif_max_position = 50,
