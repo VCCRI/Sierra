@@ -208,9 +208,14 @@ annotate_gr_from_gtf <- function(gr, invert_strand = FALSE, gtf_gr = NULL,
 
   if (! is.null(genome))
   {
-
-    motif_details <- lapply(X = paste("chr",as.character(gr),sep=''),
+    ## Check if 'chr' character appended to chromosome number
+    if (grepl("chr.", as.character(gr2)[1]) == TRUE) {
+      motif_details <- lapply(X = as.character(gr),
+                              FUN = function(x) {baseComposition(genome,coord=x)})
+    } else {
+      motif_details <- lapply(X = paste("chr",as.character(gr),sep=''),
                             FUN = function(x) {baseComposition(genome,coord=x)})
+    }
 
     df$pA_motif <- unlist( lapply(motif_details, FUN= function(x) {
           pA_motif_position <- (x[1] < pA_motif_max_position)
@@ -298,7 +303,9 @@ baseComposition <- function(genome=NULL,  chrom=NULL, start=NULL, stop=NULL, str
     if (length(gregexpr(":",coord)[[1]]) == 3) # coord should look like this "Cd47:16:49896378-49911102:1"
     {
       coord_detail <- strsplit(coord, split = ":")
-      chrom <- paste("chr",coord_detail[[1]][2],sep='')
+      if (grepl("chr.", coord_detail[[1]][2]) == FALSE) {
+        chrom <- paste("chr",coord_detail[[1]][2],sep='')
+      }
       strand <- coord_detail[[1]][4]
 
       if (strand == 1)
@@ -386,7 +393,9 @@ convert_coord <- function(coord)
   if (length(gregexpr(":",coord)[[1]]) == 3) # coord should look like this "Cd47:16:49896378-49911102:1"
   {
     coord_detail <- strsplit(coord, split = ":")
-    chrom <- paste("chr",coord_detail[[1]][2],sep='')
+    if (grepl("chr.", coord_detail[[1]][2]) == FALSE) {
+      chrom <- paste("chr",coord_detail[[1]][2],sep='')
+    }
     strand <- coord_detail[[1]][4]
 
     if (strand == 1)
