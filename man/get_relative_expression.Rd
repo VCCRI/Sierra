@@ -25,6 +25,6 @@ the expression of each peak by the mean of the peak expression for that gene -
 or set of provided peaks
 }
 \examples{
-get_relatuve_expression(peaks.seurat, gene_name = "Cxcl12")
+get_relative_expression(peaks.seurat, gene_name = "Cxcl12")
 
 }

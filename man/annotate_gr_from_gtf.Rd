@@ -5,7 +5,7 @@
 \title{Annotates a granges object with overlapping genes from gtf file.}
 \usage{
 annotate_gr_from_gtf(gr, invert_strand = FALSE, gtf_gr = NULL,
-  annotationType = "within", transcriptDetails = FALSE, gtf_TxDb,
+  annotationType = "any", transcriptDetails = FALSE, gtf_TxDb,
   annotation_correction = TRUE, genome = NULL,
   pA_motif_max_position = 50, AAA_motif_min_position = 10)
 }
@@ -16,7 +16,7 @@ annotate_gr_from_gtf(gr, invert_strand = FALSE, gtf_gr = NULL,
 
 \item{gtf_gr}{granges gtf file that contains annotation information}
 
-\item{annotationType}{can be assigned "within" or "all". Default is "within" which states that the peak with gr must be within annotation feature (eg exon)}
+\item{annotationType}{can be assigned "any" or "within". Default is "any" which states that the peak with gr must overlap annotation feature (eg exon)}
 
 \item{transcriptDetails}{Boolean. If false will only return gene name. If true will return internal transcript position feature (eg exon/intron)}
 

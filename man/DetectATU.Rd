@@ -41,6 +41,6 @@ a 'pseudo-bulk' profile of cell populations by aggregating counts from individua
 into a smaller number of profiles, defined by num.splits.
 }
 \examples{
-DUTest(apa.seurat.object, population.1 = "1", population.2 = "2")
+DetectATU(apa.seurat.object, population.1 = "1", population.2 = "2")
 
 }

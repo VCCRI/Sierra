@@ -4,8 +4,8 @@
 \alias{new_peak_SCE}
 \title{Create a new peak-counts single-cell expression object from the peak counts}
 \usage{
-new_peak_SCE(peak.data, annot.info, cell.idents, project.name = "PolyA",
-  min.cells = 10, min.peaks = 200, norm.scale.factor = 10000)
+new_peak_SCE(peak.data, annot.info, cell.idents, min.cells = 10,
+  min.peaks = 200, norm.scale.factor = 10000, verbose = TRUE)
 }
 \arguments{
 \item{peak.data}{matrix of peak counts}
@@ -14,13 +14,13 @@ new_peak_SCE(peak.data, annot.info, cell.idents, project.name = "PolyA",
 
 \item{cell.idents}{cell identities to be used for DU analysis}
 
-\item{project.name}{project name passed to the Seurat object creation}
-
 \item{min.cells}{minimum number of cells for retaining a peak}
 
 \item{min.peaks}{minimum number of peaks for retaining a cell}
 
 \item{norm.scale.factor}{scale factor for Seurat NormalizeData function}
+
+\item{project.name}{project name passed to the Seurat object creation}
 }
 \value{
 a new peak-level SCE object

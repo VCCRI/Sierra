@@ -4,9 +4,9 @@
 \alias{plotCoverage}
 \title{plotCoverage}
 \usage{
-plotCoverage(genome_gr, geneSymbol = "", wig_data, bamfiles = NULL,
-  wig_same_strand = TRUE, genome = NULL, pdf_output = FALSE,
-  output_file_name = "", zoom_3UTR = FALSE)
+plotCoverage(genome_gr, geneSymbol = "", wig_data = NULL,
+  bamfiles = NULL, wig_same_strand = TRUE, genome = NULL,
+  pdf_output = FALSE, output_file_name = "", zoom_3UTR = FALSE)
 }
 \arguments{
 \item{wig_data}{can be a data frame or a genomic ranges object. Must be stranded.}
