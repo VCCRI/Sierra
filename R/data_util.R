@@ -270,14 +270,15 @@ new_polya_seurat <- function(peak.data, annot.info, project.name = "PolyA",
 
 ################################################
 #'
-#' Create a new peak-counts single-cell expression object from the peak counts
+#' Create a new peak-counts single-cell experiment object from the peak counts
 #'
-#' Creates a new peak-counts single-cell expression object from the peak counts and annotation table
+#' Creates a new peak-counts single-cell experiment object from the peak counts and annotation table
 #'
 #' @param peak.data matrix of peak counts
 #' @param annot.info peak annotation information
 #' @param cell.idents cell identities to be used for DU analysis
-#' @param project.name project name passed to the Seurat object creation
+#' @param tsne.coords data-frame of t-SNE coordinates. Rownames should correspond to cell names.
+#' @param umap.coords data-frame of UMAP coordinates. Rownames should correspond to cell names.
 #' @param min.cells minimum number of cells for retaining a peak
 #' @param min.peaks minimum number of peaks for retaining a cell
 #' @param norm.scale.factor scale factor for Seurat NormalizeData function
@@ -289,8 +290,10 @@ new_polya_seurat <- function(peak.data, annot.info, project.name = "PolyA",
 #'
 #' @export
 #'
-new_peak_SCE <- function(peak.data, annot.info, cell.idents, project.name = "PolyA",
-                             min.cells = 10, min.peaks = 200, norm.scale.factor = 10000) {
+#' @import SingleCellExperiment
+#'
+NewPeakSCE <- function(peak.data, annot.info, cell.idents, tsne.coords = NULL, umap.coords = NULL,
+                         min.cells = 10, min.peaks = 200, norm.scale.factor = 10000, verbose = TRUE) {
 
   ## Read in annotations to add to the SCE object
   annot.peaks = rownames(annot.info)
@@ -301,7 +304,7 @@ new_peak_SCE <- function(peak.data, annot.info, cell.idents, project.name = "Pol
   peaks.use = intersect(rownames(peak.data), annot.peaks)
   peak.data = peak.data[peaks.use, ]
 
-  print(paste("Creating SCE object with", nrow(peak.data), "peaks and", ncol(peak.data), "cells"))
+  if(verbose) print(paste("Creating SCE object with", nrow(peak.data), "peaks and", ncol(peak.data), "cells"))
 
   ## filter peaks and cells
   #rows.keep <- which(rowSums(peak.data > 0) >= min.cells)
@@ -315,8 +318,29 @@ new_peak_SCE <- function(peak.data, annot.info, cell.idents, project.name = "Pol
   peak.data <- peak.data[peaks.keep, cells.keep]
   cell.idents <- cell.idents[cells.keep]
 
+  ## create a log-normalised matrix
+  if(verbose) print("Log-normalising data")
+  peak.data.norm <- peak.data
+  peak.data.norm@x <- peak.data.norm@x / rep.int(Matrix::colSums(peak.data.norm), diff(peak.data.norm@p))
+  peak.data.norm <- peak.data.norm * norm.scale.factor
+  peak.data.norm@x <- log(peak.data.norm@x + 1)
+
+  dim.reductions.list <- S4Vectors::SimpleList()
+
+  ## check if t-SNE/UMAP coordinates have been provided
+  if (!is.null(tsne.coords)) {
+    tsne.coords <- tsne.coords[cells.keep, ]
+    dim.reductions.list[['tsne']] <- tsne.coords
+  }
+  if (!is.null(umap.coords)) {
+    umap.coords <- umap.coords[cells.keep, ]
+    dim.reductions.list[['umap']] <- umap.coords
+  }
+
   ## Create an SCE object for peak counts
-  peaks.sce <- SingleCellExperiment::SingleCellExperiment(assays = list(counts = apa.data))
+  peaks.sce <- SingleCellExperiment::SingleCellExperiment(assays = list(counts = peak.data,
+                                                                        lnorm_counts = peak.data.norm),
+                                                          reducedDims = dim.reductions.list)
 
   ## Add peak annotations to the SCE object
   annot.info = as.data.frame(annot.info, stringsAsFactors = FALSE)
@@ -337,7 +361,7 @@ new_peak_SCE <- function(peak.data, annot.info, cell.idents, project.name = "Pol
   feature.mat$strand = annot.info$strand
 
   ## Add additional peak IDs for input to DEXSeq
-  print("Preparing feature table for DEXSeq")
+  if (verbose) print("Preparing feature table for DEXSeq")
   gene.set = unique(as.character(feature.mat$Gene_name))
   dexseq.feature.table = c()
   for (this.gene in gene.set) {
@@ -359,17 +383,17 @@ new_peak_SCE <- function(peak.data, annot.info, cell.idents, project.name = "Pol
 
     dexseq.feature.table = rbind(dexseq.feature.table, dexseq.feature.set)
   }
-  dexseq.feature.table = dexseq.feature.table[rownames(feature.mat), ]
+  dexseq.feature.table <- dexseq.feature.table[rownames(feature.mat), ]
 
-  feature.mat$Gene_part = dexseq.feature.table$Gene_part
-  feature.mat$Peak_number = dexseq.feature.table$Peak_number
+  feature.mat$Gene_part <- dexseq.feature.table$Gene_part
+  feature.mat$Peak_number <- dexseq.feature.table$Peak_number
 
   ## Store the data in the SCE @metadata slot
   peaks.sce@metadata$GeneSLICER <- feature.mat
 
   ## Add cell annotation information
   cell.data <- S4Vectors::DataFrame(CellIdent = cell.idents)
-  SingleCellExperiment::colData(peaks.sce) <- cell.data
+  colData(peaks.sce) <- cell.data
 
   return(peaks.sce)
 }
