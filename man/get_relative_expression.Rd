@@ -4,17 +4,17 @@
 \alias{get_relative_expression}
 \title{Calculate relative expression between two or more peaks}
 \usage{
-get_relative_expression(seurat.object, peak.set = NULL,
+get_relative_expression(peaks.object, peak.set = NULL,
   gene_name = NULL, feature.type = c("UTR3", "exon"))
 }
 \arguments{
-\item{seurat.object}{Seurat object}
-
 \item{peak.set}{set of peaks}
 
 \item{gene_name}{gene name for retrieving a set of peaks}
 
 \item{feature.type}{features to consider. 3'UTR and exon by default.}
+
+\item{seurat.object}{Seurat object}
 }
 \value{
 a matrix of relative expression
