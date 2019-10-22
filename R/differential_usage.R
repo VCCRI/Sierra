@@ -15,7 +15,8 @@
 #' @param fc.thresh threshold for log2 fold-change difference for returned results
 #' @param adj.pval.thresh threshold for adjusted P-value for returned results
 #' @param num.splits the number of pseudo-bulk profiles to create per identity class (default: 6)
-#' @param feature.type genomic feature types to run analysis on (degault: all)
+#' @param feature.type genomic feature types to run analysis on (default: all)
+#' @param filter.pA.stretch whether to filter out peaks annotated as proximal to an A-rich region (default: FALSE)
 #' @param verbose whether to print outputs (TRUE by default)
 #' @param doMAPlot make an MA plot of results (FALSE by default)
 #' @param return.dexseq.res return the raw and unfiltered DEXSeq results object (FALSE by default)
@@ -27,8 +28,9 @@
 #'
 DUTest <- function(peaks.object, population.1, population.2 = NULL, exp.thresh = 0.1,
                                      fc.thresh=0.25, adj.pval.thresh = 0.05, num.splits = 6, seed.use = 1,
-                                     feature.type = c("UTR3", "exon"), verbose = TRUE,
-                                     do.MAPlot = FALSE, return.dexseq.res = FALSE, ncores = 1) {
+                                     feature.type = c("UTR3", "exon"), filter.pA.stretch = FALSE,
+                                     verbose = TRUE, do.MAPlot = FALSE,
+                                     return.dexseq.res = FALSE, ncores = 1) {
 
   if (class(peaks.object) == "Seurat") {
     res.table <- apply_DEXSeq_test_seurat(apa.seurat.object = peaks.object,
@@ -36,6 +38,7 @@ DUTest <- function(peaks.object, population.1, population.2 = NULL, exp.thresh =
                                           exp.thresh = exp.thresh, fc.thresh = fc.thresh,
                                           adj.pval.thresh = adj.pval.thresh, num.splits = num.splits,
                                           seed.use = seed.use, feature.type = feature.type,
+                                          filter.pA.stretch = filter.pA.stretch,
                                           verbose = verbose, do.MAPlot = do.MAPlot,
                                           return.dexseq.res = return.dexseq.res, ncores = ncores)
     return(res.table)
@@ -46,6 +49,7 @@ DUTest <- function(peaks.object, population.1, population.2 = NULL, exp.thresh =
                                        exp.thresh = exp.thresh, fc.thresh = fc.thresh,
                                        adj.pval.thresh = adj.pval.thresh, num.splits = num.splits,
                                        seed.use = seed.use, feature.type = feature.type,
+                                       filter.pA.stretch = filter.pA.stretch,
                                        verbose = verbose, do.MAPlot = do.MAPlot,
                                        return.dexseq.res = return.dexseq.res, ncores = ncores)
   } else{
@@ -234,7 +238,8 @@ DetectATU <- function(peaks.object, gtf_gr, gtf_TxDb, population.1, population.2
 #' @param fc.thresh threshold for log2 fold-change difference for returned results
 #' @param adj.pval.thresh threshold for adjusted P-value for returned results
 #' @param num.splits the number of pseudo-bulk profiles to create per identity class (default: 6)
-#' @param feature.type genomic feature types to run analysis on (degault: all)
+#' @param feature.type genomic feature types to run analysis on (default: all)
+#' @param filter.pA.stretch whether to filter out peaks annotated as proximal to an A-rich region (default: FALSE)
 #' @param verbose whether to print outputs (TRUE by default)
 #' @param doMAPlot make an MA plot of results (FALSE by default)
 #' @param return.dexseq.res return the raw and unfiltered DEXSeq results object (FALSE by default)
@@ -245,8 +250,9 @@ DetectATU <- function(peaks.object, gtf_gr, gtf_TxDb, population.1, population.2
 #'
 apply_DEXSeq_test_seurat <- function(apa.seurat.object, population.1, population.2 = NULL, exp.thresh = 0.1,
                               fc.thresh=0.25, adj.pval.thresh = 0.05, num.splits = 6, seed.use = 1,
-                              feature.type = c("UTR3", "UTR5", "exon", "intron"), verbose = TRUE,
-                              do.MAPlot = FALSE, return.dexseq.res = FALSE, ncores = 1) {
+                              feature.type = c("UTR3", "UTR5", "exon", "intron"),
+                              filter.pA.stretch = FALSE, verbose = TRUE, do.MAPlot = FALSE,
+                              return.dexseq.res = FALSE, ncores = 1) {
 
   if (!'DEXSeq' %in% rownames(x = installed.packages())) {
     stop("Please install DEXSeq before using this function
@@ -257,6 +263,7 @@ apply_DEXSeq_test_seurat <- function(apa.seurat.object, population.1, population
   high.expressed.peaks <- GetExpressedPeaks(apa.seurat.object, population.1, population.2, threshold = exp.thresh)
   length(high.expressed.peaks)
 
+
   ## Filter peaks according to feature type
   annot.subset <- Tool(apa.seurat.object, "GeneSLICER")[high.expressed.peaks, ]
   peaks.to.use <- apply(annot.subset, 1, function(x) {
@@ -265,6 +272,19 @@ apply_DEXSeq_test_seurat <- function(apa.seurat.object, population.1, population
   peaks.to.use <- names(peaks.to.use[which(peaks.to.use == TRUE)])
   high.expressed.peaks <- intersect(high.expressed.peaks, peaks.to.use)
   if (verbose) print(paste(length(high.expressed.peaks), "expressed peaks in feature types", toString(feature.type)))
+
+  ## Check if A-rich peaks are to be filtered out
+  if (filter.pA.stretch) {
+    if (is.null(Tool(apa.seurat.object, "GeneSLICER")$pA_stretch)) {
+      stop("pA_stretch not in annotation data: please run nnotate_gr_from_gtf with
+           an input genome to provide required annotation.")
+    } else{
+      annot.subset <- Tool(apa.seurat.object, "GeneSLICER")[high.expressed.peaks, ]
+      peaks.non.arich <- rownames(subset(annot.subset, pA_stretch == FALSE))
+      high.expressed.peaks <- intersect(high.expressed.peaks, peaks.non.arich)
+      if (verbose) print(paste(length(high.expressed.peaks), "peaks after filtering out A-rich annotations"))
+    }
+  }
 
   gene.names <- Tool(apa.seurat.object, "GeneSLICER")[high.expressed.peaks, "Gene_name"]
 
@@ -428,6 +448,7 @@ apply_DEXSeq_test_seurat <- function(apa.seurat.object, population.1, population
 #' @param adj.pval.thresh threshold for adjusted P-value for returned results
 #' @param num.splits the number of pseudo-bulk profiles to create per identity class (default: 6)
 #' @param feature.type genomic feature types to run analysis on (degault: all)
+#' @param filter.pA.stretch whether to filter out peaks annotated as proximal to an A-rich region (default: FALSE)
 #' @param verbose whether to print outputs (TRUE by default)
 #' @param doMAPlot make an MA plot of results (FALSE by default)
 #' @param return.dexseq.res return the raw and unfiltered DEXSeq results object (FALSE by default)
@@ -438,7 +459,8 @@ apply_DEXSeq_test_seurat <- function(apa.seurat.object, population.1, population
 #'
 apply_DEXSeq_test_sce <- function(peaks.sce.object, population.1, population.2 = NULL, exp.thresh = 0.1,
                                      fc.thresh=0.25, adj.pval.thresh = 0.05, num.splits = 6, seed.use = 1,
-                                     feature.type = c("UTR3", "UTR5", "exon", "intron"), verbose = TRUE,
+                                     feature.type = c("UTR3", "UTR5", "exon", "intron"),
+                                     filter.pA.stretch = FALSE, verbose = TRUE,
                                      do.MAPlot = FALSE, return.dexseq.res = FALSE, ncores = 1) {
 
   if (!'DEXSeq' %in% rownames(x = installed.packages())) {
@@ -458,6 +480,19 @@ apply_DEXSeq_test_sce <- function(peaks.sce.object, population.1, population.2 =
   peaks.to.use <- names(peaks.to.use[which(peaks.to.use == TRUE)])
   high.expressed.peaks <- intersect(high.expressed.peaks, peaks.to.use)
   if (verbose) print(paste(length(high.expressed.peaks), "expressed peaks in feature types", toString(feature.type)))
+
+  ## Check if A-rich peaks are to be filtered out
+  if (filter.pA.stretch) {
+    if (is.null(peaks.sce.object@metadata$Sierra$pA_stretch)) {
+      stop("pA_stretch not in annotation data: please run nnotate_gr_from_gtf with
+           an input genome to provide required annotation.")
+    } else{
+      annot.subset <- peaks.sce.object@metadata$Sierra[high.expressed.peaks, ]
+      peaks.non.arich <- rownames(subset(annot.subset, pA_stretch == FALSE))
+      high.expressed.peaks <- intersect(high.expressed.peaks, peaks.non.arich)
+      if (verbose) print(paste(length(high.expressed.peaks), "peaks after filtering out A-rich annotations"))
+    }
+  }
 
   gene.names <- peaks.sce.object@metadata$Sierra[high.expressed.peaks, "Gene_name"]
 

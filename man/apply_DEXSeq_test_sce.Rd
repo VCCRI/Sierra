@@ -7,8 +7,9 @@
 apply_DEXSeq_test_sce(peaks.sce.object, population.1,
   population.2 = NULL, exp.thresh = 0.1, fc.thresh = 0.25,
   adj.pval.thresh = 0.05, num.splits = 6, seed.use = 1,
-  feature.type = c("UTR3", "UTR5", "exon", "intron"), verbose = TRUE,
-  do.MAPlot = FALSE, return.dexseq.res = FALSE, ncores = 1)
+  feature.type = c("UTR3", "UTR5", "exon", "intron"),
+  filter.pA.stretch = FALSE, verbose = TRUE, do.MAPlot = FALSE,
+  return.dexseq.res = FALSE, ncores = 1)
 }
 \arguments{
 \item{peaks.sce.object}{SCE object of peaks}
@@ -26,6 +27,8 @@ apply_DEXSeq_test_sce(peaks.sce.object, population.1,
 \item{num.splits}{the number of pseudo-bulk profiles to create per identity class (default: 6)}
 
 \item{feature.type}{genomic feature types to run analysis on (degault: all)}
+
+\item{filter.pA.stretch}{whether to filter out peaks annotated as proximal to an A-rich region (default: FALSE)}
 
 \item{verbose}{whether to print outputs (TRUE by default)}
 
