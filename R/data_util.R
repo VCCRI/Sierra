@@ -389,7 +389,7 @@ NewPeakSCE <- function(peak.data, annot.info, cell.idents, tsne.coords = NULL, u
   feature.mat$Peak_number <- dexseq.feature.table$Peak_number
 
   ## Store the data in the SCE @metadata slot
-  peaks.sce@metadata$GeneSLICER <- feature.mat
+  peaks.sce@metadata$Sierra <- feature.mat
 
   ## Add cell annotation information
   cell.data <- S4Vectors::DataFrame(CellIdent = cell.idents)
@@ -401,29 +401,36 @@ NewPeakSCE <- function(peak.data, annot.info, cell.idents, tsne.coords = NULL, u
 
 ################################################
 #'
-#' return polyAs associated with a select gene
+#' Return peaks associated with a select gene.
 #'
-#' @param apa.seurat.object Seurat polyA object
+#' Returns peaks associated with a select gene.
+#'
+#' @param peaks.object Peaks SCE or Seurat object.
 #' @param gene Gene name
 #' @param feature.type type of genomic features to use
-#' @return a list of polyA IDs
+#' @return a list of peak IDs
 #' @examples
-#' polya.list = select_gene_polyas(apa.seurat, "PTPRC", feature.type = c("UTR3", "exon"))
+#' peak.list = SelectGenePeaks(peaks.object, "PTPRC", feature.type = c("UTR3", "exon"))
 #'
 #' @export
 #'
-select_gene_polyas <- function(apa.seurat.object, gene, feature.type = c("UTR3", "UTR5", "exon", "intron")) {
+SelectGenePeaks <- function(peaks.object, gene, feature.type = c("UTR3", "UTR5", "exon", "intron")) {
 
-  if (packageVersion("Seurat") < '3.0.0') {
-    annot.subset = select_gene_polyas_v2(apa.seurat.object, gene, feature.type)
-    return(annot.subset)
+  if (class(peaks.object) == "Seurat") {
+    annot.subset <- subset(Tool(apa.seurat.object, "GeneSLICER"), Gene_name == gene)
+    peaks.to.use <- apply(annot.subset, 1, function(x) {
+      ifelse(sum(x[feature.type] == "YES") >= 1, TRUE, FALSE)
+    })
+    annot.subset <- annot.subset[peaks.to.use, ]
+    return(rownames(annot.subset))
+
+  } else if (class(peaks.object) == "SingleCellExperiment") {
+    annot.subset <- subset(peaks.object@metadata$Sierra, Gene_name == gene)
+    peaks.to.use <- apply(annot.subset, 1, function(x) {
+      ifelse(sum(x[feature.type] == "YES") >= 1, TRUE, FALSE)
+    })
+    annot.subset <- annot.subset[peaks.to.use, ]
+    return(rownames(annot.subset))
   }
-
-  annot.subset = subset(Tool(apa.seurat.object, "GeneSLICER"), Gene_name == gene)
-  peaks.to.use = apply(annot.subset, 1, function(x) {
-    ifelse(sum(x[feature.type] == "YES") >= 1, TRUE, FALSE)
-  })
-  annot.subset = annot.subset[peaks.to.use, ]
-  return(rownames(annot.subset))
 }
 
