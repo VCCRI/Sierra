@@ -159,7 +159,13 @@ merge_bam_coverage <- function(bamfiles, to_extract)
 #' geneToGR converts a gene sybol to genomic ranges coordinate
 #'
 #' @param geneID : Gene symbol
-#' @param gtf_gr : Gragnes object of a gtf file
+#' @param gtf_gr : Granges object of a gtf file
+#' 
+#' gtf_file <- "u:/Reference/mm10/cellranger_genes.gtf.gz"
+#' gtf_gr <- rtracklayer::import(gtf_file)
+#' gtf_gr=gtf_gr, geneSymbol="Dnajc19"
+#' geneGR  <- geneToGR(gtf_gr=gtf_gr, geneSymbol="Dnajc19")
+#' 
 geneToGR <- function(geneID, gtf_gr)
 {
   if (! is.null(geneSymbol))
@@ -173,11 +179,11 @@ geneToGR <- function(geneID, gtf_gr)
     GenomeInfoDb::seqlevelsStyle(gtf_gr) <- "NCBI" 
     
     # Work out the genomic range to extract from
-    start <- min(start(ranges(gtf_gr[idx])))
-    end <- max(end(ranges(gtf_gr[idx])))
+    start <- min(GenomicRanges::start(GenomicRanges::ranges(gtf_gr[idx])))
+    end <- max(GenomicRanges::end(GenomicRanges::ranges(gtf_gr[idx])))
     chrom <- as.character(GenomicRanges::seqnames(gtf_gr[idx]))[1]  # should I check that all returned chromosomes are the same?
-    gene_strand <- as.character(strand(gtf_gr[idx]))[1]
-    gr <- GenomicRanges::GRanges(seqnames=chrom, ranges=IRanges::IRanges(start-gi_ext , width=end-start+gi_ext), strand=gene_strand)
+    gene_strand <- as.character(GenomicRanges::strand(gtf_gr[idx]))[1]
+    gr <- GenomicRanges::GRanges(seqnames=chrom, ranges=IRanges::IRanges(start, width=end - start), strand=gene_strand)
   }
   return(gr)
 }
@@ -232,10 +238,32 @@ seqmonk_file_to_rle <- function(fn)
 
   for(i in all_col_names[col_idx])
   {
+    print(paste("Starting :",i))
     df <- data.table::fread(file=fn, sep = "\t", header = TRUE, select = i)
-    coverage.rle[[length(coverage.rle)+1]] <- rle(df)
-    print(paste(i , ": complete"))
+    if (! is.null(df))
+    {  coverage.rle[[length(coverage.rle)+1]] <- rle(as.numeric(unlist(df)))
+      print(paste(i , ": complete"))
+    }
+    else
+    { print(paste("NO DATA for:",i))}
   }
-  names(coverage.rle) <- c("gr",all_col_names)
+  names(coverage.rle) <- c("gr",all_col_names[col_idx])
   return(coverage.rle)  
+}
+
+################################################################3
+#'
+#' load(file="c:/BAM/scRNA_polyA/FC.RData")
+#' gtf_file <- "u:/Reference/mm10/cellranger_genes.gtf.gz"
+#' gtf_gr <- rtracklayer::import(gtf_file)
+#' 
+rle_to_WIG <- function(rle_input, gtf_gr=gtf_gr, geneSymbol="Dnajc19")
+{
+  toExtract <-geneToGR(geneID=geneSymbol, gtf_gr)
+  tmp <- GenomicRanges::findOverlaps(FC$gr,toExtract)
+  idx <- S4Vectors::queryHits(tmp)
+  min_idx <- min(idx)
+  max_idx <- max(idx)
+  # Next need to extract idx coordinates from rle_input
+  
 }

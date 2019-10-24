@@ -73,7 +73,8 @@ gene_Labels<- function(gr, reference_gr, annotationType)
 #' prioritise gene based on annotation. 3'UTR annotation trumps all other annotation.
 #' @param genome genome object. If NOT NULL then will perform pA motif analysis.
 #' @param pA_motif_max_position Any AAUAAA after this position are not considered (default 50nt)
-#' @param AAA_motif_min_position Any polyA stretches before this postion are not considered (default 10)
+#' @param AAA_motif_min_position Any polyA/polyT stretches before this postion are not considered (default 10)
+#' @param polystretch_length : the length of A or T to search for (default 13)
 #'
 #' @return a dataframe with appended columns containing annotation
 ##
@@ -83,7 +84,9 @@ annotate_gr_from_gtf <- function(gr, invert_strand = FALSE, gtf_gr = NULL,
                        transcriptDetails = FALSE, gtf_TxDb,
                        annotation_correction = TRUE, genome = NULL,
                        pA_motif_max_position = 50,
-                       AAA_motif_min_position = 10)
+                       AAA_motif_min_position = 10,
+                       polystretch_length=13, max_mismatch=1
+                       )
 {
   # Checking values passed to function are meaning full.
   if (is.null(gtf_gr))
@@ -203,39 +206,43 @@ annotate_gr_from_gtf <- function(gr, invert_strand = FALSE, gtf_gr = NULL,
     df$CDS[idx_to_annotate_CDS] <- "YES"
   }
 
- # browser()
-
+#  browser()
 
   if (! is.null(genome))
   {
     ## Check if 'chr' character appended to chromosome number
-    if (grepl("chr.", as.character(gr2)[1]) == TRUE) {
+    if (grepl("chr.", as.character(gr@seqnames)[1]) == TRUE) {
       motif_details <- lapply(X = as.character(gr),
-                              FUN = function(x) {baseComposition(genome,coord=x)})
+                              FUN = function(x) {
+                                baseComposition(genome,coord=x,mismatch=max_mismatch, AT_length=polystretch_length)})
     } else {
       motif_details <- lapply(X = paste("chr",as.character(gr),sep=''),
-                            FUN = function(x) {baseComposition(genome,coord=x)})
+                            FUN = function(x) {baseComposition(genome,coord=x,mismatch=max_mismatch, AT_length=polystretch_length)})
     }
 
     df$pA_motif <- unlist( lapply(motif_details, FUN= function(x) {
-          pA_motif_position <- (x[1] < pA_motif_max_position)
+          pA_motif_position <- (max(unlist(x[1])) < pA_motif_max_position)
           if (is.na(pA_motif_position))
           {  pA_motif_position <- FALSE }
           return (pA_motif_position) } ))
 
     df$pA_stretch <- unlist( lapply(motif_details, FUN= function(x) {
-          pA_stretch_position <- (x[2] > AAA_motif_min_position)
+          pA_stretch_position <- (max(unlist(x[2])) > AAA_motif_min_position)
           if (is.na(pA_stretch_position))
           {  pA_stretch_position <- FALSE }
           return (pA_stretch_position) } ))
 
+    df$pT_stretch <- unlist( lapply(motif_details, FUN= function(x) {
+      pT_stretch_position <- (max(unlist(x[3])) > AAA_motif_min_position)
+      if (is.na(pT_stretch_position))
+      {  pT_stretch_position <- FALSE }
+      return (pT_stretch_position) } ))
+    
      # baseComposition(genome=genome, coord = as.character(gr))
 
   }
   return(df)
 }
-
-
 
 
 #############################################################################
@@ -265,6 +272,8 @@ annotate_gr_from_gtf <- function(gr, invert_strand = FALSE, gtf_gr = NULL,
 #' @param coord coordinates
 #' @param offset The
 #' @param length How many nucleotides of DNA sequence to return
+#' @param mismatch : The max number of mismatches allowed in poly A/T stretch (default 1)
+#' @param AT_length : length of A/T to search for within input sequence (default 13)
 #' @return a dataframe with appended columns containing annotation
 #'
 #' chrom <- 'chr16'
@@ -278,7 +287,12 @@ annotate_gr_from_gtf <- function(gr, invert_strand = FALSE, gtf_gr = NULL,
 #' start  <- 90451180
 #' stop   <- 90451380
 #' strand <- '-'
-#'
+#' output <-baseComposition(genome=genome, chrom=chrom, start=start, stop=stop, strand=strand)
+#' 
+#' # Dync1h1 intronic peak that coincides with a long poly(T) rich region
+#' coord <- "chr12:110609400-110609800:1"
+#' output <-baseComposition(genome=genome, coord=coord)
+#' 
 #' TO DO:
 #' * If peak falls at end of exon then need to obtain sequence from next exon. This
 #' would require passing exon junction information.
@@ -287,7 +301,8 @@ annotate_gr_from_gtf <- function(gr, invert_strand = FALSE, gtf_gr = NULL,
 ##
 ## Written August 2019
 baseComposition <- function(genome=NULL,  chrom=NULL, start=NULL, stop=NULL, strand=NULL,
-                            coord = NULL, offset = -50, length = 250)
+                            coord = NULL, offset = -50, length = 250, 
+                            mismatch=1, AT_length=13)
 {
   # Check inputs
   if (! is.null(coord))
@@ -316,7 +331,6 @@ baseComposition <- function(genome=NULL,  chrom=NULL, start=NULL, stop=NULL, str
       coord_detail <- strsplit(coord_detail[[1]][3],"-")
       start <- as.numeric(coord_detail[[1]][1])
       stop <- as.numeric(coord_detail[[1]][2])
-
     }
 
     if (length(gregexpr(":",coord)[[1]]) == 2) # coord should look like this "chr16:49896378-49911102:+"
@@ -328,12 +342,8 @@ baseComposition <- function(genome=NULL,  chrom=NULL, start=NULL, stop=NULL, str
       coord_detail <- strsplit(coord_detail[[1]][2],"-")
       start <- as.numeric(coord_detail[[1]][1])
       stop <- as.numeric(coord_detail[[1]][2])
-
     }
-
-
   }
-
 
   # Require start to be smaller number
   if ( start > stop)
@@ -343,36 +353,44 @@ baseComposition <- function(genome=NULL,  chrom=NULL, start=NULL, stop=NULL, str
     stop <- tmp
   }
 
-  # Default parameters for '+' strand
-  seq_start_position <- stop
-  seq_end_position <- stop + length
-
-
-
-  # modify start / stop according to strand
-  if (strand == '-')
-  {     seq_start_position <- start - length
-        seq_end_position <- start
-        offset <- offset * -1
-  }
-
-  # apply offset
-  seq_start_position <- seq_start_position + offset
-  seq_end_position <- seq_end_position + offset
-
+  # Now to extract sequence up and downstream of peak (relative to +ve strand)
+  # First extract downstream sequence
+  ## Default parameters for '+' strand
+  seq_start_position <- stop + offset
+  seq_end_position <- stop + length + offset
 
   sequ <- BSgenome::getSeq(genome, chrom, seq_start_position, seq_end_position)   # Always get +ve strand
+  sequ_upstream <- {}
+  
+  if (strand == '-')  # sequ is actually upstream if we are thinking abour -ve strand
+  {   sequ_upstream <- sequ   }
+  
+  # Now extract upstream sequence
+  seq_start_position <- start - length -offset
+  seq_end_position <- start - offset
+
+  sequ_tmp <- BSgenome::getSeq(genome, chrom, seq_start_position, seq_end_position)   # Always get +ve strand
 
   if (strand == '-')
-    sequ <- reverseComplement(sequ)
-
+  { 
+    sequ <- Biostrings::reverseComplement(sequ_tmp)
+    sequ_upstream <- Biostrings::reverseComplement(sequ_upstream)
+  }
+  else # strand '+'
+  {
+    sequ_upstream <- sequ_tmp
+  }
 #  browser()
   #<- longestConsecutive(seq, "A") # returns a integer
-  pA_motif  <-  matchPattern(pattern = "AATAAA", subject = sequ)
-  pA_stretch <- matchPattern(pattern="AAAAAAAAAAAAA", subject=sequ, max.mismatch=1)
+  A_pattern <- paste(rep("A",AT_length),collapse='')
+  T_pattern <- paste(rep("T",AT_length),collapse='')
+  pA_motif  <-  Biostrings::matchPattern(pattern = "AATAAA", subject = sequ)
+  pA_stretch <- Biostrings::matchPattern(pattern=A_pattern, subject=sequ, max.mismatch=1)
+  pT_stretch <- Biostrings::matchPattern(pattern=T_pattern, subject=sequ_upstream, max.mismatch=1)
 
-
-  return(list(pA_motif_pos = start(pA_motif)[1], pA_stretch_pos = start(pA_stretch)[1], sequence = sequ ))
+  return(list(pA_motif_pos = start(pA_motif)[1], pA_stretch_pos = start(pA_stretch)[1], 
+              pT_stretch_pos = start(pT_stretch),
+              sequence = list(upstream=sequ_upstream, downstream=sequ) ))
 }
 
 
