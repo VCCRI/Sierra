@@ -393,7 +393,7 @@ NewPeakSCE <- function(peak.data, annot.info, cell.idents, tsne.coords = NULL, u
 
   ## Add cell annotation information
   cell.data <- S4Vectors::DataFrame(CellIdent = cell.idents)
-  colData(peaks.sce) <- cell.data
+  SummarizedExperiment::colData(peaks.sce) <- cell.data
 
   return(peaks.sce)
 }
@@ -417,7 +417,7 @@ NewPeakSCE <- function(peak.data, annot.info, cell.idents, tsne.coords = NULL, u
 SelectGenePeaks <- function(peaks.object, gene, feature.type = c("UTR3", "UTR5", "exon", "intron")) {
 
   if (class(peaks.object) == "Seurat") {
-    annot.subset <- subset(Tool(apa.seurat.object, "GeneSLICER"), Gene_name == gene)
+    annot.subset <- subset(Tool(peaks.object, "GeneSLICER"), Gene_name == gene)
     peaks.to.use <- apply(annot.subset, 1, function(x) {
       ifelse(sum(x[feature.type] == "YES") >= 1, TRUE, FALSE)
     })
