@@ -29,10 +29,10 @@ readMEX <- function(mm.file, barcodes.file, genes.file) {
 
 ################################################
 #'
-#' Create a polyA Seurat object using a gene-level object
+#' Create a peak count Seurat object using a gene-level object
 #'
-#' Creates a new polyA Seurat object, importing information on clustering and dimensionality reduction,
-#' such as t-SNE coordinates, from a Seurat object that has been processed at the gene level.
+#' Creates a new peak Seurat object, importing information on clustering and dimensionality reduction,
+#' such as t-SNE and UMAP coordinates, from a Seurat object that has been processed at the gene level.
 #'
 #' @param peak.data matrix of peak counts
 #' @param genes.seurat a Seurat object
@@ -42,109 +42,43 @@ readMEX <- function(mm.file, barcodes.file, genes.file) {
 #' @param min.peaks minimum number of peaks for retaining a cell
 #' @param norm.scale.factor scale factor for Seurat NormalizeData function
 #'
-#' @return a new polyA-level Seurat object
+#' @return a new peak-level Seurat object
 #'
 #' @examples
-#' apa.seurat = polya_seurat_from_gene_object(apa.data, genes.seurat, annot.info)
+#' peak.seurat <- PeakSeuratFromTransfer(peak.data, genes.seurat, annot.info)
 #'
 #' @export
 #'
-polya_seurat_from_gene_object <- function(peak.data, genes.seurat, annot.info, project.name = "PolyA",
+PeakSeuratFromTransfer <- function(peak.data, genes.seurat, annot.info, project.name = "PolyA",
                                              min.cells = 10, min.peaks = 200, norm.scale.factor = 10000) {
 
   if (packageVersion("Seurat") < '3.0.0') {
-    apa.seurat = polya_seurat_v2_from_gene_object(peak.data = peak.data, genes.seurat = genes.seurat,
-                                                  annot.info = annot.info, project.name = project.name,
-                                                  min.cells = min.cells, min.peaks = min.peaks,
-                                                  norm.scale.factor = norm.scale.factor)
-    return(apa.seurat)
+    stop("Seurat 3.0.0 or above is required for this function. Either upgrage or see ?NewPeakSCE")
   }
-
-  ## Read in annotations to add to the Seurat object
-  annot.peaks = rownames(annot.info)
-
-  ## Check if there are annotations for peaks
-  peaks.use = intersect(rownames(peak.data), annot.peaks)
-  peak.data = peak.data[peaks.use, ]
 
   # remove any cells not in the gene-level object
-  cells.keep = intersect(colnames(peak.data), colnames(genes.seurat))
+  cells.keep <- intersect(colnames(peak.data), colnames(genes.seurat))
   length(cells.keep)
 
-  peak.data = peak.data[, cells.keep]
+  peak.data <- peak.data[, cells.keep]
 
-  print(paste("Creating Seurat object with", nrow(peak.data), "peaks and", ncol(peak.data), "cells"))
-
-  ## Create a Seurat object for polyA counts
-  apa.seurat = CreateSeuratObject(peak.data, min.cells = min.cells, min.features = min.peaks, project = project.name)
-
-  ## Add peak annotations to the Seurat object
-  annot.info = as.data.frame(annot.info, stringsAsFactors = FALSE)
-  peaks.use = intersect(annot.peaks, rownames(Seurat::GetAssayData(apa.seurat)))
-  annot.info = annot.info[peaks.use, ]
-  feature.names = c("UTR3", "UTR5", "intron", "exon")
-  feature.mat = annot.info[peaks.use, feature.names]
-
-  features.collapsed = apply(feature.mat, 1, function(x) {
-    paste(feature.names[which(x == "YES")], collapse = ";")})
-
-  feature.mat$FeaturesCollapsed = features.collapsed
-  feature.mat$Gene_name = annot.info$gene_id
-  feature.mat$start = annot.info$start
-  feature.mat$end = annot.info$end
-  feature.mat$chr = annot.info$seqnames
-  feature.mat$strand = annot.info$strand
-
-  ## Add additional peak IDs for input to DEXSeq
-  print("Preparing feature table for DEXSeq")
-  gene.set = unique(as.character(feature.mat$Gene_name))
-  dexseq.feature.table = c()
-  for (this.gene in gene.set) {
-
-    ## collect peaks
-    peak.subset = subset(feature.mat, Gene_name == this.gene)
-    peak.subset = peak.subset[order(peak.subset$start, decreasing = FALSE), ]
-
-    transcript.names = paste0('transcripts "', rownames(peak.subset), '"')
-    gene.ids = paste0('gene_id "', peak.subset$gene_id, '"')
-    exonic.part.numbers = paste0('exonic_part_number "', 1:nrow(peak.subset), '"')
-    info.part = paste(transcript.names, exonic.part.numbers, gene.ids, sep = "; ")
-
-    dexseq.feature.set = data.frame(Gene_name = peak.subset$Gene_name,
-                                   Gene_part = paste0(peak.subset$Gene_name, ":", 1:nrow(peak.subset)),
-                                   Peak_number = paste0("Peak", 1:nrow(peak.subset)),
-                                   Peak_name = rownames(peak.subset), stringsAsFactors = FALSE)
-    rownames(dexseq.feature.set) <- dexseq.feature.set$Peak_name
-
-    dexseq.feature.table = rbind(dexseq.feature.table, dexseq.feature.set)
-  }
-  dexseq.feature.table = dexseq.feature.table[rownames(feature.mat), ]
-
-  feature.mat$Gene_part = dexseq.feature.table$Gene_part
-  feature.mat$Peak_number = dexseq.feature.table$Peak_number
-
-  ## Store the data in the Seurat @tool slot
-  feature.mat.input = list(feature.mat)
-  names(feature.mat.input) <- "GeneSLICER"
-  apa.seurat@tools <- feature.mat.input
-
-  ## Normalise and calculate highly-variable genes
-  apa.seurat <- NormalizeData(object = apa.seurat, normalization.method = "LogNormalize",
-                              scale.factor = norm.scale.factor)
+  peaks.seurat <- NewPeakSeurat(peak.data = peak.data, annot.info = annot.info,
+                                project.name = project.name, min.cells = min.cells,
+                                min.peaks = min.peaks, norm.scale.factor = norm.scale.factor)
 
   ## Add cluster identities to peak Seurat object
-  cells.overlap = intersect(colnames(apa.seurat), colnames(genes.seurat))
-  clusters.overlap = Idents(genes.seurat)[cells.overlap]
-  clusters.overlap = clusters.overlap[colnames(apa.seurat)]
-  apa.seurat = AddMetaData(object = apa.seurat, metadata = clusters.overlap, col.name = "geneLvlID")
-  Idents(apa.seurat) = apa.seurat@meta.data$geneLvlID
+  cells.overlap <- intersect(colnames(peaks.seurat), colnames(genes.seurat))
+  clusters.overlap <- Idents(genes.seurat)[cells.overlap]
+  clusters.overlap <- clusters.overlap[colnames(peaks.seurat)]
+  peaks.seurat <- AddMetaData(object = peaks.seurat, metadata = clusters.overlap, col.name = "geneLvlID")
+  Idents(peaks.seurat) <- peaks.seurat@meta.data$geneLvlID
 
   ## Add t-SNE coordinates to peak count object
   tryCatch({
-    tsne.embeddings = Embeddings(genes.seurat, reduction = 'tsne')
-    tsne.embeddings = tsne.embeddings[colnames(apa.seurat), ]
-    new.embedding = CreateDimReducObject(embeddings = tsne.embeddings, key = "tSNE_", assay = "RNA")
-    apa.seurat@reductions$tsne = new.embedding
+    tsne.embeddings <- Embeddings(genes.seurat, reduction = 'tsne')
+    tsne.embeddings <- tsne.embeddings[colnames(peaks.seurat), ]
+    new.embedding <- CreateDimReducObject(embeddings = tsne.embeddings, key = "tSNE_", assay = "RNA")
+    peaks.seurat@reductions$tsne <- new.embedding
     print("t-SNE coordinates added")
   }, error = function(err) {
     print("No t-SNE coodinates detected")
@@ -152,25 +86,25 @@ polya_seurat_from_gene_object <- function(peak.data, genes.seurat, annot.info, p
 
   ## Add UMAP coordinates to peak count object
   tryCatch({
-    umap.embeddings = Embeddings(genes.seurat, reduction = 'umap')
-    umap.embeddings = umap.embeddings[colnames(apa.seurat), ]
-    new.embedding = CreateDimReducObject(embeddings = umap.embeddings, key = "UMAP_", assay = "RNA")
-    apa.seurat@reductions$umap = new.embedding
+    umap.embeddings <- Embeddings(genes.seurat, reduction = 'umap')
+    umap.embeddings <- umap.embeddings[colnames(peaks.seurat), ]
+    new.embedding <- CreateDimReducObject(embeddings = umap.embeddings, key = "UMAP_", assay = "RNA")
+    peaks.seurat@reductions$umap = new.embedding
     print("UMAP coordinates added")
   }, error = function(err) {
     print("No UMAP coordinates detected")
   })
 
-  return(apa.seurat)
+  return(peaks.seurat)
 }
 
 
 
 ################################################
 #'
-#' Create a new polyA Seurat object from the peak counts
+#' Create a new peak-level Seurat object from the peak counts
 #'
-#' Creates a new polyA Seurat object from the peak counts and annotation table
+#' Creates a new peak-level Seurat object from the peak counts and annotation table
 #'
 #' @param peak.data matrix of peak counts
 #' @param annot.info peak annotation information
@@ -179,88 +113,91 @@ polya_seurat_from_gene_object <- function(peak.data, genes.seurat, annot.info, p
 #' @param min.peaks minimum number of peaks for retaining a cell
 #' @param norm.scale.factor scale factor for Seurat NormalizeData function
 #'
-#' @return a new polyA-level Seurat object
+#' @return a new peak-level Seurat object
 #'
 #' @examples
-#' apa.seurat = polya_seurat_from_gene_object(apa.data, genes.seurat, annot.info)
+#' peak.seurat = NewPeakSeurat(peak.data, genes.seurat, annot.info)
 #'
 #' @export
 #'
-new_polya_seurat <- function(peak.data, annot.info, project.name = "PolyA",
+NewPeakSeurat <- function(peak.data, annot.info, project.name = "PolyA",
                                 min.cells = 10, min.peaks = 200, norm.scale.factor = 10000) {
 
   if (packageVersion("Seurat") < '3.0.0') {
-    apa.seurat = new_polya_seurat_v2(peak.data = peak.data, annot.info = annot.info,
-                                                  project.name = project.name, min.cells = min.cells,
-                                                  min.peaks = min.peaks, norm.scale.factor = norm.scale.factor)
-    return(apa.seurat)
+    stop("Seurat 3.0.0 or above is required for this function. Either upgrage or see ?NewPeakSCE")
   }
 
   ## Read in annotations to add to the Seurat object
-  annot.peaks = rownames(annot.info)
+  annot.peaks <- rownames(annot.info)
 
   ## Check if there are annotations for peaks
-  peaks.use = intersect(rownames(peak.data), annot.peaks)
-  peak.data = peak.data[peaks.use, ]
+  peaks.use <- intersect(rownames(peak.data), annot.peaks)
+  peak.data <- peak.data[peaks.use, ]
 
   print(paste("Creating Seurat object with", nrow(peak.data), "peaks and", ncol(peak.data), "cells"))
 
   ## Create a Seurat object for polyA counts
-  apa.seurat = Seurat::CreateSeuratObject(peak.data, min.cells = min.cells, project = project.name)
+  apa.seurat <- CreateSeuratObject(peak.data, min.cells = min.cells, min.features = min.peaks, project = project.name)
 
   ## Add peak annotations to the Seurat object
-  annot.info = as.data.frame(annot.info, stringsAsFactors = FALSE)
-  #peaks.use = intersect(annot.peaks, rownames(apa.seurat@data))
-  peaks.use = intersect(annot.peaks, rownames(apa.seurat))
-  annot.info = annot.info[peaks.use, ]
-  feature.names = c("UTR3", "UTR5", "intron", "exon")
-  feature.mat = annot.info[peaks.use, feature.names]
+  annot.info <- as.data.frame(annot.info, stringsAsFactors = FALSE)
+  peaks.use <- intersect(annot.peaks, rownames(Seurat::GetAssayData(apa.seurat)))
+  annot.info <- annot.info[peaks.use, ]
+  feature.names <- c("UTR3", "UTR5", "intron", "exon")
+  feature.mat <- annot.info[peaks.use, feature.names]
 
-  features.collapsed = apply(feature.mat, 1, function(x) {
+  features.collapsed <- apply(feature.mat, 1, function(x) {
     paste(feature.names[which(x == "YES")], collapse = ";")})
 
-  feature.mat$FeaturesCollapsed = features.collapsed
-  feature.mat$Gene_name = annot.info$gene_id
-  feature.mat$start = annot.info$start
-  feature.mat$end = annot.info$end
-  feature.mat$chr = annot.info$seqnames
-  feature.mat$strand = annot.info$strand
+  feature.mat$FeaturesCollapsed <- features.collapsed
+  feature.mat$Gene_name <- annot.info$gene_id
+  feature.mat$start <- annot.info$start
+  feature.mat$end <- annot.info$end
+  feature.mat$chr <- annot.info$seqnames
+  feature.mat$strand <- annot.info$strand
+
+  if (!is.null(annot.info$pA_motif)) {
+    feature.mat$pA_motif <- annot.info$pA_motif
+    feature.mat$pA_stretch <- annot.info$pA_stretch
+  } else {
+    warning("Motif information not found in annotation data - some Sierra functions will be unavailable.")
+  }
 
   ## Add additional peak IDs for input to DEXSeq
   print("Preparing feature table for DEXSeq")
-  gene.set = unique(as.character(feature.mat$Gene_name))
-  dexseq.feature.table = c()
+  gene.set <- unique(as.character(feature.mat$Gene_name))
+  dexseq.feature.table <- c()
   for (this.gene in gene.set) {
 
     ## collect peaks
-    peak.subset = subset(feature.mat, Gene_name == this.gene)
-    peak.subset = peak.subset[order(peak.subset$start, decreasing = FALSE), ]
+    peak.subset <- subset(feature.mat, Gene_name == this.gene)
+    peak.subset <- peak.subset[order(peak.subset$start, decreasing = FALSE), ]
 
-    transcript.names = paste0('transcripts "', rownames(peak.subset), '"')
-    gene.ids = paste0('gene_id "', peak.subset$gene_id, '"')
-    exonic.part.numbers = paste0('exonic_part_number "', 1:nrow(peak.subset), '"')
-    info.part = paste(transcript.names, exonic.part.numbers, gene.ids, sep = "; ")
+    transcript.names <- paste0('transcripts "', rownames(peak.subset), '"')
+    gene.ids <- paste0('gene_id "', peak.subset$gene_id, '"')
+    exonic.part.numbers <- paste0('exonic_part_number "', 1:nrow(peak.subset), '"')
+    info.part <- paste(transcript.names, exonic.part.numbers, gene.ids, sep = "; ")
 
-    dexseq.feature.set = data.frame(Gene_name = peak.subset$Gene_name,
-                                    Gene_part = paste0(peak.subset$Gene_name, ":", 1:nrow(peak.subset)),
-                                    Peak_number = paste0("Peak", 1:nrow(peak.subset)),
-                                    Peak_name = rownames(peak.subset), stringsAsFactors = FALSE)
+    dexseq.feature.set <- data.frame(Gene_name = peak.subset$Gene_name,
+                                     Gene_part = paste0(peak.subset$Gene_name, ":", 1:nrow(peak.subset)),
+                                     Peak_number = paste0("Peak", 1:nrow(peak.subset)),
+                                     Peak_name = rownames(peak.subset), stringsAsFactors = FALSE)
     rownames(dexseq.feature.set) <- dexseq.feature.set$Peak_name
 
-    dexseq.feature.table = rbind(dexseq.feature.table, dexseq.feature.set)
+    dexseq.feature.table <- rbind(dexseq.feature.table, dexseq.feature.set)
   }
-  dexseq.feature.table = dexseq.feature.table[rownames(feature.mat), ]
+  dexseq.feature.table <- dexseq.feature.table[rownames(feature.mat), ]
 
-  feature.mat$Gene_part = dexseq.feature.table$Gene_part
-  feature.mat$Peak_number = dexseq.feature.table$Peak_number
+  feature.mat$Gene_part <- dexseq.feature.table$Gene_part
+  feature.mat$Peak_number <- dexseq.feature.table$Peak_number
 
   ## Store the data in the Seurat @tool slot
-  feature.mat.input = list(feature.mat)
-  names(feature.mat.input) <- "GeneSLICER"
+  feature.mat.input <- list(feature.mat)
+  names(feature.mat.input) <- "Sierra"
   apa.seurat@tools <- feature.mat.input
 
   ## Normalise and calculate highly-variable genes
-  apa.seurat <- Seurat::NormalizeData(object = apa.seurat, normalization.method = "LogNormalize",
+  apa.seurat <- NormalizeData(object = apa.seurat, normalization.method = "LogNormalize",
                               scale.factor = norm.scale.factor)
 
   return(apa.seurat)
@@ -281,12 +218,12 @@ new_polya_seurat <- function(peak.data, annot.info, project.name = "PolyA",
 #' @param umap.coords data-frame of UMAP coordinates. Rownames should correspond to cell names.
 #' @param min.cells minimum number of cells for retaining a peak
 #' @param min.peaks minimum number of peaks for retaining a cell
-#' @param norm.scale.factor scale factor for Seurat NormalizeData function
+#' @param norm.scale.factor scale factor for log normalisation  function
 #'
 #' @return a new peak-level SCE object
 #'
 #' @examples
-#' apa.sce = new_peak_SCE(apa.data, genes.seurat, annot.info)
+#' peak.sce = NewPeakSCE(apa.data, genes.seurat, annot.info)
 #'
 #' @export
 #'
@@ -360,6 +297,13 @@ NewPeakSCE <- function(peak.data, annot.info, cell.idents, tsne.coords = NULL, u
   feature.mat$chr = annot.info$seqnames
   feature.mat$strand = annot.info$strand
 
+  if (!is.null(annot.info$pA_motif)) {
+    feature.mat$pA_motif <- annot.info$pA_motif
+    feature.mat$pA_stretch <- annot.info$pA_stretch
+  } else {
+    warning("Motif information not found in annotation data - some Sierra functions will be unavailable.")
+  }
+
   ## Add additional peak IDs for input to DEXSeq
   if (verbose) print("Preparing feature table for DEXSeq")
   gene.set = unique(as.character(feature.mat$Gene_name))
@@ -417,7 +361,7 @@ NewPeakSCE <- function(peak.data, annot.info, cell.idents, tsne.coords = NULL, u
 SelectGenePeaks <- function(peaks.object, gene, feature.type = c("UTR3", "UTR5", "exon", "intron")) {
 
   if (class(peaks.object) == "Seurat") {
-    annot.subset <- subset(Tool(peaks.object, "GeneSLICER"), Gene_name == gene)
+    annot.subset <- subset(Tool(peaks.object, "Sierra"), Gene_name == gene)
     peaks.to.use <- apply(annot.subset, 1, function(x) {
       ifelse(sum(x[feature.type] == "YES") >= 1, TRUE, FALSE)
     })
