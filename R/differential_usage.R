@@ -265,7 +265,7 @@ apply_DEXSeq_test_seurat <- function(apa.seurat.object, population.1, population
 
 
   ## Filter peaks according to feature type
-  annot.subset <- Tool(apa.seurat.object, "GeneSLICER")[high.expressed.peaks, ]
+  annot.subset <- Tool(apa.seurat.object, "Sierra")[high.expressed.peaks, ]
   peaks.to.use <- apply(annot.subset, 1, function(x) {
     ifelse(sum(x[feature.type] == "YES") >= 1, TRUE, FALSE)
   })
@@ -275,18 +275,18 @@ apply_DEXSeq_test_seurat <- function(apa.seurat.object, population.1, population
 
   ## Check if A-rich peaks are to be filtered out
   if (filter.pA.stretch) {
-    if (is.null(Tool(apa.seurat.object, "GeneSLICER")$pA_stretch)) {
+    if (is.null(Tool(apa.seurat.object, "Sierra")$pA_stretch)) {
       stop("pA_stretch not in annotation data: please run nnotate_gr_from_gtf with
            an input genome to provide required annotation.")
     } else{
-      annot.subset <- Tool(apa.seurat.object, "GeneSLICER")[high.expressed.peaks, ]
+      annot.subset <- Tool(apa.seurat.object, "Sierra")[high.expressed.peaks, ]
       peaks.non.arich <- rownames(subset(annot.subset, pA_stretch == FALSE))
       high.expressed.peaks <- intersect(high.expressed.peaks, peaks.non.arich)
       if (verbose) print(paste(length(high.expressed.peaks), "peaks after filtering out A-rich annotations"))
     }
   }
 
-  gene.names <- Tool(apa.seurat.object, "GeneSLICER")[high.expressed.peaks, "Gene_name"]
+  gene.names <- Tool(apa.seurat.object, "Sierra")[high.expressed.peaks, "Gene_name"]
 
   ## Identifiy genes with more than one transcript detected as expressed
   gene.table <- table(gene.names)
@@ -360,7 +360,7 @@ apply_DEXSeq_test_seurat <- function(apa.seurat.object, population.1, population
                            condition = c(rep("target", ncol(profile.set1)),
                                          rep("comparison", ncol(profile.set2))))
 
-  dexseq.feature.table <- Tool(apa.seurat.object, "GeneSLICER")[, c("Gene_name", "Gene_part", "Peak_number")]
+  dexseq.feature.table <- Tool(apa.seurat.object, "Sierra")[, c("Gene_name", "Gene_part", "Peak_number")]
   dexseq.feature.table$Peak <- rownames(dexseq.feature.table)
   dexseq.feature.table <- dexseq.feature.table[rownames(peak.matrix), ]
   rownames(dexseq.feature.table) <- paste0(dexseq.feature.table$Gene_name, ":", dexseq.feature.table$Peak_number)
@@ -418,7 +418,7 @@ apply_DEXSeq_test_seurat <- function(apa.seurat.object, population.1, population
   dxrSig_subset$population2_pct <- population.2.pct
 
   ## Add Genomic feature type
-  feature.type <- Tool(apa.seurat.object, "GeneSLICER")[rownames(dxrSig_subset), c("FeaturesCollapsed")]
+  feature.type <- Tool(apa.seurat.object, "Sierra")[rownames(dxrSig_subset), c("FeaturesCollapsed")]
   dxrSig_subset$feature_type = feature.type
 
   dxrSig_subset <- dxrSig_subset[, c("groupID", "feature_type", "population1_pct", "population2_pct",
