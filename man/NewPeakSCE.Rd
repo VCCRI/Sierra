@@ -23,7 +23,7 @@ NewPeakSCE(peak.data, annot.info, cell.idents, tsne.coords = NULL,
 
 \item{min.peaks}{minimum number of peaks for retaining a cell}
 
-\item{norm.scale.factor}{scale factor for Seurat NormalizeData function}
+\item{norm.scale.factor}{scale factor for log normalisation  function}
 }
 \value{
 a new peak-level SCE object
@@ -32,6 +32,6 @@ a new peak-level SCE object
 Creates a new peak-counts single-cell experiment object from the peak counts and annotation table
 }
 \examples{
-apa.sce = new_peak_SCE(apa.data, genes.seurat, annot.info)
+peak.sce = NewPeakSCE(apa.data, genes.seurat, annot.info)
 
 }

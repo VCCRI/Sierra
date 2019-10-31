@@ -4,12 +4,12 @@
 \alias{PlotRelativeExpressionUMAP}
 \title{Generate a t-SNE plot using relative expression}
 \usage{
-PlotRelativeExpressionUMAP(seurat.object, peaks.to.plot, do.plot = TRUE,
+PlotRelativeExpressionUMAP(peaks.object, peaks.to.plot, do.plot = TRUE,
   figure.title = NULL, return.plot = TRUE, pt.size = 0.5,
   txt.size = 14)
 }
 \arguments{
-\item{seurat.object}{Seurat object}
+\item{peaks.object}{Seurat object}
 
 \item{peaks.to.plot}{Set of peaks to plot}
 

@@ -6,7 +6,7 @@
 \usage{
 baseComposition(genome = NULL, chrom = NULL, start = NULL,
   stop = NULL, strand = NULL, coord = NULL, offset = -50,
-  length = 250)
+  length = 250, mismatch = 1, AT_length = 13)
 }
 \arguments{
 \item{genome}{genome object of organism.}
@@ -22,6 +22,10 @@ baseComposition(genome = NULL, chrom = NULL, start = NULL,
 \item{offset}{The}
 
 \item{length}{How many nucleotides of DNA sequence to return}
+
+\item{mismatch}{: The max number of mismatches allowed in poly A/T stretch (default 1)}
+
+\item{AT_length}{: length of A/T to search for within input sequence (default 13)}
 
 \item{end}{downstream end position}
 }
@@ -39,6 +43,11 @@ chrom  <- 'chr7'
 start  <- 90451180
 stop   <- 90451380
 strand <- '-'
+output <-baseComposition(genome=genome, chrom=chrom, start=start, stop=stop, strand=strand)
+
+# Dync1h1 intronic peak that coincides with a long poly(T) rich region
+coord <- "chr12:110609400-110609800:1"
+output <-baseComposition(genome=genome, coord=coord)
 
 TO DO:
 * If peak falls at end of exon then need to obtain sequence from next exon. This

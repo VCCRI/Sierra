@@ -7,7 +7,8 @@
 annotate_gr_from_gtf(gr, invert_strand = FALSE, gtf_gr = NULL,
   annotationType = "any", transcriptDetails = FALSE, gtf_TxDb,
   annotation_correction = TRUE, genome = NULL,
-  pA_motif_max_position = 50, AAA_motif_min_position = 10)
+  pA_motif_max_position = 50, AAA_motif_min_position = 10,
+  polystretch_length = 13, max_mismatch = 1)
 }
 \arguments{
 \item{gr}{a granges object of peaks to annotate}
@@ -29,7 +30,9 @@ prioritise gene based on annotation. 3'UTR annotation trumps all other annotatio
 
 \item{pA_motif_max_position}{Any AAUAAA after this position are not considered (default 50nt)}
 
-\item{AAA_motif_min_position}{Any polyA stretches before this postion are not considered (default 10)}
+\item{AAA_motif_min_position}{Any polyA/polyT stretches before this postion are not considered (default 10)}
+
+\item{polystretch_length}{: the length of A or T to search for (default 13)}
 }
 \value{
 a dataframe with appended columns containing annotation

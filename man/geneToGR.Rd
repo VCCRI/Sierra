@@ -9,7 +9,12 @@ geneToGR(geneID, gtf_gr)
 \arguments{
 \item{geneID}{: Gene symbol}
 
-\item{gtf_gr}{: Gragnes object of a gtf file}
+\item{gtf_gr}{: Granges object of a gtf file
+
+gtf_file <- "u:/Reference/mm10/cellranger_genes.gtf.gz"
+gtf_gr <- rtracklayer::import(gtf_file)
+gtf_gr=gtf_gr, geneSymbol="Dnajc19"
+geneGR  <- geneToGR(gtf_gr=gtf_gr, geneSymbol="Dnajc19")}
 }
 \description{
 geneToGR converts a gene sybol to genomic ranges coordinate
