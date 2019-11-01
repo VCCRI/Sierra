@@ -1,3 +1,4 @@
+
 ##########################################################
 #'
 #' Calculate relative expression between two or more peaks
@@ -6,7 +7,45 @@
 #' the expression of each peak by the mean of the peak expression for that gene -
 #' or set of provided peaks
 #'
-#' @param seurat.object Seurat object
+#' @param peaks.object Seurat object
+#' @param peak.set set of peaks
+#' @param gene.name gene name for retrieving a set of peaks
+#' @param feature.type features to consider. 3'UTR and exon by default.
+#'
+#' @return a matrix of relative expression
+#'
+#' @examples
+#' get_relative_expression_seurat(peaks.seurat.object, gene.name = "Cxcl12")
+#'
+#' @export
+#'
+GetRelativeExpression <- function(peaks.object, peak.set = NULL, gene.name = NULL,
+                                          feature.type = c("UTR3", "exon")) {
+
+  if (class(peaks.object) == "Seurat") {
+    relative.expression.data <- get_relative_expression_seurat(peaks.seurat.object = peaks.object,
+                                                               peak.set = peak.set, gene.name = gene.name,
+                                                               feature.type = feature.type)
+    return(relative.expression.data)
+  } else if (class(peaks.object) == "SingleCellExperiment") {
+    relative.expression.data <- get_relative_expression_sce(peaks.sce.object = peaks.object,
+                                                               peak.set = peak.set, gene.name = gene.name,
+                                                               feature.type = feature.type)
+    return(relative.expression.data)
+  }
+
+}
+
+
+##########################################################
+#'
+#' Calculate relative expression between two or more peaks
+#'
+#' Calculate a relative expression between two or more peaks by dividing
+#' the expression of each peak by the mean of the peak expression for that gene -
+#' or set of provided peaks
+#'
+#' @param peaks.seurat.object Seurat object
 #' @param peak.set set of peaks
 #' @param gene_name gene name for retrieving a set of peaks
 #' @param feature.type features to consider. 3'UTR and exon by default.
@@ -14,34 +53,44 @@
 #' @return a matrix of relative expression
 #'
 #' @examples
-#' get_relative_expression(peaks.seurat, gene_name = "Cxcl12")
+#' get_relative_expression_seurat(peaks.seurat.object, gene.name = "Cxcl12")
 #'
-get_relative_expression <- function(seurat.object, peak.set = NULL, gene_name = NULL,
+get_relative_expression_seurat <- function(peaks.seurat.object, peak.set = NULL, gene.name = NULL,
                                     feature.type = c("UTR3", "exon")) {
 
   ## make sure either a gene or peak set has been provided
-  if (is.null(gene_name) & is.null(peak.set)) {
-    print("Please provide a gene or set of peaks")
+  if (is.null(gene.name) & is.null(peak.set)) {
+    stop("Please provide a gene or set of peaks")
   }
 
   ## if no peaks are provided, use the gene name to select peaks
   if (is.null(peak.set)) {
-    peak.set <- select_gene_polyas(seurat.object, this.gene, feature.type = feature.type)
+    peak.set <- SelectGenePeaks(peaks.seurat.object, gene.name, feature.type = feature.type)
+  }
+
+  ## Check that peaks correspond to the same gene
+  peak.gene.names = sub("(.*).*:.*:.*-.*:.*", "\\1", peak.set)
+  if (length(unique(peak.gene.names)) > 1) {
+    stop("Multiple genes detected in peak set - please ensure input peaks are from one gene")
   }
 
   ## access expression data for this set of peaks
-  expression.data <- GetAssayData(seurat.object)[peak.set, ]
+  expression.data <- GetAssayData(peaks.seurat.object)[peak.set, ]
 
   if (length(peak.set) == 1) {
     return(expression.data)
   }
 
+  cell.names <- colnames(peaks.seurat.object)
+
+  population.names <- Idents(peaks.seurat.object)
+
   ## Calculate population-level gene-mean and relative peak expression values
-  population.names <- names(table(Idents(seurat.object)))
+  population.names <- names(table(Idents(peaks.seurat.object)))
   population.relative.usage <- c()
   gene.population.means <- c()
   for (cl in population.names) {
-    cell.set <- colnames(seurat.object)[which(Idents(seurat.object) == cl)]
+    cell.set <- colnames(peaks.seurat.object)[which(Idents(peaks.seurat.object) == cl)]
     expression.set <- expression.data[, cell.set]
 
     ## Calculate relative usage of each peak
@@ -63,16 +112,16 @@ get_relative_expression <- function(seurat.object, peak.set = NULL, gene_name = 
 
   ### Divide peak expression for each cell by cell-type expression average
   relative.expression.data <- c()
-  population.names <- names(table(Idents(seurat.object)))
+  population.names <- names(table(Idents(peaks.seurat.object)))
   for (cl in population.names) {
-    cell.set <- colnames(seurat.object)[which(Idents(seurat.object) == cl)]
+    cell.set <- colnames(peaks.seurat.object)[which(Idents(peaks.seurat.object) == cl)]
     expression.set <- expression.data[, cell.set]
     this.mean <- gene.population.means[cl]
     rel.values <- population.relative.usage[, cl]
     relative.exp.values <- ( (exp(expression.set) - 1) / (this.mean + 1) ) * rel.values
     relative.expression.data <- cbind(relative.expression.data, relative.exp.values)
   }
-  relative.expression.data <- relative.expression.data[, colnames(seurat.object)]
+  relative.expression.data <- relative.expression.data[, colnames(peaks.seurat.object)]
 
   relative.expression.data <- log2(relative.expression.data + 1)
   relative.expression.data <- as(relative.expression.data, "sparseMatrix")
@@ -80,6 +129,95 @@ get_relative_expression <- function(seurat.object, peak.set = NULL, gene_name = 
   return(relative.expression.data)
 }
 
+##########################################################
+#'
+#' Calculate relative expression between two or more peaks
+#'
+#' Calculate a relative expression between two or more peaks by dividing
+#' the expression of each peak by the mean of the peak expression for that gene -
+#' or set of provided peaks
+#'
+#' @param peaks.sce.object Seurat object
+#' @param peak.set set of peaks
+#' @param gene_name gene name for retrieving a set of peaks
+#' @param feature.type features to consider. 3'UTR and exon by default.
+#'
+#' @return a matrix of relative expression
+#'
+#' @examples
+#' get_relative_expression(peaks.seurat, gene.name = "Cxcl12")
+#'
+get_relative_expression_sce <- function(peaks.sce.object, peak.set = NULL, gene.name = NULL,
+                                    feature.type = c("UTR3", "exon")) {
+
+  ## make sure either a gene or peak set has been provided
+  if (is.null(gene.name) & is.null(peak.set)) {
+    print("Please provide a gene or set of peaks")
+  }
+
+  ## if no peaks are provided, use the gene name to select peaks
+  if (is.null(peak.set)) {
+    peak.set <- SelectGenePeaks(peaks.sce.object, gene.name, feature.type = feature.type)
+  }
+
+  ## Check that peaks correspond to the same gene
+  peak.gene.names = sub("(.*).*:.*:.*-.*:.*", "\\1", peak.set)
+  if (length(unique(peak.gene.names)) > 1) {
+    stop("Multiple genes detected in peak set - please ensure input peaks are from one gene")
+  }
+
+  ## access expression data for this set of peaks
+  expression.data <- peaks.sce.object@assays$data$lnorm_counts[peak.set, ]
+
+  if (length(peak.set) == 1) {
+    return(expression.data)
+  }
+
+  cell.names <- colnames(peaks.sce.object)
+
+  ## Calculate population-level gene-mean and relative peak expression values
+  population.names <- names(table(colData(peaks.sce.object)$CellIdent))
+  population.relative.usage <- c()
+  gene.population.means <- c()
+  for (cl in population.names) {
+    cell.set <- colnames(peaks.sce.object)[which(colData(peaks.sce.object)$CellIdent == cl)]
+    expression.set <- expression.data[, cell.set]
+
+    ## Calculate relative usage of each peak
+    peak.means <- apply(expression.set, 1, function(x){mean(exp(x) - 1)})
+    if (mean(peak.means) == 0) {
+      relative.usage <- peak.means
+    } else {
+      relative.usage <- peak.means / mean(peak.means)
+    }
+
+    population.relative.usage <- cbind(population.relative.usage, relative.usage)
+
+    ## Calculate mean expression across the gene
+    gene.mean <- mean(exp(as.matrix(expression.set)) - 1)
+    gene.population.means <- append(gene.population.means, gene.mean)
+  }
+  colnames(population.relative.usage) <- population.names
+  names(gene.population.means) <- population.names
+
+  ### Divide peak expression for each cell by cell-type expression average
+  relative.expression.data <- c()
+  population.names <- names(table(colData(peaks.sce.object)$CellIdent))
+  for (cl in population.names) {
+    cell.set <- colnames(peaks.sce.object)[which(colData(peaks.sce.object)$CellIdent == cl)]
+    expression.set <- expression.data[, cell.set]
+    this.mean <- gene.population.means[cl]
+    rel.values <- population.relative.usage[, cl]
+    relative.exp.values <- ( (exp(expression.set) - 1) / (this.mean + 1) ) * rel.values
+    relative.expression.data <- cbind(relative.expression.data, relative.exp.values)
+  }
+  relative.expression.data <- relative.expression.data[, colnames(peaks.sce.object)]
+
+  relative.expression.data <- log2(relative.expression.data + 1)
+  relative.expression.data <- as(relative.expression.data, "sparseMatrix")
+
+  return(relative.expression.data)
+}
 
 #########################################################
 #'
@@ -107,7 +245,7 @@ do_arrow_plot <- function(peaks.seurat.object, gene_name, peaks.use = NULL, popu
          (https://github.com/wilkox/gggenes)")
   }
 
-  peak.data = subset(Tool(peaks.seurat.object, "GeneSLICER"), Gene_name == gene_name)
+  peak.data = subset(Tool(peaks.seurat.object, "Sierra"), Gene_name == gene_name)
   if (!is.null(peaks.use)) peak.data = subset(peak.data, rownames(peak.data) %in% peaks.use)
   n.peaks = nrow(peak.data)
 
@@ -166,7 +304,9 @@ do_arrow_plot <- function(peaks.seurat.object, gene_name, peaks.use = NULL, popu
 #'
 #' @import ggplot2
 #'
-PlotRelativeExpressionTSNE <- function(seurat.object, peaks.to.plot, do.plot=TRUE, figure.title=NULL,
+#' @export
+#'
+PlotRelativeExpressionTSNE <- function(peaks.object, peaks.to.plot, do.plot=TRUE, figure.title=NULL,
                                      return.plot = TRUE, pt.size = 0.5, txt.size = 14) {
 
   ## Check multiple peaks have been provided
@@ -174,29 +314,193 @@ PlotRelativeExpressionTSNE <- function(seurat.object, peaks.to.plot, do.plot=TRU
     stop("Please provide at least two peaks for plotting relative expression")
   }
 
-  relative.exp.data <- get_relative_expression(seurat.object, peak.set = peaks.to.plot)
+  relative.exp.data <- GetRelativeExpression(peaks.object, peak.set = peaks.to.plot)
 
   ggData <- data.frame(Expression = as.vector(t(as.matrix(relative.exp.data))),
                        Peak = unlist(lapply(peaks.to.plot, function(x) rep(x, ncol(relative.exp.data)))))
 
   # Pull out the t-SNE coordinates
-  seurat.object.tsne1 <- seurat.object@reductions$tsne@cell.embeddings[, 1]
-  names(seurat.object.tsne1) <- colnames(seurat.object)
+  if (class(peaks.object) == "Seurat") {
+    peaks.object.tsne1 <- peaks.object@reductions$tsne@cell.embeddings[, 1]
+    peaks.object.tsne2 <- peaks.object@reductions$tsne@cell.embeddings[, 2]
+  } else if (class(peaks.object) == "SingleCellExperiment") {
+    peaks.object.tsne1 <- peaks.object@reducedDims$tsne[, 1]
+    peaks.object.tsne2 <- peaks.object@reducedDims$tsne[, 2]
+  }
 
-  seurat.object.tsne2 <- seurat.object@reductions$tsne@cell.embeddings[, 2]
-  names(seurat.object.tsne2) <- colnames(seurat.object)
+  names(peaks.object.tsne1) <- colnames(peaks.object)
+  names(peaks.object.tsne2) <- colnames(peaks.object)
 
-  ggData$tSNE_1 = rep(seurat.object.tsne1, length(peaks.to.plot))
-  ggData$tSNE_2 = rep(seurat.object.tsne2, length(peaks.to.plot))
+  ggData$tSNE_1 = rep(peaks.object.tsne1, length(peaks.to.plot))
+  ggData$tSNE_2 = rep(peaks.object.tsne2, length(peaks.to.plot))
 
-  ggData$Cell_ID = rep(colnames(seurat.object), length(peaks.to.plot))
+  ggData$Cell_ID = rep(colnames(peaks.object), length(peaks.to.plot))
 
   ggData$Peak <- factor(ggData$Peak, levels = peaks.to.plot)
   pl <- ggplot(ggData, aes(tSNE_1, tSNE_2, color=Expression)) + geom_point(size=pt.size) + xlab("t-SNE 1") + ylab("t-SNE 2") +
     scale_color_gradient2(low="#d9d9d9", mid="red", high="brown", midpoint=min(ggData$Expression) +
                             (max(ggData$Expression)-min(ggData$Expression))/2, name="") +
-    theme_classic(base_size = txt.size) + theme(panel.grid = element_blank(), strip.background = element_blank()) +
+    theme_classic(base_size = txt.size) + theme(strip.background = element_blank()) +
     theme(strip.text.x = element_text(size = txt.size)) + facet_wrap(~ Peak)
+
+  if (!is.null(figure.title)) {
+    pl <- pl + ggtitle(figure.title)
+  }
+
+  if (do.plot) {
+    plot(pl)
+  }
+
+  if (return.plot) {
+    return(pl)
+  }
+}
+
+
+##########################################################
+#'
+#' Generate a t-SNE plot using relative expression
+#'
+#' Given two or more peaks to plot, calculate a relative expression score and
+#' plot on UMAP coordinates
+#'
+#' @param peaks.object Seurat object
+#' @param peaks.to.plot Set of peaks to plot
+#' @param do.plot Whether to plot to output (TRUE by default)
+#' @param figure.title Optional figure title
+#' @param pt.size size of the points on the t-SNE plot
+#'
+#' @return a ggplot2 object
+#'
+#' @examples
+#' PlotRelativeExpressionUMAP(peaks.seurat, this.peak.set)
+#'
+#' @import ggplot2
+#'
+#' @export
+#'
+PlotRelativeExpressionUMAP <- function(peaks.object, peaks.to.plot, do.plot=TRUE, figure.title=NULL,
+                                     return.plot = TRUE, pt.size = 0.5, txt.size = 14) {
+
+  ## Check multiple peaks have been provided
+  if (length(peaks.to.plot) < 2) {
+    stop("Please provide at least two peaks for plotting relative expression")
+  }
+
+  relative.exp.data <- GetRelativeExpression(peaks.object, peak.set = peaks.to.plot)
+
+  ggData <- data.frame(Expression = as.vector(t(as.matrix(relative.exp.data))),
+                       Peak = unlist(lapply(peaks.to.plot, function(x) rep(x, ncol(relative.exp.data)))))
+
+  # Pull out the UMAP coordinates
+  if (class(peaks.object) == "Seurat") {
+    peaks.object.umap1 <- peaks.object@reductions$umap@cell.embeddings[, 1]
+    peaks.object.umap2 <- peaks.object@reductions$umap@cell.embeddings[, 2]
+  } else if (class(peaks.object) == "SingleCellExperiment") {
+    peaks.object.umap1 <- peaks.object@reducedDims$umap[, 1]
+    peaks.object.umap2 <- peaks.object@reducedDims$umap[, 2]
+  }
+
+  names(peaks.object.umap1) <- colnames(peaks.object)
+  names(peaks.object.umap2) <- colnames(peaks.object)
+
+  ggData$UMAP_1 = rep(peaks.object.umap1, length(peaks.to.plot))
+  ggData$UMAP_2 = rep(peaks.object.umap2, length(peaks.to.plot))
+
+  ggData$Cell_ID = rep(colnames(peaks.object), length(peaks.to.plot))
+
+  ggData$Peak <- factor(ggData$Peak, levels = peaks.to.plot)
+  pl <- ggplot(ggData, aes(UMAP_1, UMAP_2, color=Expression)) + geom_point(size=pt.size) + xlab("UMAP 1") + ylab("UMAP 2") +
+    scale_color_gradient2(low="#d9d9d9", mid="red", high="brown", midpoint=min(ggData$Expression) +
+                            (max(ggData$Expression)-min(ggData$Expression))/2, name="") +
+    theme_classic(base_size = txt.size) + theme(strip.background = element_blank()) +
+    theme(strip.text.x = element_text(size = txt.size)) + facet_wrap(~ Peak)
+
+  if (!is.null(figure.title)) {
+    pl <- pl + ggtitle(figure.title)
+  }
+
+  if (do.plot) {
+    plot(pl)
+  }
+
+  if (return.plot) {
+    return(pl)
+  }
+}
+
+
+##########################################################
+#'
+#' Generate a box plot plot using relative expression
+#'
+#' Given two or more peaks to plot, a relative expression score and
+#' generate a box plot according to cell identities
+#'
+#' @param peaks.object Peak object of either Seurat or SCE class
+#' @param peaks.to.plot Set of peaks to plot
+#' @param do.plot Whether to plot to output (TRUE by default)
+#' @param figure.title Optional figure title
+#' @param pt.size Size of the points on the t-SNE plot
+#'
+#' @return a ggplot2 object
+#'
+#' @examples
+#' PlotRelativeExpressionBox(peaks.object, this.peak.set)
+#'
+#' @import ggplot2
+#'
+#' @export
+#'
+PlotRelativeExpressionBox <- function(peaks.object, peaks.to.plot, do.plot=TRUE, figure.title=NULL,
+                                      return.plot = TRUE, pt.size = 0.5, col.set = NULL, txt.size = 14) {
+
+  ## Check multiple peaks have been provided
+  if (length(peaks.to.plot) < 2) {
+    stop("Please provide at least two peaks for plotting relative expression")
+  }
+
+  relative.exp.data <- GetRelativeExpression(peaks.object, peak.set = peaks.to.plot)
+
+  ggData <- data.frame(Expression = as.vector(t(as.matrix(relative.exp.data))),
+                       Peak = unlist(lapply(peaks.to.plot, function(x) rep(x, ncol(relative.exp.data)))))
+
+  # Pull out the t-SNE coordinates
+  if (class(peaks.object) == "Seurat") {
+    peaks.object.tsne1 <- peaks.object@reductions$tsne@cell.embeddings[, 1]
+    peaks.object.tsne2 <- peaks.object@reductions$tsne@cell.embeddings[, 2]
+    cell.idents <- Idents(peaks.object)
+    if (is.null(col.set)){
+      col.set = scales::hue_pal()(length(table(Idents(peaks.object))))
+    }
+  } else if (class(peaks.object) == "SingleCellExperiment") {
+    peaks.object.tsne1 <- peaks.object@reducedDims$tsne[, 1]
+    peaks.object.tsne2 <- peaks.object@reducedDims$tsne[, 2]
+    cell.idents <- colData(peaks.object)$CellIdent
+    if (is.null(col.set)){
+      col.set = scales::hue_pal()(length(table(colData(peaks.object)$CellIdent)))
+    }
+  }
+
+  names(peaks.object.tsne1) <- colnames(peaks.object)
+  names(peaks.object.tsne2) <- colnames(peaks.object)
+
+  ggData$tSNE_1 = rep(peaks.object.tsne1, length(peaks.to.plot))
+  ggData$tSNE_2 = rep(peaks.object.tsne2, length(peaks.to.plot))
+
+  ggData$Cell_ID = rep(colnames(peaks.object), length(peaks.to.plot))
+
+  ggData$Peak <- factor(ggData$Peak, levels = peaks.to.plot)
+
+  ## Add cell population identities. Order according to order of input
+  ggData$Identity <- rep(cell.idents, length(peaks.to.plot))
+  ggData$Identity = factor(ggData$Identity, levels = names(table(cell.idents)))
+
+  pl <- ggplot(ggData, aes(y=Expression, x=Identity, fill=Identity)) + geom_boxplot(colour = "black", outlier.size = 0.75) +
+    ylab("Relative expression") + scale_fill_manual(values=col.set) + theme_classic(base_size = 18) +
+    theme(legend.position="none", text = element_text(size = txt.size), axis.text.x = element_text(angle=90, hjust=1, vjust=0.5)) +
+    theme(strip.background = element_blank()) + theme(strip.text.x = element_text(size = txt.size)) +
+    xlab("") + facet_wrap(~ Peak)
 
   if (!is.null(figure.title)) {
     pl <- pl + ggtitle(figure.title)
@@ -213,55 +517,82 @@ PlotRelativeExpressionTSNE <- function(seurat.object, peaks.to.plot, do.plot=TRU
 
 ##########################################################
 #'
-#' Generate a t-SNE plot using relative expression
+#' Generate a violin plot plot using relative expression
 #'
-#' Given two or more peaks to plot, calculate a relative expression score and
-#' plot on UMAP coordinates
+#' Given two or more peaks to plot, a relative expression score and
+#' generate a violin plot according to cell identities
 #'
-#' @param seurat.object Seurat object
+#' @param peaks.object Peak object of either Seurat or SCE class
 #' @param peaks.to.plot Set of peaks to plot
 #' @param do.plot Whether to plot to output (TRUE by default)
 #' @param figure.title Optional figure title
 #' @param pt.size size of the points on the t-SNE plot
+#' @param add.jitter whether to add a geom_jitter to the plot (default: TRUE)
+#' @param jitter.pt.size size of point for geom_jitter (default = 0.25)
 #'
 #' @return a ggplot2 object
 #'
 #' @examples
-#' PlotRelativeExpressionUMAP(peaks.seurat, this.peak.set)
+#' PlotRelativeExpressionViolin(peaks.object, this.peak.set)
 #'
 #' @import ggplot2
 #'
-PlotRelativeExpressionUMAP <- function(seurat.object, peaks.to.plot, do.plot=TRUE, figure.title=NULL,
-                                     return.plot = TRUE, pt.size = 0.5, txt.size = 14) {
+#' @export
+#'
+PlotRelativeExpressionViolin <- function(peaks.object, peaks.to.plot, do.plot=TRUE, figure.title=NULL,
+                                      return.plot = TRUE, pt.size = 0.5, col.set = NULL, txt.size = 14,
+                                      add.jitter = TRUE, jitter.pt.size = 0.25) {
 
   ## Check multiple peaks have been provided
   if (length(peaks.to.plot) < 2) {
     stop("Please provide at least two peaks for plotting relative expression")
   }
 
-  relative.exp.data <- get_relative_expression(seurat.object, peak.set = peaks.to.plot)
+  relative.exp.data <- GetRelativeExpression(peaks.object, peak.set = peaks.to.plot)
 
   ggData <- data.frame(Expression = as.vector(t(as.matrix(relative.exp.data))),
                        Peak = unlist(lapply(peaks.to.plot, function(x) rep(x, ncol(relative.exp.data)))))
 
   # Pull out the t-SNE coordinates
-  seurat.object.umap1 <- seurat.object@reductions$umap@cell.embeddings[, 1]
-  names(seurat.object.umap1) <- colnames(seurat.object)
+  if (class(peaks.object) == "Seurat") {
+    peaks.object.tsne1 <- peaks.object@reductions$tsne@cell.embeddings[, 1]
+    peaks.object.tsne2 <- peaks.object@reductions$tsne@cell.embeddings[, 2]
+    cell.idents <- Idents(peaks.object)
+    if (is.null(col.set)){
+      col.set = scales::hue_pal()(length(table(Idents(peaks.object))))
+    }
+  } else if (class(peaks.object) == "SingleCellExperiment") {
+    peaks.object.tsne1 <- peaks.object@reducedDims$tsne[, 1]
+    peaks.object.tsne2 <- peaks.object@reducedDims$tsne[, 2]
+    cell.idents <- colData(peaks.object)$CellIdent
+    if (is.null(col.set)){
+      col.set = scales::hue_pal()(length(table(colData(peaks.object)$CellIdent)))
+    }
+  }
 
-  seurat.object.umap2 <- seurat.object@reductions$umap@cell.embeddings[, 2]
-  names(seurat.object.umap2) <- colnames(seurat.object)
+  names(peaks.object.tsne1) <- colnames(peaks.object)
+  names(peaks.object.tsne2) <- colnames(peaks.object)
 
-  ggData$UMAP_1 = rep(seurat.object.umap1, length(peaks.to.plot))
-  ggData$UMAP_2 = rep(seurat.object.umap2, length(peaks.to.plot))
+  ggData$tSNE_1 = rep(peaks.object.tsne1, length(peaks.to.plot))
+  ggData$tSNE_2 = rep(peaks.object.tsne2, length(peaks.to.plot))
 
-  ggData$Cell_ID = rep(colnames(seurat.object), length(peaks.to.plot))
+  ggData$Cell_ID = rep(colnames(peaks.object), length(peaks.to.plot))
 
   ggData$Peak <- factor(ggData$Peak, levels = peaks.to.plot)
-  pl <- ggplot(ggData, aes(UMAP_1, UMAP_2, color=Expression)) + geom_point(size=pt.size) + xlab("UMAP 1") + ylab("UMAP 2") +
-    scale_color_gradient2(low="#d9d9d9", mid="red", high="brown", midpoint=min(ggData$Expression) +
-                            (max(ggData$Expression)-min(ggData$Expression))/2, name="") +
-    theme_classic(base_size = txt.size) + theme(panel.grid = element_blank(), strip.background = element_blank()) +
-    theme(strip.text.x = element_text(size = txt.size)) + facet_wrap(~ Peak)
+
+  ## Add cell population identities. Order according to order of input
+  ggData$Identity <- rep(cell.idents, length(peaks.to.plot))
+  ggData$Identity = factor(ggData$Identity, levels = names(table(cell.idents)))
+
+  pl <- ggplot(ggData, aes(y=Expression, x=Identity, fill=Identity)) + geom_violin(colour = "black") +
+    ylab("Relative expression") + scale_fill_manual(values=col.set) + theme_classic(base_size = 18) +
+    theme(legend.position="none", text = element_text(size = txt.size), axis.text.x = element_text(angle=90, hjust=1, vjust=0.5)) +
+    theme(strip.background = element_blank()) + theme(strip.text.x = element_text(size = txt.size)) +
+    xlab("") + facet_wrap(~ Peak)
+
+  if (add.jitter) {
+    pl <- pl + geom_jitter(size = jitter.pt.size)
+  }
 
   if (!is.null(figure.title)) {
     pl <- pl + ggtitle(figure.title)
@@ -351,127 +682,11 @@ plot_tsne <- function(seurat.object, col.set=NULL, title=NULL, do.plot=TRUE, pt.
 }
 
 
-#########################################################
-### Plot expression for a set of genes in a tSNE plot ###
-#########################################################
-plot_expression_tsne <- function(seurat.object, geneSet, do.plot=TRUE, figure.title=NULL,
-                               return.plot = FALSE, pt.size = 0.75) {
-
-  # Get data-frame containing expression, gene name and cluster
-  ggData = getMultiGeneExpressionData(seurat.object, geneSet)
-
-  # Pull out the t-SNE coordinates
-  seurat.object.tsne1 <- seurat.object@reductions$tsne@cell.embeddings[, 1]
-  names(seurat.object.tsne1) <- colnames(seurat.object)
-
-  seurat.object.tsne2 <- seurat.object@reductions$tsne@cell.embeddings[, 2]
-  names(seurat.object.tsne2) <- colnames(seurat.object)
-
-  ggData$tSNE_1 = rep(seurat.object.tsne1, length(geneSet))
-  ggData$tSNE_2 = rep(seurat.object.tsne2, length(geneSet))
-
-  ggData$Cell_ID = rep(colnames(seurat.object), length(geneSet))
-
-  ggData$Gene <- factor(ggData$Gene, levels = geneSet)
-  pl <- ggplot(ggData, aes(tSNE_1, tSNE_2, color=Expression)) + geom_point(size=pt.size) + xlab("t-SNE 1") + ylab("t-SNE 2") +
-    scale_color_gradient2(low="#d9d9d9", mid="red", high="brown", midpoint=min(ggData$Expression) +
-                            (max(ggData$Expression)-min(ggData$Expression))/2, name="") +
-    theme_bw(base_size = 14) + theme(panel.grid = element_blank()) +
-    theme(strip.text.x = element_text(size = 14))
-  if (length(geneSet) > 1) {
-    pl <- pl + facet_wrap(~Gene)
-  }
-
-  if (is.null(figure.title)) {
-    if (length(geneSet) == 1) {
-      pl <- pl + ggtitle(paste0(geneSet, " expression vizualised on t-SNE coordinates"))
-    } else{
-      pl <- pl + ggtitle("Gene expression vizualsed on t-SNE coordinates")
-    }
-  } else {
-    pl <- pl + ggtitle(figure.title)
-  }
-
-  if (do.plot) {
-    plot(pl)
-  }
-
-  if (return.plot) {
-    return(pl)
-  }
-}
-
-
-#########################################
-### Do a boxplot for a panel of genes ###
-#########################################
-do_box_plot <- function(seurat.object, geneSet, figure.title = NULL, num_col = NULL, do.plot = TRUE, col.set = NULL,
-                      return.plot = FALSE) {
-  ggData = getMultiGeneExpressionData(seurat.object, geneSet)
-
-  if (is.null(col.set)){
-    col.set = scales::hue_pal()(length(table(Idents(seurat.object))))
-  }
-
-  ## Boxplot
-  ggData$Gene = factor(ggData$Gene, levels = geneSet)
-  ggData$Cluster = factor(ggData$Cluster, levels = names(table(Idents(seurat.object))))
-  pl <- ggplot(ggData, aes(y=Expression, x=Cluster, fill=Cluster)) + geom_boxplot(colour = "black", outlier.size = 0.75) +
-    ylab("Log2 (normalised expression + 1)") + scale_fill_manual(values=col.set) + theme_bw(base_size = 18) +
-    theme(legend.position="none", text = element_text(size = 18), axis.text.x = element_text(angle=90, hjust=1, vjust=0.5)) +
-    xlab("")
-
-  if (!is.null(num_col)) {
-    pl <- pl + facet_wrap(~ Gene, ncol = num_col)
-  } else{
-    pl <- pl + facet_wrap(~ Gene)
-  }
-
-  if (!is.null(figure.title)) {
-    pl <- pl + ggtitle(figure.title)
-  }
-
-  if (do.plot) {
-    plot(pl)
-  }
-
-  if (return.plot) {
-    return(pl)
-  }
-}
-
-################################################################
-### Generate a data-frame of expression values for multiple  ###
-### genes for input to ggplot2. Tracks cluster identities.   ###
-################################################################
-getMultiGeneExpressionData <- function(seurat.object, geneSet, use.log10 = FALSE) {
-  expression <- c()
-  geneName <- c()
-  cluster <- c()
-  if (use.log10){
-    log.fun = log10
-  } else {
-    log.fun = log2
-  }
-  # Iterate through the genes and fill the vectors
-  for (gene in geneSet) {
-    expression <- append(expression, log.fun(exp(GetAssayData(seurat.object)[gene, ])))
-    geneName <- append(geneName, rep(gene, length(GetAssayData(seurat.object)[gene, ])))
-    cluster <- append(cluster, as.character(Idents(seurat.object)))
-  }
-  #create a data-frame for ggplot and return
-  ggData <- data.frame(Expression=expression, Gene=geneName, Cluster=cluster)
-  return(ggData)
-}
-
-
-
-
 #####################################################################
 ##
 #' plotCoverage
 #'
-#'
+#' Plots read coverage across a gene for a set of BAM files and/or wig data.
 #'
 #' @param wig_data can be a data frame or a genomic ranges object. Must be stranded.
 #' @param bamfiles : BAM filenames that are to be displayed as data tracks
@@ -496,7 +711,7 @@ getMultiGeneExpressionData <- function(seurat.object, geneSet, use.log10 = FALSE
 #'
 #' @import Gviz
 #' @export
-plotCoverage<-function(genome_gr, geneSymbol="", wig_data=NULL, bamfiles=NULL, wig_same_strand=TRUE, genome=NULL, pdf_output = FALSE, 
+plotCoverage<-function(genome_gr, geneSymbol="", wig_data=NULL, bamfiles=NULL, wig_same_strand=TRUE, genome=NULL, pdf_output = FALSE,
 
                        output_file_name='', zoom_3UTR=FALSE)
 {
@@ -534,7 +749,7 @@ plotCoverage<-function(genome_gr, geneSymbol="", wig_data=NULL, bamfiles=NULL, w
 
   ##### Assemble data track(s)
   dtrack <- list()  # Add data tracks assembled on this list
-  
+
   ## Assemble wig data tracks
   wig_tracks <- list()
   if (! is.null(wig_data))
@@ -544,27 +759,27 @@ plotCoverage<-function(genome_gr, geneSymbol="", wig_data=NULL, bamfiles=NULL, w
       wig_data <-  GenomicRanges::makeGRangesFromDataFrame(wig_data,keep.extra.columns=TRUE)
     }
     GenomeInfoDb::seqlevelsStyle(wig_data) <- "UCSC"
-  
+
     if (! wig_same_strand)
     {  toExtract_gr <- GenomicRanges::invertStrand(toExtract_gr)  }
     dtrack_gr <- IRanges::subsetByOverlaps(wig_data, toExtract_gr)
-  
-  
+
+
     GenomeInfoDb::seqlevels(dtrack_gr) <- chrom
     sample_col_idx <- 1: ncol(S4Vectors::mcols(wig_data))
-    
+
     # Now assemble coverage plots
-    for(i in sample_col_idx) 
+    for(i in sample_col_idx)
     {
       tmp_gr <- dtrack_gr
       S4Vectors::mcols(tmp_gr) <- S4Vectors::mcols(tmp_gr)[i]
       dtrack_name <- names(S4Vectors::mcols(tmp_gr))
-      wig_tracks[[length(wig_tracks)+1]] <- Gviz::DataTrack(tmp_gr, name=dtrack_name, type = "histogram", genome=genome) 
+      wig_tracks[[length(wig_tracks)+1]] <- Gviz::DataTrack(tmp_gr, name=dtrack_name, type = "histogram", genome=genome)
     }
-    
+
   }
 
-  
+
   ## First load any BAM files onto dtrack
   if (length(bamfiles) > 0)
   {
@@ -597,7 +812,7 @@ plotCoverage<-function(genome_gr, geneSymbol="", wig_data=NULL, bamfiles=NULL, w
     }
   }
 
-  
+
   if (length(wig_tracks) > 0)
   {
     dtrack <- c(wig_tracks, dtrack)
