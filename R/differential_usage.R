@@ -53,7 +53,7 @@ DUTest <- function(peaks.object, population.1, population.2 = NULL, exp.thresh =
                                        verbose = verbose, do.MAPlot = do.MAPlot,
                                        return.dexseq.res = return.dexseq.res, ncores = ncores)
   } else{
-    print("Invalid data object provided.")
+    stop("Invalid data object provided.")
   }
 
 
@@ -639,31 +639,6 @@ apply_DEXSeq_test_sce <- function(peaks.sce.object, population.1, population.2 =
   return(dxrSig_subset)
 }
 
-############################################################
-#'
-#' Calculate Log2 fold-change
-#'
-#' Calculate Log2 fold-change between two vectors of log-normalised data (default Seurat normalisation)
-#'
-#' @param x a vector
-#' @param y a vector
-#' @return log2 foldchange between x and y
-get_log2FC = function(x, y) {
-  return(log2(mean(exp(x))/mean(exp(y))))
-}
-
-############################################################
-#'
-#' Calculate average log2 expression
-#'
-#' Calculate average expression of a peak/gene in log2 space
-#'
-#' @param x a vector of log-normalised data
-#' @return average value of the vector in log2-space
-#'
-Log2ExpMean <- function (x) {
-  return(log2(x = mean(x = exp(x = x) - 1) + 1))
-}
 
 ############################################################
 #'
