@@ -20,7 +20,7 @@
 #'
 #' @examples
 #'
-#'
+#' @export
 #' extdata_path <- system.file("extdata",package = "scpolya")
 #' load(paste(extdata_path,"TIP_vignette_gene_Seurat.RData",sep="/"))
 #' cellbc.df <- data.frame(celltype=genes.seurat@active.ident, cellbc= names(genes.seurat@active.ident))
@@ -40,7 +40,7 @@
 #'
 #'
 #' @export
-splitBam <- function(bam, cellbc.df, outdir=NULL, yieldSize = 1000000,
+SplitBam <- function(bam, cellbc.df, outdir=NULL, yieldSize = 1000000,
                      gtf_gr = NULL, geneSymbol=NULL, gi_ext = 50,
                      rle_output=FALSE) {
  # require(GenomicAlignments)
@@ -160,12 +160,12 @@ merge_bam_coverage <- function(bamfiles, to_extract)
 #'
 #' @param geneID : Gene symbol
 #' @param gtf_gr : Granges object of a gtf file
-#' 
+#'
 #' gtf_file <- "u:/Reference/mm10/cellranger_genes.gtf.gz"
 #' gtf_gr <- rtracklayer::import(gtf_file)
 #' gtf_gr=gtf_gr, geneSymbol="Dnajc19"
 #' geneGR  <- geneToGR(gtf_gr=gtf_gr, geneSymbol="Dnajc19")
-#' 
+#'
 geneToGR <- function(geneID, gtf_gr)
 {
   if (! is.null(geneSymbol))
@@ -176,8 +176,8 @@ geneToGR <- function(geneID, gtf_gr)
     { warning("Could not find gene name. Please check spelling (and case)")
       return(NULL)
     }
-    GenomeInfoDb::seqlevelsStyle(gtf_gr) <- "NCBI" 
-    
+    GenomeInfoDb::seqlevelsStyle(gtf_gr) <- "NCBI"
+
     # Work out the genomic range to extract from
     start <- min(GenomicRanges::start(GenomicRanges::ranges(gtf_gr[idx])))
     end <- max(GenomicRanges::end(GenomicRanges::ranges(gtf_gr[idx])))
@@ -193,7 +193,7 @@ geneToGR <- function(geneID, gtf_gr)
 #'
 #'
 #' Example of how to use function:
-#' 
+#'
 #' library("data.table")
 #' endothelial_cov <- fread(file="c:/BAM/Harvey/scpolyA/Porrello_Support_Files/Porrello_Endothelial.F-CycCl_vs_F-Act.wig.txt.gz", sep = "\t", header = TRUE)
 #' EC_coverage.rle <- seqmonk_to_rle(endothelial_cov, col_idx = 13:28)
@@ -203,7 +203,7 @@ seqmonk_to_rle <- function(df, col_idx = 13:28)
   colnames(df)[2:5] <- c("chrom", "start","end", "strand")
   sampleIDs <- colnames(df)[col_idx]
   coverage.rle <- list()
-  
+
   for(i in col_idx)
   {
     coverage.rle[[length(coverage.rle)+1]] <- rle(df[,..i] )
@@ -219,7 +219,7 @@ seqmonk_to_rle <- function(df, col_idx = 13:28)
 seqmonk_file_to_rle <- function(fn)
 {
   coverage.rle <- list()
-  
+
   # Quick scan of file to identify column names
   temp <- data.table::fread(file=fn, sep = "\t",nrows = 2,header = TRUE)
   all_col_names <- colnames(temp)
@@ -229,11 +229,11 @@ seqmonk_file_to_rle <- function(fn)
   col_to_keep <- c("Chromosome","Start","End","Probe Strand")
   df <- data.table::fread(file=fn, sep = "\t", header = TRUE, select = col_to_keep)
 #  browser()
-  
+
   colnames(df) <- c("chrom", "start","end", "strand")
   coverage.rle$gr <- GenomicRanges::makeGRangesFromDataFrame(df)
-  
-  
+
+
   # Now extract all columns as rle objects
 
   for(i in all_col_names[col_idx])
@@ -248,7 +248,7 @@ seqmonk_file_to_rle <- function(fn)
     { print(paste("NO DATA for:",i))}
   }
   names(coverage.rle) <- c("gr",all_col_names[col_idx])
-  return(coverage.rle)  
+  return(coverage.rle)
 }
 
 ################################################################3
@@ -256,7 +256,7 @@ seqmonk_file_to_rle <- function(fn)
 #' load(file="c:/BAM/scRNA_polyA/FC.RData")
 #' gtf_file <- "u:/Reference/mm10/cellranger_genes.gtf.gz"
 #' gtf_gr <- rtracklayer::import(gtf_file)
-#' 
+#'
 rle_to_WIG <- function(rle_input, gtf_gr=gtf_gr, geneSymbol="Dnajc19")
 {
   toExtract <-geneToGR(geneID=geneSymbol, gtf_gr)
@@ -265,5 +265,5 @@ rle_to_WIG <- function(rle_input, gtf_gr=gtf_gr, geneSymbol="Dnajc19")
   min_idx <- min(idx)
   max_idx <- max(idx)
   # Next need to extract idx coordinates from rle_input
-  
+
 }

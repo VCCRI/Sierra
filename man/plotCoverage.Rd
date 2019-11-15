@@ -25,7 +25,7 @@ plotCoverage(genome_gr, geneSymbol = "", wig_data = NULL,
 NULL by default.
 }
 \description{
-plotCoverage
+Plots read coverage across a gene for a set of BAM files and/or wig data.
 }
 \examples{
 

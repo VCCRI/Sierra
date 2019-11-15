@@ -9,15 +9,15 @@ PlotRelativeExpressionBox(peaks.object, peaks.to.plot, do.plot = TRUE,
   col.set = NULL, txt.size = 14)
 }
 \arguments{
+\item{peaks.object}{Peak object of either Seurat or SCE class}
+
 \item{peaks.to.plot}{Set of peaks to plot}
 
 \item{do.plot}{Whether to plot to output (TRUE by default)}
 
 \item{figure.title}{Optional figure title}
 
-\item{pt.size}{size of the points on the t-SNE plot}
-
-\item{seurat.object}{Seurat object}
+\item{pt.size}{Size of the points on the t-SNE plot}
 }
 \value{
 a ggplot2 object
@@ -27,6 +27,6 @@ Given two or more peaks to plot, a relative expression score and
 generate a box plot according to cell identities
 }
 \examples{
-PlotRelativeExpressionTSNE(peaks.seurat, this.peak.set)
+PlotRelativeExpressionBox(peaks.object, this.peak.set)
 
 }
