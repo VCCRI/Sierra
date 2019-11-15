@@ -481,7 +481,7 @@ generate_merged_peak_table <- function(dataset.1, peak.dataset.list, self.merged
 #'
 #' @importFrom magrittr "%>%"
 #'
-do_peak_merging <- function(peak.dataset.table, output.file, sim.thresh = 0.75,
+MergePeakCoordinates <- function(peak.dataset.table, output.file, sim.thresh = 0.75,
                             allow.match.var = 0.25, ncores = 1) {
 
   ## Create a named list from the peaks
