@@ -10,18 +10,18 @@
 #' @param gtf.file reference (GTF) file
 #' @param bamfile scRNA-seq BAM file
 #' @param whitelist.file white list file
-#' @param output.file name of output
+#' @param output.dir name of directory to write output (will be created if it doesn't exist)
 #' @param countUMI whether to count UMIs (default: TRUE)
 #' @return NULL. Writes counts to file.
 #' @examples
-#' CountPeaks(peak.sites.file, reference.file, bamfile, whitelist.file, output.file)
+#' CountPeaks(peak.sites.file, reference.file, bamfile, whitelist.file, output.dir)
 #'
 #' @importFrom magrittr "%>%"
 #' @importFrom foreach "%dopar%"
 #' @importFrom Matrix writeMM
 #'
 #' @export
-CountPeaks <- function(peak.sites.file, gtf.file, bamfile, whitelist.file, output.file, countUMI=TRUE,
+CountPeaks <- function(peak.sites.file, gtf.file, bamfile, whitelist.file, output.dir, countUMI=TRUE,
 			ncores = 1) {
 
   lock <- tempfile()
@@ -56,6 +56,7 @@ CountPeaks <- function(peak.sites.file, gtf.file, bamfile, whitelist.file, outpu
       isMinusStrand <- if(strand==1) FALSE else TRUE
       peak.sites.chr <- dplyr::filter(peak.sites, Chr == each.chr & Strand == strand) %>%
                            dplyr::select(Gene, Chr, Fit.start, Fit.end, Strand)
+
       peak.sites.chr$Fit.start <- as.integer(peak.sites.chr$Fit.start)
       peak.sites.chr$Fit.end <- as.integer(peak.sites.chr$Fit.end)
       peak.sites.chr <- dplyr::filter(peak.sites.chr, Fit.start < Fit.end)
@@ -77,7 +78,9 @@ CountPeaks <- function(peak.sites.file, gtf.file, bamfile, whitelist.file, outpu
       nobarcodes <- which(is.na(GenomicRanges::mcols(aln)$CB))
       noUMI <- which(is.na(GenomicRanges::mcols(aln)$UB))
       to.remove <- union(nobarcodes, noUMI)
-      aln <- aln[-to.remove]
+      if (length(to.remove) > 0) {
+        aln <- aln[-to.remove]
+      }
       whitelist.pos <- which(GenomicRanges::mcols(aln)$CB %in% whitelist.bc)
       aln <- aln[whitelist.pos]
 
@@ -123,11 +126,14 @@ CountPeaks <- function(peak.sites.file, gtf.file, bamfile, whitelist.file, outpu
     return(mat.per.chr)
   } # Loop for chr
 
-  writeMM(mat.to.write, file = paste0(output.file, "_matrix.mtx"))
+  if (!dir.exists(output.dir)){
+    dir.create(output.dir)
+  }
+  writeMM(mat.to.write, file = paste0(output.dir, "/matrix.mtx"))
   #print(colnames(mat.to.write)[1:10])
   #print(rownames(mat.to.write)[1:10])
-  write.table(whitelist.bc, file = paste0(output.file, "_barcodes.tsv"), quote = FALSE, row.names = FALSE, col.names = FALSE)
-  write.table(rownames(mat.to.write), file = paste0(output.file, "_sitenames.tsv"), quote = FALSE, row.names = FALSE, col.names = FALSE)
+  write.table(whitelist.bc, file = paste0(output.dir, "/barcodes.tsv"), quote = FALSE, row.names = FALSE, col.names = FALSE)
+  write.table(rownames(mat.to.write), file = paste0(output.dir, "/sitenames.tsv"), quote = FALSE, row.names = FALSE, col.names = FALSE)
 
 
 } # End function
@@ -485,7 +491,8 @@ FindPeaks <- function(output.file, gtf.file, bamfile, junctions.file,
   to.filter <- union(to.filter, which(is.na(peak.sites$Fit.end)))
   to.filter <- union(to.filter,  which(is.na(peak.sites$Fit.max.pos)))
 
-  peak.sites <- peak.sites[-to.filter,]
+  if (length(to.filter) > 0)
+    peak.sites <- peak.sites[-to.filter,]
   n.filt.sites <- nrow(peak.sites)
   message("There are ", n.total.sites, " unfiltered sites and ", n.filt.sites, " filtered sites")
 
