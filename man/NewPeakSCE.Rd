@@ -32,6 +32,6 @@ a new peak-level SCE object
 Creates a new peak-counts single-cell experiment object from the peak counts and annotation table
 }
 \examples{
-peak.sce = NewPeakSCE(apa.data, genes.seurat, annot.info)
+peak.sce = NewPeakSCE(peak.data, genes.seurat, annot.info)
 
 }

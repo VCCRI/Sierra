@@ -6,22 +6,31 @@
 #'
 #' Read in peak data saved in MEX format
 #'
+#' @param data.dir directory where output from CountPeaks is stored
 #' @param mm.file count matrix in MEX format
 #' @param barcodes.file file containing cell barcodes corresponding to columns in the matrix
-#' @param genes.file file containing peak or gene names corresponding to rows in the matrix
+#' @param sites.file file containing peak coordinate names corresponding to rows in the matrix
 #' @return a sparseMatrix
 #' @examples
-#' count.mat = readMEX(mm.file, barcodes.file, genes.file)
+#' count.mat = ReadPeakCounts(data.dir = data.dir)
 #'
 #' @export
-readMEX <- function(mm.file, barcodes.file, genes.file) {
-  count.mat = Matrix::readMM(mm.file)
+#'
+ReadPeakCounts <- function(data.dir = NULL, mm.file = NULL, barcodes.file = NULL, sites.file = NULL) {
 
-  barcodes = readLines(barcodes.file)
-  genes = readLines(genes.file)
+  if (!is.null(data.dir)) {
+    mm.file <- paste0(data.dir, "/matrix.mtx")
+    barcodes.file <- paste0(data.dir, "/barcodes.file.tsv")
+    sites.file <- paste0(data.dir, "/sitenames.tsv")
+  }
 
-  colnames(count.mat) = barcodes
-  rownames(count.mat) = genes
+  count.mat <- Matrix::readMM(mm.file)
+
+  barcodes <- readLines(barcodes.file)
+  peaks <- readLines(sites.file)
+
+  colnames(count.mat) <- barcodes
+  rownames(count.mat) <- peaks
 
   return(count.mat)
 }

@@ -4,7 +4,7 @@
 \alias{CountPeaks}
 \title{count polyA sites in cells}
 \usage{
-CountPeaks(peak.sites.file, gtf.file, bamfile, whitelist.file, output.file,
+CountPeaks(peak.sites.file, gtf.file, bamfile, whitelist.file, output.dir,
   countUMI = TRUE, ncores = 1)
 }
 \arguments{
@@ -16,7 +16,7 @@ CountPeaks(peak.sites.file, gtf.file, bamfile, whitelist.file, output.file,
 
 \item{whitelist.file}{white list file}
 
-\item{output.file}{name of output}
+\item{output.dir}{name of directory to write output (will be created if it doesn't exist)}
 
 \item{countUMI}{whether to count UMIs (default: TRUE)}
 }
@@ -27,6 +27,6 @@ NULL. Writes counts to file.
 Generates a count matrix
 }
 \examples{
-CountPeaks(peak.sites.file, reference.file, bamfile, whitelist.file, output.file)
+CountPeaks(peak.sites.file, reference.file, bamfile, whitelist.file, output.dir)
 
 }

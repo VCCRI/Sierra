@@ -5,6 +5,7 @@
 \title{Create a new peak-level Seurat object from the peak counts}
 \usage{
 NewPeakSeurat(peak.data, annot.info, project.name = "PolyA",
+  cell.idents = NULL, tsne.coords = NULL, umap.coords = NULL,
   min.cells = 10, min.peaks = 200, norm.scale.factor = 10000)
 }
 \arguments{
@@ -13,6 +14,12 @@ NewPeakSeurat(peak.data, annot.info, project.name = "PolyA",
 \item{annot.info}{peak annotation information}
 
 \item{project.name}{project name passed to the Seurat object creation}
+
+\item{cell.idents}{a list of cell identities (optional)}
+
+\item{tsne.coords}{a data-frame of t-SNE coordinates (optional)}
+
+\item{umap.coords}{a data-frame of UMAP coordinates (optional)}
 
 \item{min.cells}{minimum number of cells for retaining a peak}
 
