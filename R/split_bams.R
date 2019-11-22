@@ -66,6 +66,7 @@ SplitBam <- function(bam, cellbc.df, outdir=NULL, yieldSize = 1000000,
     gene_strand <- as.character(strand(gtf_gr[idx]))[1]
     toExtract_gr <- GenomicRanges::GRanges(seqnames=chrom, ranges=IRanges::IRanges(start-gi_ext , width=end-start+gi_ext), strand=gene_strand)
     param <- Rsamtools::ScanBamParam(tag=c("CB", "UB"),which = toExtract_gr)
+    gene.provided <- geneSymbol
   }
   else
   {
