@@ -20,7 +20,7 @@ ReadPeakCounts <- function(data.dir = NULL, mm.file = NULL, barcodes.file = NULL
 
   if (!is.null(data.dir)) {
     mm.file <- paste0(data.dir, "/matrix.mtx")
-    barcodes.file <- paste0(data.dir, "/barcodes.file.tsv")
+    barcodes.file <- paste0(data.dir, "/barcodes.tsv")
     sites.file <- paste0(data.dir, "/sitenames.tsv")
   }
 
