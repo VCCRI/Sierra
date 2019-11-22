@@ -109,6 +109,9 @@ PeakSeuratFromTransfer <- function(peak.data, genes.seurat, annot.info, project.
 #' @param peak.data matrix of peak counts
 #' @param annot.info peak annotation information
 #' @param project.name project name passed to the Seurat object creation
+#' @param cell.idents a list of cell identities (optional)
+#' @param tsne.coords a data-frame of t-SNE coordinates (optional)
+#' @param umap.coords a data-frame of UMAP coordinates (optional)
 #' @param min.cells minimum number of cells for retaining a peak
 #' @param min.peaks minimum number of peaks for retaining a cell
 #' @param norm.scale.factor scale factor for Seurat NormalizeData function
@@ -120,8 +123,9 @@ PeakSeuratFromTransfer <- function(peak.data, genes.seurat, annot.info, project.
 #'
 #' @export
 #'
-NewPeakSeurat <- function(peak.data, annot.info, project.name = "PolyA",
-                                min.cells = 10, min.peaks = 200, norm.scale.factor = 10000) {
+NewPeakSeurat <- function(peak.data, annot.info, project.name = "PolyA", cell.idents = NULL,
+                          tsne.coords = NULL, umap.coords = NULL, min.cells = 10,
+                          min.peaks = 200, norm.scale.factor = 10000) {
 
   if (packageVersion("Seurat") < '3.0.0') {
     stop("Seurat 3.0.0 or above is required for this function. Either upgrage or see ?NewPeakSCE")
@@ -137,11 +141,18 @@ NewPeakSeurat <- function(peak.data, annot.info, project.name = "PolyA",
   print(paste("Creating Seurat object with", nrow(peak.data), "peaks and", ncol(peak.data), "cells"))
 
   ## Create a Seurat object for polyA counts
-  apa.seurat <- CreateSeuratObject(peak.data, min.cells = min.cells, min.features = min.peaks, project = project.name)
+  peaks.seurat <- CreateSeuratObject(peak.data, min.cells = min.cells, min.features = min.peaks, project = project.name)
+
+  ## Add cell annotation information if provided
+  if (!is.null(cell.idents)) {
+    cell.data <- data.frame(CellIdent = cell.idents)
+    peaks.seurat <- Seurat::AddMetaData(peaks.seurat, cell.data, "CellIdent")
+    Idents(peaks.seurat) <- peaks.seurat$CellIdent
+  }
 
   ## Add peak annotations to the Seurat object
   annot.info <- as.data.frame(annot.info, stringsAsFactors = FALSE)
-  peaks.use <- intersect(annot.peaks, rownames(Seurat::GetAssayData(apa.seurat)))
+  peaks.use <- intersect(annot.peaks, rownames(Seurat::GetAssayData(peaks.seurat)))
   annot.info <- annot.info[peaks.use, ]
   feature.names <- c("UTR3", "UTR5", "intron", "exon")
   feature.mat <- annot.info[peaks.use, feature.names]
@@ -194,13 +205,33 @@ NewPeakSeurat <- function(peak.data, annot.info, project.name = "PolyA",
   ## Store the data in the Seurat @tool slot
   feature.mat.input <- list(feature.mat)
   names(feature.mat.input) <- "Sierra"
-  apa.seurat@tools <- feature.mat.input
+  peaks.seurat@tools <- feature.mat.input
 
   ## Normalise and calculate highly-variable genes
-  apa.seurat <- NormalizeData(object = apa.seurat, normalization.method = "LogNormalize",
+  peaks.seurat <- NormalizeData(object = peaks.seurat, normalization.method = "LogNormalize",
                               scale.factor = norm.scale.factor)
 
-  return(apa.seurat)
+  ## Add t-SNE coordinates to peak count object
+  if (!is.null(tsne.coords)) {
+    tsne.coords <- tsne.coords[colnames(peaks.seurat), ]
+    new.embedding <- CreateDimReducObject(embeddings = tsne.coords, key = "tSNE_", assay = "RNA")
+    peaks.seurat@reductions$tsne <- new.embedding
+    print("t-SNE coordinates added")
+  } else {
+    print("No t-SNE coodinates included")
+  }
+
+  ## Add UMAP coordinates to peak count object
+  if (!is.null(umap.coords)) {
+    umap.coords <- umap.coords[colnames(peaks.seurat), ]
+    new.embedding <- CreateDimReducObject(embeddings = umap.coords, key = "UMAP_", assay = "RNA")
+    peaks.seurat@reductions$umap = new.embedding
+    print("UMAP coordinates added")
+  } else {
+    print("No UMAP coordinates included")
+  }
+
+  return(peaks.seurat)
 }
 
 
@@ -223,7 +254,7 @@ NewPeakSeurat <- function(peak.data, annot.info, project.name = "PolyA",
 #' @return a new peak-level SCE object
 #'
 #' @examples
-#' peak.sce = NewPeakSCE(apa.data, genes.seurat, annot.info)
+#' peak.sce = NewPeakSCE(peak.data, genes.seurat, annot.info)
 #'
 #' @export
 #'
@@ -231,6 +262,10 @@ NewPeakSeurat <- function(peak.data, annot.info, project.name = "PolyA",
 #'
 NewPeakSCE <- function(peak.data, annot.info, cell.idents, tsne.coords = NULL, umap.coords = NULL,
                          min.cells = 10, min.peaks = 200, norm.scale.factor = 10000, verbose = TRUE) {
+
+  ## Check that peak.data is of dgCMatrix format
+  if ( class(peak.data) != "dgcMatrix" )
+    peak.data <- as(peak.data, "dgCMatrix")
 
   ## Read in annotations to add to the SCE object
   annot.peaks = rownames(annot.info)
@@ -248,7 +283,7 @@ NewPeakSCE <- function(peak.data, annot.info, cell.idents, tsne.coords = NULL, u
   nz.row.counts <- tabulate(peak.data@i + 1, nbins = nrow(peak.data))
   peaks.keep <- rownames(peak.data)[which(nz.row.counts >= min.cells)]
 
-  nz.col.counts <- diff(apa.data@p)
+  nz.col.counts <- diff(peak.data@p)
   cells.keep <- colnames(peak.data)[which(nz.col.counts >= min.peaks)]
 
   ## filter the matrix and corresponding cell identities
