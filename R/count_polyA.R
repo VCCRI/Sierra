@@ -130,11 +130,8 @@ CountPeaks <- function(peak.sites.file, gtf.file, bamfile, whitelist.file, outpu
     dir.create(output.dir)
   }
   writeMM(mat.to.write, file = paste0(output.dir, "/matrix.mtx"))
-  #print(colnames(mat.to.write)[1:10])
-  #print(rownames(mat.to.write)[1:10])
   write.table(whitelist.bc, file = paste0(output.dir, "/barcodes.tsv"), quote = FALSE, row.names = FALSE, col.names = FALSE)
   write.table(rownames(mat.to.write), file = paste0(output.dir, "/sitenames.tsv"), quote = FALSE, row.names = FALSE, col.names = FALSE)
-
 
 } # End function
 
@@ -510,3 +507,61 @@ FindPeaks <- function(output.file, gtf.file, bamfile, junctions.file,
   write.table(peak.sites, file = output.file, sep="\t", quote = FALSE, row.names = FALSE)
 
 } # End function
+
+###################################################################
+#'
+#' Aggregate multiple peak count outputs together
+#'
+#' Aggregate multiple peak count outputs together
+#'
+#' @param peak.sites.file a file containing peak site coordinates
+#' @param count.dirs a list of output directories from CountPeaks
+#' @param output.dir output directory for aggregate count matrix
+#' @param exp.labels optional labels to append to cell barcodes corresponding to count.dirs
+#' @return NULL. Writes counts to file.
+#' @examples
+#' AggregatePeakCounts(peak.sites.file, count.dirs, output.dir)
+#'
+#' @export
+#'
+AggregatePeakCounts <- function(peak.sites.file, count.dirs, output.dir, exp.labels = NULL) {
+
+  if (!is.null(exp.labels)) {
+    if (length(exp.labels) != length(count.dirs)) {
+      stop("number of count directories should equal number of labels")
+    }
+  }
+
+  peak.table <- read.table(peak.sites.file, sep="\t", header = TRUE, stringsAsFactors = FALSE)
+  all.peaks <- peak.table$polyA_ID
+
+  aggregate.counts <- c()
+  for (i in 1:length(count.dirs)) {
+    this.dir <- count.dirs[i]
+    this.data <- ReadPeakCounts(this.dir)
+
+    ## update cell barcode names
+    cell.names = colnames(this.data)
+    barcodes = sub("(.*)-\\d", "\\1", cell.names)
+    if (is.null(exp.labels)) {
+      cell.names.update = paste0(barcodes, "-", i)
+    } else{
+      cell.names.update = paste0(barcodes, "-", exp.labels[i])
+    }
+    colnames(this.data) = cell.names.update
+
+    this.data <- this.data[all.peaks, ]
+    aggregate.counts <- cbind(aggregate.counts, this.data)
+  }
+
+  if (!dir.exists(output.dir)){
+    dir.create(output.dir)
+  }
+
+  Matrix::writeMM(aggregate.counts, file = paste0(output.dir, "/matrix.mtx"))
+  writeLines(colnames(aggregate.counts), paste0(output.dir, "/barcodes.tsv"))
+  writeLines(rownames(aggregate.counts), paste0(output.dir, "/sitenames.tsv"))
+
+}
+
+
