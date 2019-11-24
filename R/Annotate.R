@@ -1,3 +1,87 @@
+#########################################################################################################
+## AnnotatePeaksFromGTF
+##
+#' Annotates a set of peak coordinates from a GTF
+#'
+#' Annotate a set of peak coordinates according to genomic features the coordinates fall on -
+#' 3'UTR, exon, intron and 5'UTR, and annotate proximity to motifs. Motifs include the
+#' canonical polyA motif, A-rich regions and T-rich regions.
+#'
+#' @param peak.sites.file a file of peak coordinates.
+#' @param gtf.file GTF reference file.
+#' @param output.file file to write the annotations to.
+#' @param genome genome object. If NOT NULL then will perform pA motif analysis.
+#' @param invert_strand Boolean to signifiy if strand of gr peaks should be inversed
+#' @param annotationType can be assigned "any" or "within". Default is "any" which states that the peak with gr must overlap annotation feature (eg exon)
+#' @param transcriptDetails Boolean. If false will only return gene name. If true will return internal transcript position feature (eg exon/intron)
+#' @param annotation_correction Boolean. When multiple overlapping genes are identified will
+#' prioritise gene based on annotation. 3'UTR annotation trumps all other annotation.
+#' @param pA_motif_max_position Any AAUAAA after this position are not considered (default 50nt)
+#' @param AAA_motif_min_position Any polyA/polyT stretches before this postion are not considered (default 10)
+#' @param polystretch_length : the length of A or T to search for (default 13)
+#' @param max_mismatch number of allowed mismatches for motif matching (default 1)
+#'
+#' @return NULL. writes output to file
+#'
+#' @example AnnotatePeaksFromGTF(peak.sites.file, gtf.file, output.file, genome)
+#'
+#' @export
+#'
+AnnotatePeaksFromGTF <- function(peak.sites.file,
+                                 gtf.file,
+                                 output.file,
+                                 genome = NULL,
+                                 invert_strand = FALSE,
+                                 annotationType ="any",
+                                 transcriptDetails = TRUE,
+                                 annotation_correction = TRUE,
+                                 pA_motif_max_position = 50,
+                                 AAA_motif_min_position = 10,
+                                 polystretch_length=13,
+                                 max_mismatch=1) {
+
+  ## Import the GTF reference
+  gtf_gr <- rtracklayer::import(reference.file)
+  gtf_TxDb <- GenomicFeatures::makeTxDbFromGFF(reference.file, format="gtf")
+
+  ## Read in the peaks
+  peak.table <- read.table(peak.sites.file, header = TRUE, sep="\t", stringsAsFactors = FALSE)
+  print(paste("Annotating ", nrow(peak.table), " peak coordinates."))
+
+  ## First need to convert strand labels for compatibility with GenomicRanges
+  all.peaks <- peak.table$polyA_ID
+  strand = sub(".*:.*:.*-.*:(.*)", "\\1", all.peaks)
+  strand = plyr::mapvalues(x = strand, from = c("1", "-1"), to = c("+", "-"))
+  peak.remainder = sub(".*:(.*:.*-.*):.*", "\\1", all.peaks)
+  peaks.use = paste0(peak.remainder, ":", strand)
+
+  ## Also need to ensure MT chromosomes are labelled 'M'
+  chrs.all <- sub("(.*):.*-.*:.*", "\\1", peaks.use)
+  chrs.all <- plyr::mapvalues(chrs.all, from="MT", to="M")
+  chrs.all <- paste0("chr", chrs.all)
+
+  peaks.use.chr.update <- paste0(chrs.all, sub(".*(:.*-.*:.*)", "\\1", peaks.use))
+
+  gr <- GenomicRanges::GRanges(peaks.use.chr.update)
+
+  annot.df <- annotate_gr_from_gtf(gr = gr,
+                                   gtf_gr = gtf_gr,
+                                   gtf_TxDb = gtf_TxDb,
+                                   genome = genome,
+                                   invert_strand = invert_strand,
+                                   annotationType = annotationType,
+                                   transcriptDetails = transcriptDetails,
+                                   annotation_correction = annotation_correction,
+                                   pA_motif_max_position = pA_motif_max_position,
+                                   AAA_motif_min_position = AAA_motif_min_position,
+                                   polystretch_length = polystretch_length,
+                                   max_mismatch = max_mismatch
+  )
+  rownames(annot.df) <- as.character(all.peaks)
+
+  write.table(annot.df, file = output.file, quote = FALSE, sep = "\t")
+}
+
 
 ################################################################################################
 ##
@@ -78,10 +162,9 @@ gene_Labels<- function(gr, reference_gr, annotationType)
 #'
 #' @return a dataframe with appended columns containing annotation
 #'
-#' @export
 ##
 ## Written March 2019
-AnnotatePeaksFromGTF <- function(gr, invert_strand = FALSE, gtf_gr = NULL,
+annotate_gr_from_gtf <- function(gr, invert_strand = FALSE, gtf_gr = NULL,
                        annotationType ="any",
                        transcriptDetails = FALSE, gtf_TxDb,
                        annotation_correction = TRUE, genome = NULL,
