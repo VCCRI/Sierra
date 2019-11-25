@@ -4,7 +4,7 @@
 \alias{PlotRelativeExpressionBox}
 \title{Generate a box plot plot using relative expression}
 \usage{
-PlotRelativeExpressionBox(peaks.object, peaks.to.plot, do.plot = TRUE,
+PlotRelativeExpressionBox(peaks.object, peaks.to.plot, do.plot = FALSE,
   figure.title = NULL, return.plot = TRUE, pt.size = 0.5,
   col.set = NULL, txt.size = 14)
 }

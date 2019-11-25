@@ -4,7 +4,7 @@
 \alias{PlotRelativeExpressionUMAP}
 \title{Generate a t-SNE plot using relative expression}
 \usage{
-PlotRelativeExpressionUMAP(peaks.object, peaks.to.plot, do.plot = TRUE,
+PlotRelativeExpressionUMAP(peaks.object, peaks.to.plot, do.plot = FALSE,
   figure.title = NULL, return.plot = TRUE, pt.size = 0.5,
   txt.size = 14)
 }

@@ -4,7 +4,7 @@
 \alias{PlotRelativeExpressionTSNE}
 \title{Generate a t-SNE plot using relative expression}
 \usage{
-PlotRelativeExpressionTSNE(peaks.object, peaks.to.plot, do.plot = TRUE,
+PlotRelativeExpressionTSNE(peaks.object, peaks.to.plot, do.plot = FALSE,
   figure.title = NULL, return.plot = TRUE, pt.size = 0.5,
   txt.size = 14)
 }

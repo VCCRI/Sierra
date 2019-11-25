@@ -306,7 +306,7 @@ do_arrow_plot <- function(peaks.seurat.object, gene_name, peaks.use = NULL, popu
 #'
 #' @export
 #'
-PlotRelativeExpressionTSNE <- function(peaks.object, peaks.to.plot, do.plot=TRUE, figure.title=NULL,
+PlotRelativeExpressionTSNE <- function(peaks.object, peaks.to.plot, do.plot=FALSE, figure.title=NULL,
                                      return.plot = TRUE, pt.size = 0.5, txt.size = 14) {
 
   ## Check multiple peaks have been provided
@@ -379,7 +379,7 @@ PlotRelativeExpressionTSNE <- function(peaks.object, peaks.to.plot, do.plot=TRUE
 #'
 #' @export
 #'
-PlotRelativeExpressionUMAP <- function(peaks.object, peaks.to.plot, do.plot=TRUE, figure.title=NULL,
+PlotRelativeExpressionUMAP <- function(peaks.object, peaks.to.plot, do.plot=FALSE, figure.title=NULL,
                                      return.plot = TRUE, pt.size = 0.5, txt.size = 14) {
 
   ## Check multiple peaks have been provided
@@ -452,7 +452,7 @@ PlotRelativeExpressionUMAP <- function(peaks.object, peaks.to.plot, do.plot=TRUE
 #'
 #' @export
 #'
-PlotRelativeExpressionBox <- function(peaks.object, peaks.to.plot, do.plot=TRUE, figure.title=NULL,
+PlotRelativeExpressionBox <- function(peaks.object, peaks.to.plot, do.plot=FALSE, figure.title=NULL,
                                       return.plot = TRUE, pt.size = 0.5, col.set = NULL, txt.size = 14) {
 
   ## Check multiple peaks have been provided
@@ -539,7 +539,7 @@ PlotRelativeExpressionBox <- function(peaks.object, peaks.to.plot, do.plot=TRUE,
 #'
 #' @export
 #'
-PlotRelativeExpressionViolin <- function(peaks.object, peaks.to.plot, do.plot=TRUE, figure.title=NULL,
+PlotRelativeExpressionViolin <- function(peaks.object, peaks.to.plot, do.plot=FALSE, figure.title=NULL,
                                       return.plot = TRUE, pt.size = 0.5, col.set = NULL, txt.size = 14,
                                       add.jitter = TRUE, jitter.pt.size = 0.25) {
 
@@ -711,7 +711,7 @@ plot_tsne <- function(seurat.object, col.set=NULL, title=NULL, do.plot=TRUE, pt.
 #'
 #' @import Gviz
 #' @export
-plotCoverage<-function(genome_gr, geneSymbol="", wig_data=NULL, bamfiles=NULL, wig_same_strand=TRUE, genome=NULL, pdf_output = FALSE,
+PlotCoverage<-function(genome_gr, geneSymbol="", wig_data=NULL, bamfiles=NULL, wig_same_strand=TRUE, genome=NULL, pdf_output = FALSE,
 
                        output_file_name='', zoom_3UTR=FALSE)
 {

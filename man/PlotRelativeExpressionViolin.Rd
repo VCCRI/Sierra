@@ -4,9 +4,9 @@
 \alias{PlotRelativeExpressionViolin}
 \title{Generate a violin plot plot using relative expression}
 \usage{
-PlotRelativeExpressionViolin(peaks.object, peaks.to.plot, do.plot = TRUE,
-  figure.title = NULL, return.plot = TRUE, pt.size = 0.5,
-  col.set = NULL, txt.size = 14, add.jitter = TRUE,
+PlotRelativeExpressionViolin(peaks.object, peaks.to.plot,
+  do.plot = FALSE, figure.title = NULL, return.plot = TRUE,
+  pt.size = 0.5, col.set = NULL, txt.size = 14, add.jitter = TRUE,
   jitter.pt.size = 0.25)
 }
 \arguments{
