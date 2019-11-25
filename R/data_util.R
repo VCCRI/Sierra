@@ -253,7 +253,7 @@ NewPeakSeurat <- function(peak.data, annot.info, project.name = "PolyA", cell.id
 #'
 #' @param peak.data matrix of peak counts
 #' @param annot.info peak annotation information
-#' @param cell.idents cell identities to be used for DU analysis
+#' @param cell.idents named list of cell identities to be used for DU analysis
 #' @param tsne.coords data-frame of t-SNE coordinates. Rownames should correspond to cell names.
 #' @param umap.coords data-frame of UMAP coordinates. Rownames should correspond to cell names.
 #' @param min.cells minimum number of cells for retaining a peak
@@ -269,7 +269,7 @@ NewPeakSeurat <- function(peak.data, annot.info, project.name = "PolyA", cell.id
 #'
 #' @import SingleCellExperiment
 #'
-NewPeakSCE <- function(peak.data, annot.info, cell.idents, tsne.coords = NULL, umap.coords = NULL,
+NewPeakSCE <- function(peak.data, annot.info, cell.idents = NULL, tsne.coords = NULL, umap.coords = NULL,
                          min.cells = 10, min.peaks = 200, norm.scale.factor = 10000, verbose = TRUE) {
 
   ## Check that peak.data is of dgCMatrix format
@@ -278,8 +278,6 @@ NewPeakSCE <- function(peak.data, annot.info, cell.idents, tsne.coords = NULL, u
 
   ## Read in annotations to add to the SCE object
   annot.peaks = rownames(annot.info)
-
-  names(cell.idents) <- colnames(peak.data)
 
   ## Check if there are annotations for peaks
   peaks.use = intersect(rownames(peak.data), annot.peaks)
@@ -297,7 +295,10 @@ NewPeakSCE <- function(peak.data, annot.info, cell.idents, tsne.coords = NULL, u
 
   ## filter the matrix and corresponding cell identities
   peak.data <- peak.data[peaks.keep, cells.keep]
-  cell.idents <- cell.idents[cells.keep]
+
+  if (!is.null(cell.idents)) {
+    cell.idents <- cell.idents[cells.keep]
+  }
 
   ## create a log-normalised matrix
   if(verbose) print("Log-normalising data")
@@ -380,8 +381,13 @@ NewPeakSCE <- function(peak.data, annot.info, cell.idents, tsne.coords = NULL, u
   peaks.sce@metadata$Sierra <- feature.mat
 
   ## Add cell annotation information
-  cell.data <- S4Vectors::DataFrame(CellIdent = cell.idents)
-  SummarizedExperiment::colData(peaks.sce) <- cell.data
+  if (!is.null(cell.idents)) {
+    cell.data <- S4Vectors::DataFrame(CellIdent = cell.idents)
+    SummarizedExperiment::colData(peaks.sce) <- cell.data
+  } else{
+    warning("Cell identities not provided. DU testing will not be possible without these")
+  }
+
 
   return(peaks.sce)
 }
