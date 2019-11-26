@@ -4,16 +4,16 @@
 \alias{NewPeakSCE}
 \title{Create a new peak-counts single-cell experiment object from the peak counts}
 \usage{
-NewPeakSCE(peak.data, annot.info, cell.idents, tsne.coords = NULL,
-  umap.coords = NULL, min.cells = 10, min.peaks = 200,
-  norm.scale.factor = 10000, verbose = TRUE)
+NewPeakSCE(peak.data, annot.info, cell.idents = NULL,
+  tsne.coords = NULL, umap.coords = NULL, min.cells = 10,
+  min.peaks = 200, norm.scale.factor = 10000, verbose = TRUE)
 }
 \arguments{
 \item{peak.data}{matrix of peak counts}
 
 \item{annot.info}{peak annotation information}
 
-\item{cell.idents}{cell identities to be used for DU analysis}
+\item{cell.idents}{named list of cell identities to be used for DU analysis}
 
 \item{tsne.coords}{data-frame of t-SNE coordinates. Rownames should correspond to cell names.}
 

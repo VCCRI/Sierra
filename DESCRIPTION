@@ -1,4 +1,4 @@
-Package: scpolya
+Package: sierra
 Type: Package
 Title: PolyA counting and analysis for scRNA-seq data
 Version: 0.1.0
@@ -23,7 +23,8 @@ Imports:
     MLmetrics,
     progress,
     ggplot2,
-    flock
+    flock,
+	SingleCellExperiment
 RoxygenNote: 6.1.1
 Suggests: knitr,
     rmarkdown
