@@ -1,14 +1,14 @@
 ---
-title: "Sierra: Extracting transcript isoform use from single cell RNAseq"
+title: "Sierra: SIngle cEll diffeRential gene-paRt Analysis"
 author: 
   - name: Ralph Patrick
-    affilitation: Developmental and stem cell biology division, Victor Chang Cardirac Research Institute
+    affilitation: Developmental and stem cell biology division, Victor Chang Cardiac Research Institute
   - name: David Humphreys
     affiliation: Genomics Core, Victor Chang Cardiac Research Institute
   - name: Kitty Lo
     affiliation: School of Mathematics and Statistics, University of Sydney
 thanks: "https://github.com/kittyl/scpolya"
-abstract: "This vignette provides walkthroughs on how to install to use geneSlicer on single cell RNAseq data that enriches poly(A) transcripts (i.e. a 3' targetted protocol)."
+abstract: "This vignette provides a working example on how to use Sierra to discover novel gene isoform  expression patterns in single cell data."
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 output: 
     BiocStyle::html_document:
@@ -46,23 +46,16 @@ colFmt = function(x,color){
 
 # Introduction
 
-Single cell RNA sequencing is a powerful technology that is utilised to extract gene expression information from thousands of cells. While there are a number of described single cell RNA-Seq methods many are based on the principle of capturing and sequencing the 3' end of transcripts. 
+Single cell RNA sequencing is a powerful technology that is utilised to extract gene expression information from thousands of cells. There are a number of described single cell RNA-Seq methods many are based on the principle of capturing and sequencing the 3' end of transcripts. 
 
-Many bioinformatic principles of single cell RNA seq are applied from bulk RNA-Seq methods. This includes building a gene count matrix from which secondary analysis can be performed on. This matrix is built by counting sequence reads and assigning them to specific genes when they fall within exonic coordinates of existing gene models. Genes that have multiple transcript isoforms are collapsed and counts are accumulated. Geneslicer resolves transcript isoform usage at the gene level....
+Bioinformatic pipelines for single cell RNA seq typically start with the building of a gene count matrix from which secondary analysis can be performed on. This matrix is built by counting sequence reads that align within exonic coordinates of each gene. It is important to realise that this step involves the collapsing of all transcript isoforms for each gene, allowing total quantification of gene expression at the expense of isoform expression. 
 
-
-
-
+The Sierra pipeline provides a novel quantification pipeline for single cell polyA data sets. Sierra scans for piles of sequence reads (i.e. peaks) across the whole data set and then quantifies with the boundaries of the peaks for each cell type. This approach provides positional information of sequencing data which relates to UTR usage and transcript isoform expression.
 
 
-\end{abstract}
+# Sierra Installation
 
-# Quickstart
-
-The following demonstrates how to download SIERRA, install the required databases, and then visualise canonical and backsplice junctions counts of the gene Slc8a1.  
-
-
-STEP1: Install SIERRA from github
+Sierra can be installed from github
 
 
 ```
@@ -202,7 +195,7 @@ CountPeaks(peak.sites.file = "TIP_merged_peaks.txt",
 
 ```
 
-## Aggregate multiple count data-sets
+### Aggregate multiple count data-sets
 
 
 ```
@@ -222,20 +215,20 @@ AggregatePeakCounts(peak.sites.file = peak.merge.output.file,
 
 ```
 ## Annotate peaks
-Finally we want to annotate the peaks for genomic features. This is done using the AnnotatePeaksFromGTF function. As part of annotation involves motif matching, we need to load a genome.
-This can be installed from Bioconductor. For human download BSgenome.HSapiens.UCSC.hg38 and for mouse download BSgenome.Mmusculus.UCSC.mm10
+Finally we want to annotate the peaks for genomic features. This is done using the ``AnnotatePeaksFromGTF function``. The annotation step will identify if peaks overlap exons, introns or UTRs. Additionally each peak is analysed to determine if it possibly is derived from A or T  rich regions. The function therefore requires access to the genome sequence which can be installed from Bioconductor. Below is the required R code to download human or mouse genomes.
 
 ```
-# The following commands will install genome packages onto your local computer. These packages are large and may take a little time to download (depending on network speed)
+# The following commands will install genome packages onto your local computer. 
+#These packages are large and may take a little time to download.
 
 
 if (!requireNamespace("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
 
-# Mouse genome
+# Mouse genome (mm10)
 BiocManager::install("BSgenome.Mmusculus.UCSC.mm10")
 
-# Human genome
+# Human genome (hg38)
 BiocManager::install("BSgenome.Hsapiens.UCSC.hg38")
 
 ```
