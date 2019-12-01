@@ -2,7 +2,7 @@
 % Please edit documentation in R/split_bams.R
 \name{SplitBam}
 \alias{SplitBam}
-\title{splitBam}
+\title{Utility to split a bam file into multiple bam files based on the barcode}
 \usage{
 SplitBam(bam, cellbc.df, outdir = NULL, yieldSize = 1e+06,
   gtf_gr = NULL, geneSymbol = NULL, gi_ext = 50,
@@ -29,13 +29,27 @@ SplitBam(bam, cellbc.df, outdir = NULL, yieldSize = 1e+06,
 a rleList of coverage for each cell type
 }
 \description{
-Utility to split a bam file into multiple bam files based on the barcode
-}
-\details{
 Given a bam file that was processed by CellRanger, splitBam splits the
 bam into multiple bam files, one per cell barcode.
 Bam file needs to have the barcode stored in the "CB" field.
 }
 \examples{
+extdata_path <- system.file("extdata",package = "scpolya")
+load(paste(extdata_path,"TIP_vignette_gene_Seurat.RData",sep="/"))
+cellbc.df <- data.frame(celltype=genes.seurat@active.ident, cellbc= names(genes.seurat@active.ident))
+bam <- "c:/BAM/Harvey/scpolyA/one_percent.bam"
+splitBam(bam, cellbc.df, "c:/TEMP/")
+
+
+# Example 2 extract reads that overlap a gene
+
+gtf_file <- "u:/Reference/mm10/cellranger_genes.gtf.gz"
+gtf_gr <- rtracklayer::import(gtf_file)
+extdata_path <- system.file("extdata",package = "scpolya")
+load(paste(extdata_path,"TIP_vignette_gene_Seurat.RData",sep="/"))
+cellbc.df <- data.frame(celltype=genes.seurat@active.ident, cellbc= names(genes.seurat@active.ident))
+bam <- "R:/scpolyA_BAM_link/possorted_genome_bam.bam"
+splitBam(bam, cellbc.df, outdir="c:/TEMP/", gtf_gr=gtf_gr, geneSymbol="Dnajc19")
+
 
 }

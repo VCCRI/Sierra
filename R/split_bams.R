@@ -1,6 +1,5 @@
+
 #############################################################################
-#' splitBam
-#'
 #' Utility to split a bam file into multiple bam files based on the barcode
 #'
 #' Given a bam file that was processed by CellRanger, splitBam splits the
@@ -19,8 +18,6 @@
 #' @return a rleList of coverage for each cell type
 #'
 #' @examples
-#'
-#' @export
 #' extdata_path <- system.file("extdata",package = "scpolya")
 #' load(paste(extdata_path,"TIP_vignette_gene_Seurat.RData",sep="/"))
 #' cellbc.df <- data.frame(celltype=genes.seurat@active.ident, cellbc= names(genes.seurat@active.ident))
@@ -40,6 +37,7 @@
 #'
 #'
 #' @export
+#' 
 SplitBam <- function(bam, cellbc.df, outdir=NULL, yieldSize = 1000000,
                      gtf_gr = NULL, geneSymbol=NULL, gi_ext = 50,
                      rle_output=FALSE) {
@@ -129,6 +127,8 @@ SplitBam <- function(bam, cellbc.df, outdir=NULL, yieldSize = 1000000,
 
 #######################################################################
 #' merge_bam_coverage
+#' 
+#' merge_bam_coverage
 #'
 #' @param bamfile : A list of BAM files that are to be merged
 #'
@@ -158,10 +158,13 @@ merge_bam_coverage <- function(bamfiles, to_extract)
 
 ##################################################################
 #' geneToGR converts a gene sybol to genomic ranges coordinate
+#' 
+#' geneToGR converts a gene sybol to genomic ranges coordinate
 #'
 #' @param geneID : Gene symbol
 #' @param gtf_gr : Granges object of a gtf file
 #'
+#' @examples
 #' gtf_file <- "u:/Reference/mm10/cellranger_genes.gtf.gz"
 #' gtf_gr <- rtracklayer::import(gtf_file)
 #' gtf_gr=gtf_gr, geneSymbol="Dnajc19"
@@ -191,14 +194,14 @@ geneToGR <- function(geneID, gtf_gr)
 
 
 ##############################################################3
-#'
-#'
-#' Example of how to use function:
-#'
-#' library("data.table")
-#' endothelial_cov <- fread(file="c:/BAM/Harvey/scpolyA/Porrello_Support_Files/Porrello_Endothelial.F-CycCl_vs_F-Act.wig.txt.gz", sep = "\t", header = TRUE)
-#' EC_coverage.rle <- seqmonk_to_rle(endothelial_cov, col_idx = 13:28)
-#'
+#
+#
+# Example of how to use function:
+#
+# library("data.table")
+# endothelial_cov <- fread(file="c:/BAM/Harvey/scpolyA/Porrello_Support_Files/Porrello_Endothelial.F-CycCl_vs_F-Act.wig.txt.gz", sep = "\t", header = TRUE)
+# EC_coverage.rle <- seqmonk_to_rle(endothelial_cov, col_idx = 13:28)
+#
 seqmonk_to_rle <- function(df, col_idx = 13:28)
 {
   colnames(df)[2:5] <- c("chrom", "start","end", "strand")
@@ -215,8 +218,8 @@ seqmonk_to_rle <- function(df, col_idx = 13:28)
 }
 
 ##################################################################
-#'
-#'
+#
+#
 seqmonk_file_to_rle <- function(fn)
 {
   coverage.rle <- list()

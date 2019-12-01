@@ -44,3 +44,7 @@ Annotate a set of peak coordinates according to genomic features the coordinates
 3'UTR, exon, intron and 5'UTR, and annotate proximity to motifs. Motifs include the
 canonical polyA motif, A-rich regions and T-rich regions.
 }
+\examples{
+AnnotatePeaksFromGTF(peak.sites.file, gtf.file, output.file, genome)
+
+}

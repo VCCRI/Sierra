@@ -23,7 +23,8 @@
 #'
 #' @return NULL. writes output to file
 #'
-#' @example AnnotatePeaksFromGTF(peak.sites.file, gtf.file, output.file, genome)
+#' @examples 
+#' AnnotatePeaksFromGTF(peak.sites.file, gtf.file, output.file, genome)
 #'
 #' @export
 #'
