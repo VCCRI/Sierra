@@ -27,7 +27,7 @@ Imports:
 RoxygenNote: 6.1.1
 Suggests: 
     Seurat,
-    SingleCellExperiment
+    SingleCellExperiment,
     knitr,
     rmarkdown
 VignetteBuilder: knitr
