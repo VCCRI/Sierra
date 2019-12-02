@@ -22,12 +22,14 @@ Imports:
     MLmetrics,
     progress,
     ggplot2,
+    GViz,
+    BiocStyle,
+    SingleCellExperiment,
     DEXSeq,
     flock
 RoxygenNote: 6.1.1
 Suggests: 
     Seurat,
-    SingleCellExperiment,
     knitr,
     rmarkdown
 VignetteBuilder: knitr
