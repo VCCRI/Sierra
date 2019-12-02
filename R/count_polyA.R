@@ -45,7 +45,15 @@ CountPeaks <- function(peak.sites.file, gtf.file, bamfile, whitelist.file, outpu
   message("There are ", n.total.sites, "  sites")
   message("Doing counting for each site...")
 
-  doParallel::registerDoParallel(cores=ncores)
+  # Set up multiple workers
+  system.name <- Sys.info()['sysname']
+  if (system.name == "Windows") {
+    new_cl <- TRUE
+    cluster <- parallel::makePSOCKcluster(rep("localhost", ncores))
+    doParallel::registerDoParallel(cluster)
+  } else {
+    doParallel::registerDoParallel(cores=ncores)
+  }
 
   #print(chr.names)
   mat.to.write <- foreach::foreach(each.chr = chr.names, .combine = 'rbind') %dopar% {
@@ -125,6 +133,11 @@ CountPeaks <- function(peak.sites.file, gtf.file, bamfile, whitelist.file, outpu
     # Return sparse matrix for each chromosome for combining across all threads
     return(mat.per.chr)
   } # Loop for chr
+  
+  if (new_cl) { ## Shut down cluster if on Windows
+    ## stop cluster
+    parallel::stopCluster(cluster)
+  }
 
   if (!dir.exists(output.dir)){
     dir.create(output.dir)
@@ -483,7 +496,7 @@ FindPeaks <- function(output.file, gtf.file, bamfile, junctions.file,
   
   if (new_cl) { ## Shut down cluster if on Windows
     ## stop cluster
-    parallel::stopCluster(cl)
+    parallel::stopCluster(cluster)
   }
 
   ## As a final step, read in the peak file, filter, and add Peak IDs
