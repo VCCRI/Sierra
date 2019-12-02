@@ -217,11 +217,9 @@ AggregatePeakCounts(peak.sites.file = peak.merge.output.file,
 ## Annotate peaks
 Finally we want to annotate the peaks for genomic features. This is done using the ``AnnotatePeaksFromGTF function``. The annotation step will identify if peaks overlap exons, introns or UTRs. Additionally each peak is analysed to determine if it possibly is derived from A or T  rich regions. The function therefore requires access to the genome sequence which can be installed from Bioconductor. Below is the required R code to download human or mouse genomes.
 
+The following commands will install genome packages onto your local computer. These packages are large and may take a little time to download.
+
 ```
-# The following commands will install genome packages onto your local computer. 
-#These packages are large and may take a little time to download.
-
-
 if (!requireNamespace("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
 
@@ -233,15 +231,13 @@ BiocManager::install("BSgenome.Hsapiens.UCSC.hg38")
 
 ```
 
-We are now ready to input the peak coordinates to annotate. For this example we used the output from MergePeakCoordinates,
-But if you only have one sample to analyse use the output from FindPeaks.
+We are now ready to input the peak coordinates to ``AnnotatePeaksFromGTF`` For this example we used the output from MergePeakCoordinates, but if you only have one sample to analyse use the output from FindPeaks. ``AnnotatePeaksFromGTF`` takes as input the peak coordiantes file, GTF file and genome file in addition to an output file name. The genome file is optional if you want to skip sequence annotation, which will take a while for a large number of peaks. 
 
 ```
 # As previously defined
 peak.merge.output.file <- "TIP_merged_peaks.txt"
-extdata_path <- system.file("extdata",package = "sierra")
+extdata_path <- system.file("extdata",package = "Sierra")
 reference.file <- paste0(extdata_path,"/Vignette_cellranger_genes_subset.gtf")
-
 
 # New definitions
 genome <- BSgenome.Mmusculus.UCSC.mm10::BSgenome.Mmusculus.UCSC.mm10
@@ -259,33 +255,36 @@ For differential usage testing we first create an object to hold the peak count 
 ```
 library(Seurat)
 
-# Previous definitions
+#Previous definitions
 out.dir <- "example_TIP_aggregate"
-extdata_path <- system.file("extdata",package = "sierra")
+extdata_path <- system.file("extdata",package = "Sierra")
 
-## Read in the counts
+#Read in the counts
 peak.counts <- ReadPeakCounts(data.dir = out.dir)
 
-## Read in peak annotations
+#Read in peak annotations
 peak.annotations <- read.table("TIP_merged_peak_annotations.txt", 
                                header = TRUE,
                                sep = "\t",
                                row.names = 1,
                                stringsAsFactors = FALSE)
 head(peak.annotations)
+```
 
-# Load precompiled gene-level object called 'genes.seurat'
+Load precompiled gene-level object called 'genes.seurat'
+```
 load(paste0(extdata_path,"/TIP_vignette_gene_Seurat.RData"))
+```
 
-## Create peak-level Seurat object
-## Since we're using a reduced matrix need to set min.cells and 
-## min.peaks to 0 or else everything gets filtered out
+Create peak-level Seurat object. Since we're using a reduced matrix need to set min.cells and min.peaks to 0 or else everything gets filtered out.
+
+```
 peaks.seurat <- PeakSeuratFromTransfer(peak.data = peak.counts, 
                                        genes.seurat = genes.seurat, 
                                        annot.info = peak.annotations, 
                                        min.cells = 0, min.peaks = 0)
-
 ```
+
 
 An alternative is to create a new object. If cluster IDs and dimensionality reduction coordinates 
 are available they can be passed to the object - which we will do for this example. This isn't
