@@ -1,5 +1,5 @@
 ---
-title: "Sierra: SIngle cEll diffeRential gene-paRt Analysis"
+title: "Sierra: detectin differential transcript usage in 3'-enriched scRNA-seq data"
 author: 
   - name: Ralph Patrick
     affilitation: Developmental and stem cell biology division, Victor Chang Cardiac Research Institute
@@ -19,7 +19,7 @@ output:
 keywords: single cell RNASeq, scRNA-Seq, RNA-Sequencing, RNA-Seq, transcript isoform
 vignette: >
   %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteIndexEntry{geneSlicer}
+  %\VignetteIndexEntry{Sierra}
   %\VignetteEncoding{UTF-8}
 ---
 
@@ -95,7 +95,7 @@ The Sierra pipeline requires a gene transfer formatted (GTF) file. Ideally this 
 For this vignette a reduced GTF file has been provided that only contains a subset of genes. Similarly a reduced BAM file and peak file have also been created. Finally a white list of barcodes that identify single cells is also required. The following R code define the location of the vignette example files. 
 
 ```
-extdata_path <- system.file("extdata",package = "sierra")
+extdata_path <- system.file("extdata",package = "Sierra")
 reference.file <- paste0(extdata_path,"/Vignette_cellranger_genes_subset.gtf")
 junctions.file <- paste0(extdata_path,"/Vignette_example_TIP_sham_junctions.bed")
 bamfile <- c(paste0(extdata_path,"/Vignette_example_TIP_sham.bam"),
