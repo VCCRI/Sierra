@@ -12,5 +12,6 @@ devtools::install_github("VCCRI/Sierra", build = TRUE, build_vignettes = TRUE, b
 To access the vignette:
 
 ```
+library(Sierra)
 browseVignettes("Sierra")
 ```
