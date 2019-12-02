@@ -1,14 +1,14 @@
 ---
-title: "Sierra: detectin differential transcript usage in 3'-enriched scRNA-seq data"
+title: "Sierra: detecting differential transcript usage in 3'-enriched scRNA-seq data"
 author: 
   - name: Ralph Patrick
-    affilitation: Developmental and stem cell biology division, Victor Chang Cardiac Research Institute
+    affiliation: Developmental and Stem Cell Biology Division, Victor Chang Cardiac Research Institute
   - name: David Humphreys
     affiliation: Genomics Core, Victor Chang Cardiac Research Institute
   - name: Kitty Lo
     affiliation: School of Mathematics and Statistics, University of Sydney
 thanks: "https://github.com/kittyl/scpolya"
-abstract: "This vignette provides a working example on how to use Sierra to discover novel gene isoform  expression patterns in single cell data."
+abstract: "This vignette provides a working example on how to use Sierra to discover novel gene isoform  expression patterns in single cell RNA sequencing data."
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 output: 
     BiocStyle::html_document:
@@ -312,7 +312,7 @@ knitr::include_graphics('DimPlot.png')
 ```
 
 
-## Differential transcript usage analysis
+### Testing for differential transcript usage
 
 
 Differential peak usage analysis is performed with DEXSeq.
@@ -339,6 +339,8 @@ or we can subset the results data-frame for the top results.
 res.table.top <- subset(res.table, abs(Log2_fold_change) > 1)
 head(res.table.top)
 ```
+
+### Visualising relative peak expression
 
 The top gene coming up is Cxcl12. For this gene, two peaks are coming up as significant. We will plot them compared to the gene expression.
 
@@ -385,8 +387,6 @@ PlotRelativeExpressionUMAP
 PlotRelativeExpressionBox
 PlotRelativeExpressionViolin
 
-
-### Sierra PlotRelativeExpressionBox
 Let's see what a box plot looks like
 
 ```{r PlotRelativeExpressionBox, out.width='100%', fig.cap = 'PlotRelativeExpressionBox output',echo=FALSE}
@@ -394,9 +394,9 @@ knitr::include_graphics('PlotRelativeExpressionBox.png')
 ```
 
 
-## Plot coverage
+## Sierra coverage plots
 
-Next we want to see what these peaks correspond to. For that use the PlotCoverage function
+Next we want to see what the differential peaks correspond to. For that use the PlotCoverage function
 
 First we need to extract the relevant cell populations from the aggregate BAM file
 Note that extracting cell populations can be memory consuming when extracting a large number 
