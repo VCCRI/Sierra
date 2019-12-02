@@ -309,7 +309,7 @@ DimPlot(peaks.seurat, reduction = 'tsne', label = TRUE, pt.size = 0.5)
 
 
 ```{r dimplot, out.width='100%', fig.cap = 'Dimplot output',echo=FALSE}
-knitr::include_graphics('dimplot.PNG')
+knitr::include_graphics('DimPlot.png')
 ```
 
 
@@ -353,7 +353,7 @@ Seurat::FeaturePlot(genes.seurat, "Cxcl12", cols = c("lightgrey", "red"))
 ```
 
 ```{r Seurat.FeaturePlot, out.width='100%', fig.cap = 'Seurat FeaturePlot  output',echo=FALSE}
-knitr::include_graphics('Seurat.FeaturePlot.PNG')
+knitr::include_graphics('Seurat.FeaturePlot.png')
 ```
 
 
@@ -365,7 +365,7 @@ PlotRelativeExpressionTSNE(peaks.seurat, peaks.to.plot = peaks.to.plot)
 ```
 
 ```{r PlotRelativeExpressionTSNE, out.width='100%', fig.cap = 'PlotRelativeExpressionTSNE output',echo=FALSE}
-knitr::include_graphics('PlotRelativeExpressionTSNE.PNG')
+knitr::include_graphics('PlotRelativeExpressionTSNE.png')
 ```
 
 
@@ -391,7 +391,7 @@ PlotRelativeExpressionViolin
 Let's see what a box plot looks like
 
 ```{r PlotRelativeExpressionBox, out.width='100%', fig.cap = 'PlotRelativeExpressionBox output',echo=FALSE}
-knitr::include_graphics('PlotRelativeExpressionBox.PNG')
+knitr::include_graphics('PlotRelativeExpressionBox.png')
 ```
 
 
@@ -447,24 +447,35 @@ SplitBam(bam = bamfile[1],
          outdir = outdir, 
          gtf_gr = gtf_gr,
          geneSymbol = "Cxcl12")
-
 ```
+
 
 Now we have the cell type-specific BAMs, we can plot read coverage across a gene
  between the fibroblast and ECs. This is done using the PlotCoverage function
 
-```
-# First define BAM files in order of plotting
-bam.files <- paste0(outdir, c("Fibroblast.Cxcl12.bam", "EC.Cxcl12.bam"))
+First define BAM files in order of plotting
 
-## Now run the PlotCoverage function
+```
+bam.files <- paste0(outdir, c("Fibroblast.Cxcl12.bam", "EC.Cxcl12.bam"))
+```
+
+Now run the PlotCoverage function
+
+```
 PlotCoverage(genome_gr = gtf_gr, 
              geneSymbol = "Cxcl12", 
              genome = "mm10",
              bamfiles = bam.files)
+```
 
-## For larger genes and more cells it can be best to send the output straight to PDF
-## To do this set pdf_output = TRUE and specify output_file_name
+```{r SplitBam, out.width='100%', fig.cap = 'SplitBam output',echo=FALSE}
+knitr::include_graphics('PlotCoverage_CXCL12.png')
+```
+
+For larger genes and more cells it can be best to send the output straight to PDF
+To do this set pdf_output = TRUE and specify output_file_name
+
+```
 PlotCoverage(genome_gr = gtf_gr, 
              geneSymbol = "Cxcl12", 
              genome = "mm10",
