@@ -8,6 +8,7 @@ Description: Sierra is a pipeline for detecting differential transcript usage fr
 License: What license is it under?
 Encoding: UTF-8
 LazyData: true
+BiocViews:
 Imports:
     GenomicRanges,
     GenomicAlignments,
@@ -22,7 +23,7 @@ Imports:
     MLmetrics,
     progress,
     ggplot2,
-    GViz,
+    Gviz,
     BiocStyle,
     SingleCellExperiment,
     DEXSeq,
