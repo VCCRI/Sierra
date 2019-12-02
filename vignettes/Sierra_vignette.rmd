@@ -60,8 +60,9 @@ Sierra can be installed from github
 
 ```
 install.packages("devtools")
-library(devtools)
-devtools::install_github("VCCRI/Sierra", build = TRUE, build_opts = c("--no-resave-data", "--no-manual"))
+devtools::install_github("VCCRI/Sierra", build = TRUE, build_vignettes = TRUE, build_opts = c("--no-resave-data", "--no-manual"))
+
+library(Sierra)
 ```
 
 
@@ -115,6 +116,7 @@ Peak calling is performed on each BAM file. As previously mentioned a number of 
 
 
 ```
+library(Sierra)
 
 peak.output.file <- c("Vignette_example_TIP_sham_peaks.txt",
                       "Vignette_example_TIP_MI_peaks.txt")
