@@ -261,7 +261,8 @@ FindPeaks <- function(output.file, gtf.file, bamfile, junctions.file,
   # Set up multiple workers
   system.name <- Sys.info()['sysname']
   if (system.name == "Windows") {
-    cluster <- parallel::makeCluster(ncores)
+    new_cl <- TRUE
+    cluster <- parallel::makePSOCKcluster(rep("localhost", ncores))
     doParallel::registerDoParallel(cluster)
   } else {
     doParallel::registerDoParallel(cores=ncores)
@@ -479,6 +480,11 @@ FindPeaks <- function(output.file, gtf.file, bamfile, junctions.file,
     }
 
   } # End loop for genes
+  
+  if (new_cl) { ## Shut down cluster if on Windows
+    ## stop cluster
+    parallel::stopCluster(cl)
+  }
 
   ## As a final step, read in the peak file, filter, and add Peak IDs
   peak.sites.file = output.file
