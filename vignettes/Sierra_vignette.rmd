@@ -42,8 +42,6 @@ colFmt = function(x,color){
 
 
 
-
-
 # Introduction
 
 Single cell RNA sequencing is a powerful technology that is utilised to extract gene expression information from thousands of cells. There are a number of described single cell RNA-Seq methods many are based on the principle of capturing and sequencing the 3' end of transcripts. 
@@ -68,13 +66,13 @@ library(Sierra)
 
 # Preparing input data sets
 
-## Required inputs
+For this vignette, we will be using cardiac scRNA-seq from [Farbehi et al.](https://elifesciences.org/articles/43882). This study profiled cardiac interstitial cells from the hearts of mice subject to a myocardial infarction (MI) injury or sham control surgery. For the purpose of this vignette we have provided a small subset of the data from the sham condition and one of the MI time-points.    
 
+## Required inputs
 
 
 ### BAM file
 BAM files should be created from CellRanger or an equivalent program. Sierra requires BAM files to include two meta-data field tags, unique molecular identifier (UMI tag ``UB:Z``) and cell barcode (tag ``CB:Z``), which enables cell type identification and peak quantification.
-
 
 ### Splice junctions file
 A BED formatted file that represents splice junctions that occur within the BAM file. This file can be created using the regtools program which needs to be run from your system command line. Below is an example of command line syntax that will generate the required output file. Note for the purposes of this vignette this step can be skipped as both output files, ``Vignette_example_TIP_sham_junctions.bed`` and ``Vignette_example_TIP_MI_junctions.bed``, have already been precomputed.
