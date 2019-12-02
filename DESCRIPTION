@@ -18,6 +18,7 @@ Imports:
     dplyr,
     utils,
     foreach,
+    parallel,
     doParallel,
     Matrix,
     MLmetrics,
