@@ -28,13 +28,21 @@ generate_similarity_table <- function(peaks.1, peaks.2, ncores = 1) {
   gene.names1.unique = gene.names1.unique[which(gene.names1.unique != "")]
   complete.apa.table = c()
 
+  
+  # Set up multiple workers
+  system.name <- Sys.info()['sysname']
+  new_cl <- FALSE
+  if (system.name == "Windows") {
+    new_cl <- TRUE
+    cluster <- parallel::makePSOCKcluster(rep("localhost", ncores))
+    doParallel::registerDoParallel(cluster)
+  } else {
+    doParallel::registerDoParallel(cores=ncores)
+  }
+  
   ## Go through the peaks by pulling out peaks associates with each gene
-  doParallel::registerDoParallel(cores=ncores)
   complete.apa.table <- foreach::foreach(gene.name = gene.names1.unique, .combine = 'rbind') %dopar% {
-  #pb <- progress::progress_bar$new(format = "Processing [:bar] :percent eta: :eta",
-  #                       total = length(gene.names1.unique), clear=FALSE)
-  #pb$tick(0)
-  #for (gene.name in gene.names1.unique) {
+
     ## Get positions for first data-set
     gene.apa1 = peaks.1[which(gene.names1 == gene.name)]
     start.pos = as.numeric(sub(".*:(.*)-.*:.*", "\\1", gene.apa1))
@@ -113,9 +121,12 @@ generate_similarity_table <- function(peaks.1, peaks.2, ncores = 1) {
         newLine
 
       return(newLine)
-      #complete.apa.table = rbind(complete.apa.table, newLine)
     }
-    #pb$tick()
+  }
+  
+  if (new_cl) { ## Shut down cluster if on Windows
+    ## stop cluster
+    parallel::stopCluster(cluster)
   }
 
   rownames(complete.apa.table) = complete.apa.table$Peak
@@ -156,8 +167,18 @@ generate_self_similarity_table <- function(peaks.1, ncores = 1) {
 
   gene.names1.unique = unique(gene.names1)
 
+  # Set up multiple workers
+  system.name <- Sys.info()['sysname']
+  new_cl <- FALSE
+  if (system.name == "Windows") {
+    new_cl <- TRUE
+    cluster <- parallel::makePSOCKcluster(rep("localhost", ncores))
+    doParallel::registerDoParallel(cluster)
+  } else {
+    doParallel::registerDoParallel(cores=ncores)
+  }
+  
   ## Go through the peaks by pulling out peaks associates with each gene
-  doParallel::registerDoParallel(cores=ncores)
   complete.apa.table <- foreach::foreach(gene.name = gene.names1.unique, .combine = 'rbind') %dopar% {
     ## Get positions for first data-set
     gene.apa1 = peaks.1[which(gene.names1 == gene.name)]
@@ -245,6 +266,11 @@ generate_self_similarity_table <- function(peaks.1, ncores = 1) {
     }
 
   }
+  
+  if (new_cl) { ## Shut down cluster if on Windows
+    ## stop cluster
+    parallel::stopCluster(cluster)
+  }
 
   ## Add column names to the output table
   colnames(complete.apa.table) = c("Peak", "Start", "End", "Data2_Closest_Peak",
@@ -268,7 +294,7 @@ generate_self_similarity_table <- function(peaks.1, ncores = 1) {
 #' @param return.peaks Whether to return a full table of results or simply a vector of merged peaks
 #' @return a table of merged peaks with original merged peaks or a vector of merged peaks
 #' @examples
-#' generate_similarity_table(peaks.1)
+#' generate_self_merged_peaks(apa.similarity.table)
 #'
 #' @importFrom magrittr "%>%"
 #'
@@ -477,7 +503,7 @@ generate_merged_peak_table <- function(dataset.1, peak.dataset.list, self.merged
 #' @param ncores number of cores to use (default 1)
 #' @return NULL. writes out a set of merged peaks to output.file
 #' @examples
-#' DoPeakMerging(peak.dataset.table, output.file, ncores = 4)
+#' MergePeakCoordinates(peak.dataset.table, output.file, ncores = 4)
 #'
 #' @importFrom magrittr "%>%"
 #'
