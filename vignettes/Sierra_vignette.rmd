@@ -149,7 +149,7 @@ There are 201 sites following duplicate removal
 
 ## Peak merging
 
-If you have multiple samples and therefore BAM files, run FindPeaks on each BAM individually. A unified set of peak coorindates from all samples can be then created using the MergePeakCoordinates function. This step can utilise multithreading (except windows users).
+If you have multiple samples and therefore BAM files, run FindPeaks on each BAM individually. A unified set of peak coorindates from all samples can be then created using the ``MergePeakCoordinates`` function. This step can utilise multithreading (except windows users).
 
 ```
 
@@ -215,9 +215,9 @@ AggregatePeakCounts(peak.sites.file = peak.merge.output.file,
 
 ```
 ## Annotate peaks
-Finally we want to annotate the peaks for genomic features. This is done using the ``AnnotatePeaksFromGTF function``. The annotation step will identify if peaks overlap exons, introns or UTRs. Additionally each peak is analysed to determine if it possibly is derived from A or T  rich regions. The function therefore requires access to the genome sequence which can be installed from Bioconductor. Below is the required R code to download human or mouse genomes.
+Finally we want to annotate the peaks for genomic features. This is done using the ``AnnotatePeaksFromGTF``  function. The annotation step will identify if peaks overlap exons, introns or UTRs. Additionally each peak is analysed to determine if it possibly is derived from A or T  rich regions. The function therefore requires access to the genome sequence which can be installed from Bioconductor. Below is the required R code to download human or mouse genomes.
 
-The following commands will install genome packages onto your local computer. These packages are large and may take a little time to download.
+The following commands will install genome packages onto your local computer. These packages are large and may take a little time to download. Note that for this vignette only the mouse genome (mm10) is required. 
 
 ```
 if (!requireNamespace("BiocManager", quietly = TRUE))
@@ -226,12 +226,12 @@ if (!requireNamespace("BiocManager", quietly = TRUE))
 # Mouse genome (mm10)
 BiocManager::install("BSgenome.Mmusculus.UCSC.mm10")
 
-# Human genome (hg38)
+# Human genome (hg38) - not required for this vignette
 BiocManager::install("BSgenome.Hsapiens.UCSC.hg38")
 
 ```
 
-We are now ready to input the peak coordinates to ``AnnotatePeaksFromGTF`` For this example we used the output from MergePeakCoordinates, but if you only have one sample to analyse use the output from FindPeaks. ``AnnotatePeaksFromGTF`` takes as input the peak coordiantes file, GTF file and genome file in addition to an output file name. The genome file is optional if you want to skip sequence annotation, which will take a while for a large number of peaks. 
+We are now ready to input the peak coordinates to ``AnnotatePeaksFromGTF`` For this example we used the output from ``MergePeakCoordinates``, but if you only have one sample to analyse use the output from FindPeaks. ``AnnotatePeaksFromGTF`` takes as input the peak coordiantes file, GTF file and genome file in addition to an output file name. The genome file is optional if you want to skip sequence annotation, which will take a while for a large number of peaks. 
 
 ```
 # As previously defined
@@ -252,6 +252,8 @@ AnnotatePeaksFromGTF(peak.sites.file = peak.merge.output.file,
 ## Detecting and visualising differential transcript usage
 For differential usage testing we first create an object to hold the peak count and annotation information. Sierra can interface with either Seurat or the Bioconductor Single-Cell Experiment (SCE) class. Once the peak object has been created, the same functions will work with either a Seurat or SCE based object. Here we will demonstrate the main Sierra functions using Seurat - see below for creating a Sierra object with SCE.
 
+For Seurat, we require a minimum of version 3 for compatibility with Sierra. To install Seurat please see instructions at the [Seurat home page](https://satijalab.org/seurat/). 
+
 ```
 library(Seurat)
 
@@ -269,10 +271,8 @@ peak.annotations <- read.table("TIP_merged_peak_annotations.txt",
                                row.names = 1,
                                stringsAsFactors = FALSE)
 head(peak.annotations)
-```
 
-Load precompiled gene-level object called 'genes.seurat'
-```
+#Load precompiled gene-level object called 'genes.seurat'
 load(paste0(extdata_path,"/TIP_vignette_gene_Seurat.RData"))
 ```
 
@@ -312,7 +312,7 @@ knitr::include_graphics('DimPlot.png')
 ```
 
 
-## Differential expression analysis
+## Differential transcript usage analysis
 
 
 Differential peak usage analysis is performed with DEXSeq.
@@ -370,7 +370,7 @@ knitr::include_graphics('PlotRelativeExpressionTSNE.png')
 
 
 
-Sometimes only one peak will be called as significant. If you want to compare to other peaks they can be retrieved for plotting using the SelectGenePeaks function
+Sometimes only one peak will be called as significant. If you want to compare to other peaks they can be retrieved for plotting using the ``SelectGenePeaks`` function
 
 
 ```
@@ -450,7 +450,7 @@ SplitBam(bam = bamfile[1],
 
 
 Now we have the cell type-specific BAMs, we can plot read coverage across a gene
- between the fibroblast and ECs. This is done using the PlotCoverage function
+ between the fibroblast and ECs. This is done using the ``PlotCoverage`` function
 
 First define BAM files in order of plotting
 
@@ -515,6 +515,7 @@ res.table.top <- subset(res.table, abs(Log2_fold_change) > 1)
 head(res.table.top)
 
 ## Relative expression plot
+peaks.to.plot <- rownames(subset(res.table.top, gene_name == "Cxcl12"))
 PlotRelativeExpressionTSNE(peaks.sce, peaks.to.plot = peaks.to.plot)
 
 ## Selecting peaks according to gene
