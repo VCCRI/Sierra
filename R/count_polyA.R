@@ -257,9 +257,16 @@ FindPeaks <- function(output.file, gtf.file, bamfile, junctions.file,
   junctions.GR <- GenomicRanges::GRanges(seqnames = junctions$V1,
                           IRanges::IRanges(start = junctions$start,
                                   end = junctions$end), counts = junctions$V5)
-
-  doParallel::registerDoParallel(cores=ncores)
-
+  
+  # Set up multiple workers
+  system.name <- Sys.info()['sysname']
+  if (system.name == "Windows") {
+    cluster <- parallel::makeCluster(ncores)
+    doParallel::registerDoParallel(cluster)
+  } else {
+    doParallel::registerDoParallel(cores=ncores)
+  }
+  
   foreach::foreach(i = 1:n.genes, .packages = c("GenomicRanges")) %dopar% {
     gene.name <- genes.ref[i, "Gene"]
     seq.name <- genes.ref[i,"chr"]
