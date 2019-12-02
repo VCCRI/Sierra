@@ -47,6 +47,7 @@ CountPeaks <- function(peak.sites.file, gtf.file, bamfile, whitelist.file, outpu
 
   # Set up multiple workers
   system.name <- Sys.info()['sysname']
+  new_cl <- FALSE
   if (system.name == "Windows") {
     new_cl <- TRUE
     cluster <- parallel::makePSOCKcluster(rep("localhost", ncores))
@@ -273,6 +274,7 @@ FindPeaks <- function(output.file, gtf.file, bamfile, junctions.file,
   
   # Set up multiple workers
   system.name <- Sys.info()['sysname']
+  new_cl <- FALSE
   if (system.name == "Windows") {
     new_cl <- TRUE
     cluster <- parallel::makePSOCKcluster(rep("localhost", ncores))
