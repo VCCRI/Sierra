@@ -30,6 +30,6 @@ Then compares each peak set as a reference to the remaining sets to identify pea
 Returns a list of peaks that have been merged, as well as the unique peaks from each data-set.
 }
 \examples{
-DoPeakMerging(peak.dataset.table, output.file, ncores = 4)
+MergePeakCoordinates(peak.dataset.table, output.file, ncores = 4)
 
 }

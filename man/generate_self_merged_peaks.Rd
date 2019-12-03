@@ -26,6 +26,6 @@ some x\% (75\% by default) or more overlap with the other, and the other has at 
 y is a percentage of allowed variance (25\% by default)
 }
 \examples{
-generate_similarity_table(peaks.1)
+generate_self_merged_peaks(apa.similarity.table)
 
 }

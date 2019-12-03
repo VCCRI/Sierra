@@ -61,11 +61,11 @@ DUTest <- function(peaks.object, population.1, population.2 = NULL, exp.thresh =
 
 #######################################################################
 #'
-#' Find alternative transcript usage between two single-cell populations
+#' Find alternative 3' end usage between two single-cell populations
 #'
-#' Apply DEXSeq to detect differential peak usage been select populations. Works by building
-#' a 'pseudo-bulk' profile of cell populations by aggregating counts from individual cells
-#' into a smaller number of profiles, defined by num.splits.
+#' Wrapper function to DUTest for detecting differential 3' end use. First applies DUTest to
+#' test for differential usage between 3'UTRs. For DU 3'UTR peaks, evaluates whether the DU peaks
+#' fall in different 3'UTRs.
 #'
 #' @param peaks.object Either a Seurat or SCE object of peaks
 #' @param gtf_gr GenomicRanges object from a GTF file
@@ -80,11 +80,11 @@ DUTest <- function(peaks.object, population.1, population.2 = NULL, exp.thresh =
 #' @param doMAPlot make an MA plot of results (FALSE by default)
 #' @return a data-frame of results.
 #' @examples
-#' DetectATU(apa.seurat.object, population.1 = "1", population.2 = "2")
+#' DetectAEU(apa.seurat.object, population.1 = "1", population.2 = "2")
 #'
 #' @export
 #'
-DetectATU <- function(peaks.object, gtf_gr, gtf_TxDb, population.1, population.2 = NULL, exp.thresh = 0.1,
+DetectAEU <- function(peaks.object, gtf_gr, gtf_TxDb, population.1, population.2 = NULL, exp.thresh = 0.1,
                     fc.thresh=0.25, adj.pval.thresh = 0.05, num.splits = 6, seed.use = 1,
                     verbose = TRUE, do.MAPlot = FALSE, ncores = 1) {
 
