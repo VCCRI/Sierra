@@ -1,5 +1,5 @@
 ---
-title: "Sierra: detecting differential transcript usage in 3'-enriched scRNA-seq data"
+title: "Sierra: Discovery of differential transcript usage from polyA-captured single cell RNA-seq data"
 author: 
   - name: Ralph Patrick
     affiliation: Developmental and Stem Cell Biology Division, Victor Chang Cardiac Research Institute
@@ -122,14 +122,14 @@ FindPeaks(output.file = peak.output.file[1],   # output filename
           gtf.file = reference.file,           # gene model as a GTF file
           bamfile = bamfile[1],                # BAM alignment filename.
           junctions.file = junctions.file,     # BED filename of splice junctions exising in BAM file. 
-          ncores = 4)                          # number of cores (only effective on mac and linux)
+          ncores = 1)                          # number of cores to use
           
           
 FindPeaks(output.file = peak.output.file[2],   # output filename
           gtf.file = reference.file,           # gene model as a GTF file
           bamfile = bamfile[2],                # BAM alignment filename.
           junctions.file = junctions.file,     # BED filename of splice junctions exising in BAM file. 
-          ncores = 4)                          # number of cores (only effective on mac and linux)
+          ncores = 1)                          # number of cores to use
 
 
 ```
@@ -149,7 +149,7 @@ There are 201 sites following duplicate removal
 
 ## Peak merging
 
-If you have multiple samples and therefore BAM files, run FindPeaks on each BAM individually. A unified set of peak coorindates from all samples can be then created using the ``MergePeakCoordinates`` function. This step can utilise multithreading (except windows users).
+If you have multiple samples and therefore BAM files, run FindPeaks on each BAM individually. A unified set of peak coorindates from all samples can be then created using the ``MergePeakCoordinates`` function. This step can also utilise multithreading.
 
 ```
 
@@ -160,7 +160,7 @@ peak.dataset.table = data.frame(Peak_file = peak.output.file,
   stringsAsFactors = FALSE)
 
 peak.merge.output.file = "TIP_merged_peaks.txt"
-MergePeakCoordinates(peak.dataset.table, output.file = peak.merge.output.file, ncores = 4)
+MergePeakCoordinates(peak.dataset.table, output.file = peak.merge.output.file, ncores = 1)
 
 ```
 
@@ -197,7 +197,7 @@ CountPeaks(peak.sites.file = "TIP_merged_peaks.txt",
 
 ### Aggregate multiple count data-sets
 
-
+If you have multiple BAM files the count matrices can be aggregated together using ``AggregatePeakCounts``. This function will append an experiment-specific label to the cell barcodes, by default a number according to the number of experiments, though here we define the labels (using the exp.labels variable) according to experimental condition. It's important to note that downstream if you want to combine Sierra peak counting with prior clustering the barcode labels will need to match what you currently have. If you have processed your data using the CellRanger aggr function, by inputting you data-files to ``AggregatePeakCounts`` in the same order, and leaving exp.labels blank, the barcodes should match.
 ```
 # As previously defined
 peak.merge.output.file <- "TIP_merged_peaks.txt"
@@ -248,11 +248,14 @@ AnnotatePeaksFromGTF(peak.sites.file = peak.merge.output.file,
                      genome = genome)
 ```
 
-
 ## Detecting and visualising differential transcript usage
 For differential usage testing we first create an object to hold the peak count and annotation information. Sierra can interface with either Seurat or the Bioconductor Single-Cell Experiment (SCE) class. Once the peak object has been created, the same functions will work with either a Seurat or SCE based object. Here we will demonstrate the main Sierra functions using Seurat - see below for creating a Sierra object with SCE.
 
-For Seurat, we require a minimum of version 3 for compatibility with Sierra. To install Seurat please see instructions at the [Seurat home page](https://satijalab.org/seurat/). 
+Note that for Seurat, we require a minimum of version 3 for compatibility with Sierra. To install Seurat please see instructions at the [Seurat home page](https://satijalab.org/seurat/). 
+
+There are two ways to create a Seurat object of peak counts. The first involves transferring cluster IDs and dimensionality reductions (t-SNE and/or UMAP) from an existing Seurat object using the ``PeakSeuratFromTransfer`` function - this is useful if you have performed gene-level clustering in Seurat and want to test for DTU between your cell populations. You can also create a new Seurat object, with the option to pass cluster IDs and dimensionality reduction coordinates. We will demonstrate both approaches below. 
+
+First we need to read in the peak counts and annotation file. To demonstrate ``PeakSeuratFromTransfer`` we will also load up a reduced gene-level Seurat object of the heart data, which contains pre-computed clusters and t-SNE coordinates. 
 
 ```
 library(Seurat)
@@ -276,7 +279,7 @@ head(peak.annotations)
 load(paste0(extdata_path,"/TIP_vignette_gene_Seurat.RData"))
 ```
 
-Create peak-level Seurat object. Since we're using a reduced matrix need to set min.cells and min.peaks to 0 or else everything gets filtered out.
+We now create the peak-level Seurat object using the transfer function. ``PeakSeuratFromTransfer`` will perform some basic filtering of the data, including filtering out peaks expressed below some minimum number of cells and cells expressing a minimum number of peaks. Note that since we're using a reduced matrix for the vignette we're setting min.cells and min.peaks to 0 to avoid everything being filtered out.
 
 ```
 peaks.seurat <- PeakSeuratFromTransfer(peak.data = peak.counts, 
@@ -286,9 +289,7 @@ peaks.seurat <- PeakSeuratFromTransfer(peak.data = peak.counts,
 ```
 
 
-An alternative is to create a new object. If cluster IDs and dimensionality reduction coordinates 
-are available they can be passed to the object - which we will do for this example. This isn't
-neccessary if you want to try clustering using the peak counts
+The alternative is to create a new peak object with ``NewPeakSCE``. If cluster IDs and dimensionality reduction coordinates are available they can be passed to the object - which we will do for this example. This isn't neccessary if, for example, you want to try clustering using the peak counts.
 
 ```
 load(paste0(extdata_path,"/TIP_cell_info.RData"))
@@ -299,15 +300,16 @@ peaks.seurat <- NewPeakSeurat(peak.data = peak.counts,
                               min.cells = 0, min.peaks = 0)
 ```
 
-t-SNE plot of populations can be drawn using the DimPlot function from Seurat
+The peak-count Seurat object stores the annotation information in the tools slot, and can be accessed with the Seurat ``Tool`` function - as an example try running ``head(Tool(peaks.seurat, "Sierra"))``. The peak-count Seurat object is compatible with standard Seurat functions; for example, a t-SNE plot of cell populations can be drawn using the ``DimPlot`` function:
 
 
 ```
 DimPlot(peaks.seurat, reduction = 'tsne', label = TRUE, pt.size = 0.5)
 ```
 
+For this example data-set there are four fibroblast clusters (F-SL, F-SH, F-Act and F-WntX) and three endothelial cell (EC) clusters. 
 
-```{r dimplot, out.width='100%', fig.cap = 'Dimplot output',echo=FALSE}
+```{r dimplot, out.width='100%', fig.cap = 'DimPlot output',echo=FALSE}
 knitr::include_graphics('DimPlot.png')
 ```
 
@@ -315,12 +317,9 @@ knitr::include_graphics('DimPlot.png')
 ### Testing for differential transcript usage
 
 
-Differential peak usage analysis is performed with DEXSeq.
-To perform differential usage testing, the main function is DUTest.
-This takes in the peaks object and either a population ID or a list of cell barcode IDs. 
-population.2 can be left unspecified and the function will test for population.1 vs everything else.
-For this test we'll just compare the two biggest fibrobalst and EC clusters
+Differential peak usage analysis is performed using the ``DUTest`` function. This utilises the DEXSeq package to test for differences in relative peak usage between cell populations, after creating pseudo-bulk profiles from the cells to define replicates. 
 
+``DUTest`` takes in the peaks object and either a population ID or a list of cell barcode IDs. population.2 can be left unspecified and the function will test for population.1 vs everything else. For this test we'll compare the two biggest fibroblast and endothelial cell (EC) clusters, 'F-SL' and 'EC1', respectively.
 
 ```
 res.table = DUTest(peaks.seurat, 
@@ -342,34 +341,32 @@ head(res.table.top)
 
 ### Visualising relative peak expression
 
-The top gene coming up is Cxcl12. For this gene, two peaks are coming up as significant. We will plot them compared to the gene expression.
+In order to visualise the relative usage of the peaks, Sierra has functionality for plotting 'relative expression', where the expression of a set of peaks in a gene is transformed according to the relative usage of the peaks within each cell population. As an example, we will plot the top gene coming up from the fibroblast vs EC analysis: Cxcl12. For this gene, two peaks are coming up as significant with log2 fold-change > 1. For comparison we will first plot the gene expression:
 
 
 ```
-peaks.to.plot <- rownames(subset(res.table.top, gene_name == "Cxcl12"))
-
-# First let's look at what the gene expression looks like
+# Plotting gene expression using the Seurat FeaturePlot function
 Seurat::FeaturePlot(genes.seurat, "Cxcl12", cols = c("lightgrey", "red"))
 
 ```
 
-```{r Seurat.FeaturePlot, out.width='100%', fig.cap = 'Seurat FeaturePlot  output',echo=FALSE}
+```{r FeaturePlot, out.width='100%', fig.cap = 'Seurat FeaturePlot  output',echo=FALSE}
 knitr::include_graphics('Seurat.FeaturePlot.png')
 ```
 
 
-
-Now plot relative expression of the peaks. 
+Now select the peaks of interest, and plot their relative expression using the ```PlotRelativeExpressionTSNE``` function: 
 
 ```
+# Select top peaks DU within the Cxcl12 gene
+peaks.to.plot <- rownames(subset(res.table.top, gene_name == "Cxcl12"))
+
 PlotRelativeExpressionTSNE(peaks.seurat, peaks.to.plot = peaks.to.plot)
 ```
 
 ```{r PlotRelativeExpressionTSNE, out.width='100%', fig.cap = 'PlotRelativeExpressionTSNE output',echo=FALSE}
 knitr::include_graphics('PlotRelativeExpressionTSNE.png')
 ```
-
-
 
 
 Sometimes only one peak will be called as significant. If you want to compare to other peaks they can be retrieved for plotting using the ``SelectGenePeaks`` function
@@ -382,12 +379,16 @@ all.peaks <- SelectGenePeaks(peaks.seurat, gene = "Cxcl12", feature.type = c("UT
 
 Sierra has 4 functions for plotting relative expression:
 
-PlotRelativeExpressionTSNE
-PlotRelativeExpressionUMAP
-PlotRelativeExpressionBox
-PlotRelativeExpressionViolin
+1. PlotRelativeExpressionTSNE
+2. PlotRelativeExpressionUMAP
+3. PlotRelativeExpressionBox
+4. PlotRelativeExpressionViolin
 
-Let's see what a box plot looks like
+Let's see what a box plot looks like:
+
+```
+PlotRelativeExpressionBox(peaks.seurat, peaks.to.plot = peaks.to.plot)
+```
 
 ```{r PlotRelativeExpressionBox, out.width='100%', fig.cap = 'PlotRelativeExpressionBox output',echo=FALSE}
 knitr::include_graphics('PlotRelativeExpressionBox.png')
@@ -396,48 +397,47 @@ knitr::include_graphics('PlotRelativeExpressionBox.png')
 
 ## Sierra coverage plots
 
-Next we want to see what the differential peaks correspond to. For that use the PlotCoverage function
-
-First we need to extract the relevant cell populations from the aggregate BAM file
+Next we want to see what the differential peaks correspond to. For that use the ``PlotCoverage`` function.
+First we need to extract the relevant cell populations from the aggregate BAM file, which can be done in Sierra using the ``SplitBam`` function.
 Note that extracting cell populations can be memory consuming when extracting a large number 
-of cells. An alternative is to extract specific genes to plot, or to extract using smaller numbers of cells then merging the BAM files together. Here we will extract a gene to plot for comparing a combination  of fibroblast and EC populations. 
-
-
+of cells. An alternative is to extract specific genes to plot, or to extract using smaller numbers of cells then merging the BAM files together. Here we will extract a gene to plot for comparing a combination  of fibroblast and EC populations from the 'sham' BAM file. ``SplitBam`` requires as input a data-frame of cell types ('celltype') and cell barcode ('cellbc') in addition to the BAM file to be subsetted.
 
 ```
-Condition <- data.frame(Condition = sub(".*-(.*)", "\\1", colnames(peaks.seurat)),
+# Will be subsetting the sham condition BAM, so first will 
+# add experimental conditions to the Seurat object
+Condition <- data.frame(Condition = sub(".*-(.*)", "\\1", 
+                        colnames(peaks.seurat)),
                         row.names = colnames(peaks.seurat))
-peaks.seurat <- AddMetaData(peaks.seurat, metadata = Condition, col.name = "Condition")
+peaks.seurat <- AddMetaData(peaks.seurat, metadata = Condition, 
+                            col.name = "Condition")
 
 peaks.seurat <- subset(peaks.seurat, subset = Condition == "Sham")
 cells.df <- as.data.frame(Idents(peaks.seurat))
 cells.df$cellbc = rownames(cells.df)
 colnames(cells.df) <- c("celltype", "cellbc")
 
-```
-
-
-Make sure cell barcodes match what is in the original BAM file
-
-```
+# Make sure cell barcodes match what is in the original BAM file:
 cells.df$cellbc <- sub("(.*)-.*", "\\1", cells.df$cellbc)
 cells.df$cellbc <- paste0(cells.df$cellbc, "-1")
+```
 
+``SplitBam`` will return subsetted BAM files accoding to the unique identities in the 'celltype' column. For this example we will combined the fibroblast and EC clusters together:
+```
 cells.df <- subset(cells.df, celltype %in% c("F-SL", "F-SH", "EC1", "EC2", "EC3"))
 cells.df$celltype <- droplevels(cells.df$celltype)
 cells.df$celltype <- plyr::mapvalues(cells.df$celltype,
                                      from=c("F-SL", "F-SH", "EC1", "EC2", "EC3"),
                                      to=c("Fibroblast", "Fibroblast", "EC", "EC", "EC"))
-                                     
-                                     
-                                     
+```
 
+We can now run ``SplitBam`` using the sham condition BAM file that has been defined previously:       
+```                                    
 outdir = "bam_subsets/"
 dir.create(outdir)
 SplitBam(bamfile[1], cells.df, outdir)
 ```
 
-Alternatively to extract for a single gene
+Alternatively to extract for a single gene:
 
 ```
 gtf_gr <- rtracklayer::import(reference.file)
@@ -450,15 +450,15 @@ SplitBam(bam = bamfile[1],
 
 
 Now we have the cell type-specific BAMs, we can plot read coverage across a gene
- between the fibroblast and ECs. This is done using the ``PlotCoverage`` function
+ between the fibroblast and ECs. This is done using the ``PlotCoverage`` function.
 
-First define BAM files in order of plotting
+First define BAM files in order of plotting:
 
 ```
 bam.files <- paste0(outdir, c("Fibroblast.Cxcl12.bam", "EC.Cxcl12.bam"))
 ```
 
-Now run the PlotCoverage function
+Now run the PlotCoverage function:
 
 ```
 PlotCoverage(genome_gr = gtf_gr, 
@@ -467,12 +467,13 @@ PlotCoverage(genome_gr = gtf_gr,
              bamfiles = bam.files)
 ```
 
+The coverage plot shows the gene model in the top followed by read coverage for the fibroblasts and ECs. We can see in this example that one of the DU peaks corresponds to expression of a short Cxcl12 transcript isoform in fibroblasts and preferential expression of a longer isoform in ECs. 
+
 ```{r SplitBam, out.width='100%', fig.cap = 'SplitBam output',echo=FALSE}
 knitr::include_graphics('PlotCoverage_CXCL12.png')
 ```
 
-For larger genes and more cells it can be best to send the output straight to PDF
-To do this set pdf_output = TRUE and specify output_file_name
+For larger genes and more cells it can be best to send the output straight to PDF. To do this set pdf_output = TRUE and specify output_file_name:
 
 ```
 PlotCoverage(genome_gr = gtf_gr, 
@@ -488,18 +489,18 @@ PlotCoverage(genome_gr = gtf_gr,
 ## Working with the Single-Cell Experiment class
 
 ```
-Read in the counts
+# Read in the counts
 
 peak.counts <- ReadPeakCounts(data.dir = "example_TIP_aggregate")
 
-## Read in peak annotations
+# Read in peak annotations
 peak.annotations <- read.table("TIP_merged_peak_annotations.txt", 
                                header = TRUE,
                                sep = "\t",
                                row.names = 1,
                                stringsAsFactors = FALSE)
 
-## Input is the same as for using the NewPeakSeurat function
+# Input is the same as for using the NewPeakSeurat function
 load(paste0(extdata_path,"/TIP_cell_info.RData"))
 peaks.sce <- NewPeakSCE(peak.data = peak.counts, 
                         annot.info = peak.annotations, 
@@ -507,22 +508,22 @@ peaks.sce <- NewPeakSCE(peak.data = peak.counts,
                         tsne.coords = tip.tsne.coordinates,
                         min.cells = 0, min.peaks = 0)
 
-## the DUTest and visualisation functions are run the same as above
+# the DUTest and visualisation functions are run the same as above
 res.table = DUTest(peaks.sce, population.1 = "F-SL", population.2 = "EC1",
                    exp.thresh = 0.1, feature.type = c("UTR3", "exon"))
 
 res.table.top <- subset(res.table, abs(Log2_fold_change) > 1)
 head(res.table.top)
 
-## Relative expression plot
+# Relative expression plot
 peaks.to.plot <- rownames(subset(res.table.top, gene_name == "Cxcl12"))
 PlotRelativeExpressionTSNE(peaks.sce, peaks.to.plot = peaks.to.plot)
 
-## Selecting peaks according to gene
+# Selecting peaks according to gene
 all.peaks <- SelectGenePeaks(peaks.sce, gene = "Cxcl12", feature.type = c("UTR3", "exon"))
 print(all.peaks)
 
-## Relative expression box plot
+# Relative expression box plot
 PlotRelativeExpressionBox(peaks.sce, peaks.to.plot = peaks.to.plot)
 ```
 
