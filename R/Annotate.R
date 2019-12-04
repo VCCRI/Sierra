@@ -296,34 +296,43 @@ annotate_gr_from_gtf <- function(gr, invert_strand = FALSE, gtf_gr = NULL,
 
   if (! is.null(genome))
   {
-    ## Check if 'chr' character appended to chromosome number
-    if (grepl("chr.", as.character(gr@seqnames)[1]) == TRUE) {
-      motif_details <- lapply(X = as.character(gr),
-                              FUN = function(x) {
-                                BaseComposition(genome,coord=x,mismatch=max_mismatch, AT_length=polystretch_length)})
-    } else {
-      motif_details <- lapply(X = paste("chr",as.character(gr),sep=''),
-                            FUN = function(x) {BaseComposition(genome,coord=x,mismatch=max_mismatch, AT_length=polystretch_length)})
+    if (isS4(genome))
+    {
+      ## Check if 'chr' character appended to chromosome number
+      if (grepl("chr.", as.character(gr@seqnames)[1]) == TRUE) {
+        motif_details <- lapply(X = as.character(gr),
+                                FUN = function(x) {
+                                  BaseComposition(genome,coord=x,mismatch=max_mismatch, AT_length=polystretch_length)})
+      } else {
+        motif_details <- lapply(X = paste("chr",as.character(gr),sep=''),
+                              FUN = function(x) {BaseComposition(genome,coord=x,mismatch=max_mismatch, AT_length=polystretch_length)})
+      }
+  
+      df$pA_motif <- unlist( lapply(motif_details, FUN= function(x) {
+            pA_motif_position <- (max(unlist(x[1])) < pA_motif_max_position)
+            if (is.na(pA_motif_position))
+            {  pA_motif_position <- FALSE }
+            return (pA_motif_position) } ))
+  
+      df$pA_stretch <- unlist( lapply(motif_details, FUN= function(x) {
+            pA_stretch_position <- (max(unlist(x[2])) > AAA_motif_min_position)
+            if (is.na(pA_stretch_position))
+            {  pA_stretch_position <- FALSE }
+            return (pA_stretch_position) } ))
+  
+      df$pT_stretch <- unlist( lapply(motif_details, FUN= function(x) {
+        pT_stretch_position <- (max(unlist(x[3])) > AAA_motif_min_position)
+        if (is.na(pT_stretch_position))
+        {  pT_stretch_position <- FALSE }
+        return (pT_stretch_position) } ))
     }
+    else
+    {
+      warning("Genome object is not a BSgenome S4 object.
+              Cannot annotate for sequence motifs")
+    } # if (isS4(genome))
 
-    df$pA_motif <- unlist( lapply(motif_details, FUN= function(x) {
-          pA_motif_position <- (max(unlist(x[1])) < pA_motif_max_position)
-          if (is.na(pA_motif_position))
-          {  pA_motif_position <- FALSE }
-          return (pA_motif_position) } ))
-
-    df$pA_stretch <- unlist( lapply(motif_details, FUN= function(x) {
-          pA_stretch_position <- (max(unlist(x[2])) > AAA_motif_min_position)
-          if (is.na(pA_stretch_position))
-          {  pA_stretch_position <- FALSE }
-          return (pA_stretch_position) } ))
-
-    df$pT_stretch <- unlist( lapply(motif_details, FUN= function(x) {
-      pT_stretch_position <- (max(unlist(x[3])) > AAA_motif_min_position)
-      if (is.na(pT_stretch_position))
-      {  pT_stretch_position <- FALSE }
-      return (pT_stretch_position) } ))
-
+    
      # BaseComposition(genome=genome, coord = as.character(gr))
 
   }
@@ -391,6 +400,11 @@ BaseComposition <- function(genome=NULL,  chrom=NULL, start=NULL, stop=NULL, str
                             mismatch=1, AT_length=13)
 {
   # Check inputs
+  if (isS4(genome))
+  { warning("genome is not a BSgenome S4 object. Cannot continue.")
+    return(NULL)
+  }
+  
   if (! is.null(coord))
   {
     if (! is.null(genome) & (! is.null(chrom) | ! is.null(start) |
