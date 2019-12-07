@@ -686,36 +686,35 @@ plot_tsne <- function(seurat.object, col.set=NULL, title=NULL, do.plot=TRUE, pt.
 ##
 #' plotCoverage
 #'
+#' @description
 #' Plots read coverage across a gene for a set of BAM files and/or wig data.
 #'
 #' @param wig_data can be a data frame or a genomic ranges object. Must be stranded.
 #' @param bamfiles : BAM filenames that are to be displayed as data tracks
 #' @param wig_same_strand Display same strand or opposing strand of wig data (compared to reference gene)
+#' @param bamfile.tracknames : BAM track display names. Assumed to be in same order as bamfiles.
+#' @param wig_data.tracknames : WIG track display names. Assumed to be in same order as wig_data.
 #' @param pdf_output : If true will create output pdf files
 #' @param output_file_name : Used if pdf_output is true. Location of where files will be placed.
 #' @param zoom_UTR : If TRUE will create a second figure which will zoom in on 3'UTR.
 #' @return NULL by default.
 #' @examples
-#'
-#' gtf_file <- "u:/Reference/mm10/cellranger_genes.gtf.gz"
-#' gtf_gr <- rtracklayer::import(gtf_file)
-#'
-#' endothelial_cov <- read.table(file="c:/BAM/Harvey/scpolyA/Porrello_Support_Files/Porrello_Endothelial.F-CycCl_vs_F-Act.wig.txt.gz", sep = "\t", header = TRUE)
-#' df <- endothelial_cov[,c("Chromosome","Start","End","Probe.Strand", "MIP1_1.BAM")]
-#' df <- cbind(endothelial_cov[,c("Chromosome","Start","End","Probe.Strand")],endothelial_cov[, 13:15])
-#' colnames(df)[1:4] <- c("chrom", "start","end", "strand")
-#' wig_data<- GenomicRanges::makeGRangesFromDataFrame(df,keep.extra.columns=TRUE)
-#'  plotCoverage(genome_gr=gtf_gr, geneSymbol="Prkar1a", wig_data= wig_data)
-#'
-#' plotCoverage(genome_gr=gtf_gr, geneSymbol="Dnajc19", bamfiles = "c:/TEMP/Bams/F-SH.Dnajc19.bam",wig_data= wig_data)
+#' 
+#' extdata_path <- system.file("extdata",package = "Sierra")
+#' reference.file <- paste0(extdata_path,"/Vignette_cellranger_genes_subset.gtf")
+#' bam.files <- c(paste0(extdata_path,"/Fibroblast.Cxcl12.bam"),
+#'                  paste0(extdata_path,"/EC.Cxcl12.bam"))
+#' 
+#' PlotCoverage(genome_gr = gtf_gr, geneSymbol = "Cxcl12", genome = "mm10", 
+#'            bamfiles = bam.files, bamfiles.tracknames=c("Fibroblast", "Endothelial"))
 #'
 #' @import Gviz
 #' @export
-PlotCoverage<-function(genome_gr, geneSymbol="", wig_data=NULL, bamfiles=NULL, wig_same_strand=TRUE, genome=NULL, pdf_output = FALSE,
-
+PlotCoverage<-function(genome_gr, geneSymbol="", wig_data=NULL, bamfiles=NULL, wig_same_strand=TRUE, 
+                       genome=NULL, pdf_output = FALSE, wig_data.tracknames=NULL, bamfile.tracknames=NULL,
                        output_file_name='', zoom_3UTR=FALSE)
 {
-  # Need check that gene_name field exists
+  # Check that gene_name field exists
   GenomeInfoDb::seqlevelsStyle(genome_gr) <- "UCSC"
   idx <-which(genome_gr$gene_name == geneSymbol)
   if (length(idx) == 0)
@@ -780,12 +779,31 @@ PlotCoverage<-function(genome_gr, geneSymbol="", wig_data=NULL, bamfiles=NULL, w
   }
 
 
-  ## First load any BAM files onto dtrack
+  ## Load BAM files onto dtrack
   if (length(bamfiles) > 0)
-  {
+  { 
+    # Set track naming
+    if (length(bamfile.tracknames) > 0)
+    {  # Defined track names has been passed to function.
+      if (length(bamfile.tracknames) == length(bamfiles))
+      { names(bamfile.tracknames) <- bamfiles }
+      else
+      { warning("BAM track names does not match number of bam files passed. 
+                Replacing with filenames.") 
+        bamfile.tracknames <- bamfiles
+        names(bamfile.tracknames) <- bamfiles
+      }
+    }
+    else
+    { # Default is to use bamfile names.
+      bamfile.tracknames <- bamfiles
+      names(bamfile.tracknames) <- bamfiles
+    }
+
+    # Extend gene window 50nt in both directions    
     toExtract_gr <- GenomicRanges::GRanges(seqnames=chrom, ranges=IRanges::IRanges(start-50 , width=end-start+50), strand=gene_strand)
 
-
+    
     for(i in bamfiles)
     {
       bamHeader <- Rsamtools::scanBamHeader(i)
@@ -808,7 +826,9 @@ PlotCoverage<-function(genome_gr, geneSymbol="", wig_data=NULL, bamfiles=NULL, w
 
       gr <- GenomicRanges::GRanges(seqnames=chrom, ranges=IRanges::IRanges(start:end, width=1), strand=gene_strand)
       S4Vectors::mcols(gr) <- as.numeric(tmp[[chrom]])[start:end]
-      dtrack[[length(dtrack)+1]] <- Gviz::DataTrack(gr, name=i, type = "histogram", genome=genome)
+#      dtrack[[length(dtrack)+1]] <- Gviz::DataTrack(gr, name=i, type = "histogram", genome=genome)
+      dtrack[[length(dtrack)+1]] <- Gviz::DataTrack(gr, name=bamfile.tracknames[i], type = "histogram", genome=genome)
+      
     }
   }
 
