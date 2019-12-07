@@ -702,11 +702,12 @@ plot_tsne <- function(seurat.object, col.set=NULL, title=NULL, do.plot=TRUE, pt.
 #' 
 #' extdata_path <- system.file("extdata",package = "Sierra")
 #' reference.file <- paste0(extdata_path,"/Vignette_cellranger_genes_subset.gtf")
+#' gtf_gr <- rtracklayer::import(reference.file)
 #' bam.files <- c(paste0(extdata_path,"/Fibroblast.Cxcl12.bam"),
 #'                  paste0(extdata_path,"/EC.Cxcl12.bam"))
 #' 
 #' PlotCoverage(genome_gr = gtf_gr, geneSymbol = "Cxcl12", genome = "mm10", 
-#'            bamfiles = bam.files, bamfiles.tracknames=c("Fibroblast", "Endothelial"))
+#'            bamfiles = bam.files, bamfile.tracknames=c("Fibroblast", "Endothelial"))
 #'
 #' @import Gviz
 #' @export
@@ -826,7 +827,6 @@ PlotCoverage<-function(genome_gr, geneSymbol="", wig_data=NULL, bamfiles=NULL, w
 
       gr <- GenomicRanges::GRanges(seqnames=chrom, ranges=IRanges::IRanges(start:end, width=1), strand=gene_strand)
       S4Vectors::mcols(gr) <- as.numeric(tmp[[chrom]])[start:end]
-#      dtrack[[length(dtrack)+1]] <- Gviz::DataTrack(gr, name=i, type = "histogram", genome=genome)
       dtrack[[length(dtrack)+1]] <- Gviz::DataTrack(gr, name=bamfile.tracknames[i], type = "histogram", genome=genome)
       
     }
