@@ -2,7 +2,7 @@
 % Please edit documentation in R/plotting_functions.R
 \name{PlotCoverage}
 \alias{PlotCoverage}
-\title{plotCoverage}
+\title{PlotCoverage}
 \usage{
 PlotCoverage(genome_gr, geneSymbol = "", wig_data = NULL,
   bamfiles = NULL, wig_same_strand = TRUE, genome = NULL,

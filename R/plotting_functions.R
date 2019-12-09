@@ -684,7 +684,7 @@ plot_tsne <- function(seurat.object, col.set=NULL, title=NULL, do.plot=TRUE, pt.
 
 #####################################################################
 ##
-#' plotCoverage
+#' PlotCoverage
 #'
 #' @description
 #' Plots read coverage across a gene for a set of BAM files and/or wig data.
