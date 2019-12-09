@@ -6,7 +6,9 @@
 \usage{
 PlotCoverage(genome_gr, geneSymbol = "", wig_data = NULL,
   bamfiles = NULL, wig_same_strand = TRUE, genome = NULL,
-  pdf_output = FALSE, output_file_name = "", zoom_3UTR = FALSE)
+  pdf_output = FALSE, wig_data.tracknames = NULL,
+  bamfile.tracknames = NULL, output_file_name = "",
+  zoom_3UTR = FALSE)
 }
 \arguments{
 \item{wig_data}{can be a data frame or a genomic ranges object. Must be stranded.}
@@ -16,6 +18,10 @@ PlotCoverage(genome_gr, geneSymbol = "", wig_data = NULL,
 \item{wig_same_strand}{Display same strand or opposing strand of wig data (compared to reference gene)}
 
 \item{pdf_output}{: If true will create output pdf files}
+
+\item{wig_data.tracknames}{: WIG track display names. Assumed to be in same order as wig_data.}
+
+\item{bamfile.tracknames}{: BAM track display names. Assumed to be in same order as bamfiles.}
 
 \item{output_file_name}{: Used if pdf_output is true. Location of where files will be placed.}
 
@@ -29,16 +35,13 @@ Plots read coverage across a gene for a set of BAM files and/or wig data.
 }
 \examples{
 
-gtf_file <- "u:/Reference/mm10/cellranger_genes.gtf.gz"
-gtf_gr <- rtracklayer::import(gtf_file)
+extdata_path <- system.file("extdata",package = "Sierra")
+reference.file <- paste0(extdata_path,"/Vignette_cellranger_genes_subset.gtf")
+gtf_gr <- rtracklayer::import(reference.file)
+bam.files <- c(paste0(extdata_path,"/Fibroblast.Cxcl12.bam"),
+                 paste0(extdata_path,"/EC.Cxcl12.bam"))
 
-endothelial_cov <- read.table(file="c:/BAM/Harvey/scpolyA/Porrello_Support_Files/Porrello_Endothelial.F-CycCl_vs_F-Act.wig.txt.gz", sep = "\\t", header = TRUE)
-df <- endothelial_cov[,c("Chromosome","Start","End","Probe.Strand", "MIP1_1.BAM")]
-df <- cbind(endothelial_cov[,c("Chromosome","Start","End","Probe.Strand")],endothelial_cov[, 13:15])
-colnames(df)[1:4] <- c("chrom", "start","end", "strand")
-wig_data<- GenomicRanges::makeGRangesFromDataFrame(df,keep.extra.columns=TRUE)
- plotCoverage(genome_gr=gtf_gr, geneSymbol="Prkar1a", wig_data= wig_data)
-
-plotCoverage(genome_gr=gtf_gr, geneSymbol="Dnajc19", bamfiles = "c:/TEMP/Bams/F-SH.Dnajc19.bam",wig_data= wig_data)
+PlotCoverage(genome_gr = gtf_gr, geneSymbol = "Cxcl12", genome = "mm10", 
+           bamfiles = bam.files, bamfile.tracknames=c("Fibroblast", "Endothelial"))
 
 }
