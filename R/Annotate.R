@@ -400,7 +400,7 @@ BaseComposition <- function(genome=NULL,  chrom=NULL, start=NULL, stop=NULL, str
                             mismatch=1, AT_length=13)
 {
   # Check inputs
-  if (isS4(genome))
+  if (!isS4(genome))
   { warning("genome is not a BSgenome S4 object. Cannot continue.")
     return(NULL)
   }
