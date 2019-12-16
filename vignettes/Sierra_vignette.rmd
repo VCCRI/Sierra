@@ -464,12 +464,13 @@ Now run the PlotCoverage function:
 PlotCoverage(genome_gr = gtf_gr, 
              geneSymbol = "Cxcl12", 
              genome = "mm10",
-             bamfiles = bam.files)
+             bamfiles = bam.files,
+             bamfile.tracknames=c("Fibroblast", "EC"))
 ```
 
 The coverage plot shows the gene model in the top followed by read coverage for the fibroblasts and ECs. We can see in this example that one of the DU peaks corresponds to expression of a short Cxcl12 transcript isoform in fibroblasts and preferential expression of a longer isoform in ECs. 
 
-```{r SplitBam, out.width='100%', fig.cap = 'SplitBam output',echo=FALSE}
+```{r SplitBam, out.width='100%', fig.cap = 'PlotCoverage output',echo=FALSE}
 knitr::include_graphics('PlotCoverage_CXCL12.png')
 ```
 
@@ -481,6 +482,7 @@ PlotCoverage(genome_gr = gtf_gr,
              genome = "mm10",
              pdf_output = TRUE, 
              bamfiles = bam.files,
+             bamfile.tracknames=c("Fibroblast", "EC"),
              output_file_name = "Cxcl12_fibroblast_vs_ECs example.pdf")
 ```          
              
