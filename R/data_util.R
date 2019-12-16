@@ -58,8 +58,13 @@ ReadPeakCounts <- function(data.dir = NULL, mm.file = NULL, barcodes.file = NULL
 #'
 #' @export
 #'
-PeakSeuratFromTransfer <- function(peak.data, genes.seurat, annot.info, project.name = "PolyA",
-                                             min.cells = 10, min.peaks = 200, norm.scale.factor = 10000) {
+PeakSeuratFromTransfer <- function(peak.data, 
+                                   genes.seurat, 
+                                   annot.info, 
+                                   project.name = "PolyA",
+                                   min.cells = 10, 
+                                   min.peaks = 200, 
+                                   norm.scale.factor = 10000) {
 
   if (packageVersion("Seurat") < '3.0.0') {
     stop("Seurat 3.0.0 or above is required for this function. Either upgrage or see ?NewPeakSCE")
@@ -71,9 +76,13 @@ PeakSeuratFromTransfer <- function(peak.data, genes.seurat, annot.info, project.
 
   peak.data <- peak.data[, cells.keep]
 
-  peaks.seurat <- NewPeakSeurat(peak.data = peak.data, annot.info = annot.info,
-                                project.name = project.name, min.cells = min.cells,
-                                min.peaks = min.peaks, norm.scale.factor = norm.scale.factor)
+  peaks.seurat <- NewPeakSeurat(peak.data = peak.data, 
+                                annot.info = annot.info,
+                                project.name = project.name, 
+                                min.cells = min.cells,
+                                min.peaks = min.peaks, 
+                                norm.scale.factor = norm.scale.factor,
+                                verbose = FALSE)
 
   ## Add cluster identities to peak Seurat object
   cells.overlap <- intersect(colnames(peaks.seurat), colnames(genes.seurat))
@@ -134,7 +143,7 @@ PeakSeuratFromTransfer <- function(peak.data, genes.seurat, annot.info, project.
 #'
 NewPeakSeurat <- function(peak.data, annot.info, project.name = "PolyA", cell.idents = NULL,
                           tsne.coords = NULL, umap.coords = NULL, min.cells = 10,
-                          min.peaks = 200, norm.scale.factor = 10000) {
+                          min.peaks = 200, norm.scale.factor = 10000, verbose = TRUE) {
 
   if (packageVersion("Seurat") < '3.0.0') {
     stop("Seurat 3.0.0 or above is required for this function. Either upgrage or see ?NewPeakSCE")
@@ -225,9 +234,9 @@ NewPeakSeurat <- function(peak.data, annot.info, project.name = "PolyA", cell.id
     tsne.coords <- tsne.coords[colnames(peaks.seurat), ]
     new.embedding <- CreateDimReducObject(embeddings = tsne.coords, key = "tSNE_", assay = "RNA")
     peaks.seurat@reductions$tsne <- new.embedding
-    print("t-SNE coordinates added")
+    if (verbose) print("t-SNE coordinates added")
   } else {
-    print("No t-SNE coodinates included")
+    if (verbose) print("No t-SNE coodinates included")
   }
 
   ## Add UMAP coordinates to peak count object
@@ -235,9 +244,9 @@ NewPeakSeurat <- function(peak.data, annot.info, project.name = "PolyA", cell.id
     umap.coords <- umap.coords[colnames(peaks.seurat), ]
     new.embedding <- CreateDimReducObject(embeddings = umap.coords, key = "UMAP_", assay = "RNA")
     peaks.seurat@reductions$umap = new.embedding
-    print("UMAP coordinates added")
+    if (verbose) print("UMAP coordinates added")
   } else {
-    print("No UMAP coordinates included")
+    if (verbose) print("No UMAP coordinates included")
   }
 
   return(peaks.seurat)
