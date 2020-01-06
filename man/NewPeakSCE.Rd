@@ -6,7 +6,8 @@
 \usage{
 NewPeakSCE(peak.data, annot.info, cell.idents = NULL,
   tsne.coords = NULL, umap.coords = NULL, min.cells = 10,
-  min.peaks = 200, norm.scale.factor = 10000, verbose = TRUE)
+  min.peaks = 200, norm.scale.factor = 10000,
+  filter.gene.mismatch = TRUE, verbose = TRUE)
 }
 \arguments{
 \item{peak.data}{matrix of peak counts}
@@ -24,6 +25,10 @@ NewPeakSCE(peak.data, annot.info, cell.idents = NULL,
 \item{min.peaks}{minimum number of peaks for retaining a cell}
 
 \item{norm.scale.factor}{scale factor for log normalisation  function}
+
+\item{filter.gene.mismatch}{whether to filter out peaks with ambiguous gene mappings}
+
+\item{verbose}{whether to print output}
 }
 \value{
 a new peak-level SCE object

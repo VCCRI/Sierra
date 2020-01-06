@@ -6,7 +6,7 @@
 \usage{
 PeakSeuratFromTransfer(peak.data, genes.seurat, annot.info,
   project.name = "PolyA", min.cells = 10, min.peaks = 200,
-  norm.scale.factor = 10000)
+  norm.scale.factor = 10000, filter.gene.mismatch = TRUE)
 }
 \arguments{
 \item{peak.data}{matrix of peak counts}
@@ -22,6 +22,8 @@ PeakSeuratFromTransfer(peak.data, genes.seurat, annot.info,
 \item{min.peaks}{minimum number of peaks for retaining a cell}
 
 \item{norm.scale.factor}{scale factor for Seurat NormalizeData function}
+
+\item{filter.gene.mismatch}{whether to filter out peaks with ambiguous gene mappings}
 }
 \value{
 a new peak-level Seurat object
