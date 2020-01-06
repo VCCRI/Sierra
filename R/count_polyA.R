@@ -562,7 +562,22 @@ AggregatePeakCounts <- function(peak.sites.file, count.dirs, output.dir, exp.lab
 
   peak.table <- read.table(peak.sites.file, sep="\t", header = TRUE, stringsAsFactors = FALSE)
   all.peaks <- peak.table$polyA_ID
+  peaks.use <- all.peaks
+  
+  ## Get intersection of the peak IDs from each of the input files
+  for (i in 1:length(count.dirs)) {
+    this.dir <- count.dirs[i]
+    sites.file <- paste0(this.dir, "/sitenames.tsv")
+    this.peak.set <- readLines(sites.file)
+    peaks.use <- intersect(peaks.use, this.peak.set)
+    
+    ## Check if peak IDs from the sites file are different to the count file
+    if (length(setdiff(all.peaks, this.peak.set)) > 0 | length(setdiff(this.peak.set, all.peaks)) > 0) {
+      warning(paste0("Some peaks in file ", this.dir, " do not match input peak coordinate file."))
+    }
+  }
 
+  print(paste0("Aggregating counts for ", length(peaks.use), " peak coordinates"))
   aggregate.counts <- c()
   for (i in 1:length(count.dirs)) {
     this.dir <- count.dirs[i]
@@ -578,7 +593,7 @@ AggregatePeakCounts <- function(peak.sites.file, count.dirs, output.dir, exp.lab
     }
     colnames(this.data) = cell.names.update
 
-    this.data <- this.data[all.peaks, ]
+    this.data <- this.data[peaks.use, ]
     aggregate.counts <- cbind(aggregate.counts, this.data)
   }
 
