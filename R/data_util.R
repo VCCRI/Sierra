@@ -50,6 +50,7 @@ ReadPeakCounts <- function(data.dir = NULL, mm.file = NULL, barcodes.file = NULL
 #' @param min.cells minimum number of cells for retaining a peak
 #' @param min.peaks minimum number of peaks for retaining a cell
 #' @param norm.scale.factor scale factor for Seurat NormalizeData function
+#' @param filter.gene.mismatch whether to filter out peaks with ambiguous gene mappings
 #'
 #' @return a new peak-level Seurat object
 #'
@@ -63,8 +64,9 @@ PeakSeuratFromTransfer <- function(peak.data,
                                    annot.info, 
                                    project.name = "PolyA",
                                    min.cells = 10, 
-                                   min.peaks = 200, 
-                                   norm.scale.factor = 10000) {
+                                   min.peaks = 200,
+                                   norm.scale.factor = 10000,
+                                   filter.gene.mismatch = TRUE) {
 
   if (packageVersion("Seurat") < '3.0.0') {
     stop("Seurat 3.0.0 or above is required for this function. Either upgrage or see ?NewPeakSCE")
@@ -82,6 +84,7 @@ PeakSeuratFromTransfer <- function(peak.data,
                                 min.cells = min.cells,
                                 min.peaks = min.peaks, 
                                 norm.scale.factor = norm.scale.factor,
+                                filter.gene.mismatch = filter.gene.mismatch,
                                 verbose = FALSE)
 
   ## Add cluster identities to peak Seurat object
@@ -133,6 +136,8 @@ PeakSeuratFromTransfer <- function(peak.data,
 #' @param min.cells minimum number of cells for retaining a peak
 #' @param min.peaks minimum number of peaks for retaining a cell
 #' @param norm.scale.factor scale factor for Seurat NormalizeData function
+#' @param filter.gene.mismatch whether to filter out peaks with ambiguous gene mappings
+#' @param verbose whether to print output 
 #'
 #' @return a new peak-level Seurat object
 #'
@@ -143,13 +148,36 @@ PeakSeuratFromTransfer <- function(peak.data,
 #'
 NewPeakSeurat <- function(peak.data, annot.info, project.name = "PolyA", cell.idents = NULL,
                           tsne.coords = NULL, umap.coords = NULL, min.cells = 10,
-                          min.peaks = 200, norm.scale.factor = 10000, verbose = TRUE) {
+                          min.peaks = 200, norm.scale.factor = 10000, 
+                          filter.gene.mismatch = TRUE, verbose = TRUE) {
 
   if (packageVersion("Seurat") < '3.0.0') {
     stop("Seurat 3.0.0 or above is required for this function. Either upgrage or see ?NewPeakSCE")
   }
 
-  ## Read in annotations to add to the Seurat object
+  if (filter.gene.mismatch) {
+    ## Check that gene names according to the peak calling match gene
+    ## names according to feature annotation - remove any discrepancies
+    peak.gene.names = sub("(.*).*:.*:.*-.*:.*", "\\1", rownames(annot.info))
+    annot.info$gene_coverage = annot.info$gene_id
+    
+    assigned.genes = strsplit(annot.info$gene_id[1], split = ',')[[1]]
+    gene.checks = apply(annot.info, 1, function(x) {
+      peak.gene = x["gene_id"]
+      gene.cov = strsplit(x["gene_coverage"], split = ',')[[1]]
+      sum.diff = sum(gene.cov != peak.gene)
+      if (sum.diff > 0) {
+        return(FALSE)
+      } else {
+        return(TRUE)
+      }
+    })
+    peaks.keep = names(gene.checks[which(gene.checks == TRUE)])
+    annot.info = annot.info[peaks.keep, ]
+    
+  }
+  
+  ## Peak names to add to the Seurat object
   annot.peaks <- rownames(annot.info)
 
   ## Check if there are annotations for peaks
@@ -268,6 +296,8 @@ NewPeakSeurat <- function(peak.data, annot.info, project.name = "PolyA", cell.id
 #' @param min.cells minimum number of cells for retaining a peak
 #' @param min.peaks minimum number of peaks for retaining a cell
 #' @param norm.scale.factor scale factor for log normalisation  function
+#' @param filter.gene.mismatch whether to filter out peaks with ambiguous gene mappings
+#' @param verbose whether to print output 
 #'
 #' @return a new peak-level SCE object
 #'
@@ -278,12 +308,35 @@ NewPeakSeurat <- function(peak.data, annot.info, project.name = "PolyA", cell.id
 #'
 #' @import SingleCellExperiment
 #'
-NewPeakSCE <- function(peak.data, annot.info, cell.idents = NULL, tsne.coords = NULL, umap.coords = NULL,
-                         min.cells = 10, min.peaks = 200, norm.scale.factor = 10000, verbose = TRUE) {
+NewPeakSCE <- function(peak.data, annot.info, cell.idents = NULL, 
+                       tsne.coords = NULL, umap.coords = NULL,
+                       min.cells = 10, min.peaks = 200, norm.scale.factor = 10000, 
+                       filter.gene.mismatch = TRUE, verbose = TRUE) {
 
   ## Check that peak.data is of dgCMatrix format
   if ( class(peak.data) != "dgcMatrix" )
     peak.data <- as(peak.data, "dgCMatrix")
+  
+  if (filter.gene.mismatch) {
+    ## Check that gene names according to the peak calling match gene
+    ## names according to feature annotation - remove any discrepancies
+    peak.gene.names = sub("(.*).*:.*:.*-.*:.*", "\\1", rownames(annot.info))
+    annot.info$gene_coverage = annot.info$gene_id
+    
+    assigned.genes = strsplit(annot.info$gene_id[1], split = ',')[[1]]
+    gene.checks = apply(annot.info, 1, function(x) {
+      peak.gene = x["gene_id"]
+      gene.cov = strsplit(x["gene_coverage"], split = ',')[[1]]
+      sum.diff = sum(gene.cov != peak.gene)
+      if (sum.diff > 0) {
+        return(FALSE)
+      } else {
+        return(TRUE)
+      }
+    })
+    peaks.keep = names(gene.checks[which(gene.checks == TRUE)])
+    annot.info = annot.info[peaks.keep, ]
+  }
 
   ## Read in annotations to add to the SCE object
   annot.peaks = rownames(annot.info)
