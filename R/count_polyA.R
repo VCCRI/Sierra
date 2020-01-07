@@ -179,7 +179,7 @@ make_exons <- function(x) {
 
 ###################################################################
 #'
-#' Build gene star-end reference from a gtf file
+#' Build gene start-end reference from a gtf file
 #'
 #' Takes a GTF file as input and creates a table of chromosome start-end
 #' positions for each gene. Works with GTF files downloaded from 10x Genomics website.

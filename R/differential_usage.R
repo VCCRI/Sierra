@@ -15,22 +15,33 @@
 #' @param fc.thresh threshold for log2 fold-change difference for returned results
 #' @param adj.pval.thresh threshold for adjusted P-value for returned results
 #' @param num.splits the number of pseudo-bulk profiles to create per identity class (default: 6)
-#' @param feature.type genomic feature types to run analysis on (default: all)
+#' @param seed.use seed to set the randomised assignment of cells to pseudo-bulk profiles
+#' @param feature.type genomic feature types to run analysis on (default: UTR3, exon)
 #' @param filter.pA.stretch whether to filter out peaks annotated as proximal to an A-rich region (default: FALSE)
 #' @param verbose whether to print outputs (TRUE by default)
 #' @param doMAPlot make an MA plot of results (FALSE by default)
 #' @param return.dexseq.res return the raw and unfiltered DEXSeq results object (FALSE by default)
+#' @param ncores number of cores to run DEXSeq with 
 #' @return a data-frame of results.
 #' @examples
 #' DUTest(apa.seurat.object, population.1 = "1", population.2 = "2")
 #'
 #' @export
 #'
-DUTest <- function(peaks.object, population.1, population.2 = NULL, exp.thresh = 0.1,
-                                     fc.thresh=0.25, adj.pval.thresh = 0.05, num.splits = 6, seed.use = 1,
-                                     feature.type = c("UTR3", "exon"), filter.pA.stretch = FALSE,
-                                     verbose = TRUE, do.MAPlot = FALSE,
-                                     return.dexseq.res = FALSE, ncores = 1) {
+DUTest <- function(peaks.object, 
+                   population.1, 
+                   population.2 = NULL, 
+                   exp.thresh = 0.1,
+                   fc.thresh=0.25, 
+                   adj.pval.thresh = 0.05, 
+                   num.splits = 6, 
+                   seed.use = 1,
+                   feature.type = c("UTR3", "exon"), 
+                   filter.pA.stretch = FALSE,
+                   verbose = TRUE, 
+                   do.MAPlot = FALSE,
+                   return.dexseq.res = FALSE, 
+                   ncores = 1) {
 
   if (class(peaks.object) == "Seurat") {
     res.table <- apply_DEXSeq_test_seurat(apa.seurat.object = peaks.object,
@@ -61,6 +72,187 @@ DUTest <- function(peaks.object, population.1, population.2 = NULL, exp.thresh =
 
 #######################################################################
 #'
+#' Detect shifts in 3'UTR length usage between cell populations
+#' 
+#' Detect global shifts in 3'UTR length usage between defined cell populations.
+#' Firsts applies the DUTest function to detect differential usage (DU) peaks on 3'UTRs, 
+#' after filtering out peaks annotated as proximal to A-rich regions. Identifies peaks
+#' on the same 3'UTR as each DU peak, and determines a position of the DU peak on the
+#' 3'UTR relative to the terminating exon. Returns a table of DU results, with the location 
+#' of each peak relative to the total number of peaks on the corresponding 3'UTR. Results 
+#' table can be input to the PlotUTRLengthShift function to visualise the results, 
+#' and evaluate global shifts. 
+#' 
+#' @param peaks.object Either a Seurat or SCE object of peaks
+#' @param gtf_gr GenomicRanges object from a GTF file
+#' @param gtf_TxDb TxDb from gtf file
+#' @param population.1 a target population of cells (can be an ID/cluster label or a set of cell barcode IDs)
+#' @param population.2 comparison population of cells. If NULL (default), uses all non-population.1 cells
+#' @param exp.thresh minimum percent expression threshold (for a population of cells) to include a peak
+#' @param fc.thresh threshold for log2 fold-change difference for returned results
+#' @param adj.pval.thresh threshold for adjusted P-value for returned results
+#' @param num.splits the number of pseudo-bulk profiles to create per identity class (default: 6)
+#' @param seed.use seed to set the randomised assignment of cells to pseudo-bulk profiles
+#' @param verbose whether to print outputs (TRUE by default)
+#' @param doMAPlot make an MA plot of results (FALSE by default)
+#' @return a data-frame of results.
+#' 
+#' @importFrom magrittr "%>%"
+#' 
+#' @export
+#' 
+DetectUTRLengthShift <- function(peaks.object, 
+                                   gtf_gr,
+                                   gtf_TxDb,
+                                   population.1,
+                                   population.2 = NULL,
+                                   exp.thresh = 0.1,
+                                   fc.thresh = 0.25,
+                                   adj.pval.thresh = 0.05,
+                                   num.splits = 6,
+                                   seed.use = 1,
+                                   verbose = TRUE,
+                                   do.MAPlot = FALSE,
+                                   ncores = 1) {
+  
+  res.table = DUTest(peaks.object = peaks.object, 
+                     population.1 = population.1, 
+                     population.2 = population.2, 
+                     exp.thresh = exp.thresh,
+                     feature.type = c("UTR3"), 
+                     filter.pA.stretch = TRUE,
+                     fc.thresh = fc.thresh, 
+                     adj.pval.thresh = adj.pval.thresh,
+                     num.splits = num.splits,
+                     seed.use = seed.use,
+                     verbose = verbose,
+                     do.MAPlot = do.MAPlot, 
+                     ncores = ncores)
+  
+  if (nrow(res.table) == 0) {
+    print("No DU peaks identified")
+    return(NULL)
+  }
+  
+  if (verbose) print("Detecting shifts in 3'UTR length usage")
+  
+  ## retrieve the annotation information
+  annot.df <- Tool(peaks.object, "Sierra")
+  
+  ## format differentially used peaks from GRanges
+  all.peaks = rownames(res.table)
+  strand = sub(".*:.*:.*-.*:(.*)", "\\1", all.peaks)
+  strand = plyr::mapvalues(x = strand, from = c("1", "-1"), to = c("+", "-"))
+  peak.remainder = sub(".*:(.*:.*-.*):.*", "\\1", all.peaks)
+  peaks.use = paste0(peak.remainder, ":", strand)
+  res.table$granges_peaks <- peaks.use
+  du.peaks.gr <- GenomicRanges::GRanges(peaks.use)
+  
+  ## format expressed peaks using GRanges
+  ## get peaks that are expressed
+  peaks.expressed <- GetExpressedPeaks(peaks.object, population.1 = population.1,
+                                       population.2 = population.2, threshold=0.1)
+  
+  ## cross-reference expressed peaks with peaks not tagged as a-rich
+  expressed.arich.annot <- annot.df[peaks.expressed, "pA_stretch"]
+  peaks.non.arich <- rownames(subset(annot.df, pA_stretch == FALSE))
+  peaks.expressed <- intersect(peaks.expressed, peaks.non.arich)
+  
+  genes.expressed <- sub("(.*):.*:.*-.*:.*", "\\1", peaks.expressed)
+  peaks.use.idx <- which(genes.expressed %in% res.table$gene_name)
+  peaks.expressed <- peaks.expressed[peaks.use.idx]
+  
+  strand = sub(".*:.*:.*-.*:(.*)", "\\1", peaks.expressed)
+  strand = plyr::mapvalues(x = strand, from = c("1", "-1"), to = c("+", "-"))
+  peak.remainder = sub(".*:(.*:.*-.*):.*", "\\1", peaks.expressed)
+  peaks.expressed.granges = paste0(peak.remainder, ":", strand)
+  expressed.peaks.gr <- GenomicRanges::GRanges(peaks.expressed.granges)
+  
+  ## make a table mapping peaks to granges peaks for later
+  granges_peaks_mapping_table <- data.frame(PeakID = peaks.expressed,
+                                            row.names = peaks.expressed.granges, 
+                                            stringsAsFactors = FALSE)
+  
+  utr3.ref <- GenomicFeatures::threeUTRsByTranscript(gtf_TxDb)
+  utr3.ref <- unlist(utr3.ref)
+  
+  
+  all_UTR_3_hits <- GenomicRanges::findOverlaps(expressed.peaks.gr , utr3.ref, type = "any")
+  utr3.mappings <- as.data.frame(all_UTR_3_hits)
+  
+  query.hit.df <- as.data.frame(expressed.peaks.gr[utr3.mappings$queryHits, ])
+  subject.hit.df <- as.data.frame(utr3.ref[utr3.mappings$subjectHits, ],
+                                  row.names = as.character(1:nrow(utr3.mappings)))
+  
+  query.hit.df %>% dplyr::mutate(granges_peak = paste0(seqnames,":",start,"-",end,":",strand)) ->
+    query.hit.df
+  
+  utr3.mappings$exon_name <- subject.hit.df$exon_name
+  utr3.mappings$granges_peak <- query.hit.df$granges_peak
+  peak.ids <- granges_peaks_mapping_table[as.character(query.hit.df$granges_peak), 'PeakID']
+  utr3.mappings$peakID <- peak.ids
+  utr3.mappings %>% dplyr::mutate(Gene_name = sub("(.*):.*:.*-.*:.*", "\\1", peakID)) -> utr3.mappings
+  utr3.mappings %>% dplyr::mutate(Start = sub(".*:(.*)-.*:.*", "\\1", granges_peak), 
+                                  End = sub(".*:.*-(.*):.*", "\\1", granges_peak)) -> utr3.mappings
+  
+  #### Here calculate a 'relative peak location' to the start of the UTR ####
+  
+  ## Go through the peaks in a strand-specific manner
+  strand <- sub(".*:.*:.*-.*:(.*)", "\\1", rownames(res.table))
+  res.table$Strand <- strand
+  res.table.pos.strand <- subset(res.table, Strand == "1")
+  res.table.neg.strand <- subset(res.table, Strand == "-1")
+  
+  ## Upregulated positive-strand peaks 
+  peaks.res.pos.up <- subset(res.table.pos.strand, Log2_fold_change > 0)
+  locations.res.table.pos.up <- make_utr3_peak_location_table(peaks.object, peaks.res.pos.up, "1", 
+                                                              peaks.expressed, utr3.mappings)
+  
+  ## Downregulated positive-strand peaks 
+  peaks.res.pos.down <- subset(res.table.pos.strand, Log2_fold_change < 0)
+  locations.res.table.pos.down <- make_utr3_peak_location_table(peaks.object, peaks.res.pos.down, "1", 
+                                                                peaks.expressed, utr3.mappings)
+  
+  ## Upregulated negative-strand peaks 
+  peaks.res.neg.up <- subset(res.table.neg.strand, Log2_fold_change > 0)
+  locations.res.table.neg.up <- make_utr3_peak_location_table(peaks.object, peaks.res.neg.up, "-1", 
+                                                              peaks.expressed, utr3.mappings)
+  
+  ## Downregulated negative-strand peaks 
+  peaks.res.neg.down <- subset(res.table.neg.strand, Log2_fold_change < 0)
+  locations.res.table.neg.down <- make_utr3_peak_location_table(peaks.object, peaks.res.neg.down, "-1", 
+                                                                peaks.expressed, utr3.mappings)
+  if (!is.null(locations.res.table.pos.up)) {
+    locations.res.table.pos.up$FC_direction <- rep("Up", nrow(locations.res.table.pos.up))
+    } else {locations.res.table.pos.up <- c()}
+  
+  if (!is.null(locations.res.table.pos.down)) {
+    locations.res.table.pos.down$FC_direction <- rep("Down", nrow(locations.res.table.pos.down))
+    } else {locations.res.table.pos.down <- c()}
+  
+  if (!is.null(locations.res.table.neg.up)) {
+    locations.res.table.neg.up$FC_direction <- rep("Up", nrow(locations.res.table.neg.up))
+  } else {locations.res.table.neg.up <- c()}
+  
+  if (!is.null(locations.res.table.neg.down)) {
+    locations.res.table.neg.down$FC_direction <- rep("Down", nrow(locations.res.table.neg.down))
+  } else {locations.res.table.neg.down <- c()}
+   
+  tables.combined <- do.call(rbind, list(locations.res.table.pos.up, locations.res.table.pos.down,
+                                         locations.res.table.neg.up, locations.res.table.neg.down))
+  
+  ## Add output information from DEXSEq back to the table
+  dexseq.res <- res.table[rownames(tables.combined), ]
+  info.add <- c("genomic_feature(s)", "population1_pct", "population2_pct", "pvalue", "padj", "Log2_fold_change")
+  tables.combined <- cbind(dexseq.res[, info.add], tables.combined)
+  
+  return(tables.combined)
+}
+
+
+
+#######################################################################
+#'
 #' Find alternative 3' end usage between two single-cell populations
 #'
 #' Wrapper function to DUTest for detecting differential 3' end use. First applies DUTest to
@@ -76,6 +268,7 @@ DUTest <- function(peaks.object, population.1, population.2 = NULL, exp.thresh =
 #' @param fc.thresh threshold for log2 fold-change difference for returned results
 #' @param adj.pval.thresh threshold for adjusted P-value for returned results
 #' @param num.splits the number of pseudo-bulk profiles to create per identity class (default: 6)
+#' @param seed.use seed to set the randomised assignment of cells to pseudo-bulk profiles
 #' @param verbose whether to print outputs (TRUE by default)
 #' @param doMAPlot make an MA plot of results (FALSE by default)
 #' @return a data-frame of results.
@@ -83,6 +276,8 @@ DUTest <- function(peaks.object, population.1, population.2 = NULL, exp.thresh =
 #' DetectAEU(apa.seurat.object, population.1 = "1", population.2 = "2")
 #'
 #' @export
+#' 
+#' @importFrom magrittr "%>%"
 #'
 DetectAEU <- function(peaks.object, gtf_gr, gtf_TxDb, population.1, population.2 = NULL, exp.thresh = 0.1,
                     fc.thresh=0.25, adj.pval.thresh = 0.05, num.splits = 6, seed.use = 1,
@@ -107,8 +302,8 @@ DetectAEU <- function(peaks.object, gtf_gr, gtf_TxDb, population.1, population.2
 
   ## format expressed peaks using GRanges
   ## get peaks that are expressed
-  peaks.expressed <- get_highly_expressed_peaks(peaks.object, cluster1 = population.1,
-                                                cluster2 = population.2, threshold=exp.thresh)
+  peaks.expressed <- GetExpressedPeaks(peaks.object, population.1 = population.1,
+                                       population.2 = population.2, threshold=exp.thresh)
 
   genes.expressed <- sub("(.*):.*:.*-.*:.*", "\\1", peaks.expressed)
   peaks.use.idx <- which(genes.expressed %in% as.character(res.table$gene_name))
@@ -132,7 +327,8 @@ DetectAEU <- function(peaks.object, gtf_gr, gtf_TxDb, population.1, population.2
 
   ## make a table mapping peaks to granges peaks for later
   granges_peaks_mapping_table <- data.frame(PeakID = peaks.expressed,
-                                            row.names = peaks.expressed.granges, stringsAsFactors = FALSE)
+                                            row.names = peaks.expressed.granges, 
+                                            stringsAsFactors = FALSE)
 
   utr3.ref <- GenomicFeatures::threeUTRsByTranscript(gtf_TxDb)
   utr3.ref <- unlist(utr3.ref)
@@ -144,7 +340,7 @@ DetectAEU <- function(peaks.object, gtf_gr, gtf_TxDb, population.1, population.2
   subject.hit.df <- as.data.frame(utr3.ref[utr3.mappings$subjectHits, ],
                                   row.names = as.character(1:nrow(utr3.mappings)))
 
-  query.hit.df %>% mutate(granges_peak = paste0(seqnames,":",start,"-",end,":",strand)) ->
+  query.hit.df %>% dplyr::mutate(granges_peak = paste0(seqnames,":",start,"-",end,":",strand)) ->
     query.hit.df
 
   utr3.mappings$exon_name <- subject.hit.df$exon_name
@@ -161,7 +357,7 @@ DetectAEU <- function(peaks.object, gtf_gr, gtf_TxDb, population.1, population.2
     diff.site <- x["peak_name"]
 
     this.gene <- x["gene_name"]
-    all.sites <- select_gene_polyas(peaks.object, gene = this.gene, feature.type = "UTR3")
+    all.sites <- SelectGenePeaks(peaks.object, gene = this.gene, feature.type = "UTR3")
     sites.expressed <- intersect(all.sites, peaks.expressed)
 
     exons.diff <- unique(subset(utr3.mappings, peakID %in% diff.site)$exon_name)
@@ -189,14 +385,14 @@ DetectAEU <- function(peaks.object, gtf_gr, gtf_TxDb, population.1, population.2
   transcripts.ref <- GenomicFeatures::transcripts(gtf_TxDb)
   transcripts.ref <- unlist(transcripts.ref)
 
-  all_transcript_hits <- findOverlaps(peaks.gr , transcripts.ref, type = "any")
+  all_transcript_hits <- GenomicRanges::findOverlaps(peaks.gr , transcripts.ref, type = "any")
   transcript.mappings <- as.data.frame(all_transcript_hits)
 
   query.hit.df <- as.data.frame(peaks.gr[transcript.mappings$queryHits, ])
   subject.hit.df <- as.data.frame(transcripts.ref[transcript.mappings$subjectHits, ],
                                   row.names = as.character(1:nrow(transcript.mappings)))
 
-  query.hit.df %>% mutate(granges_peak = paste0(seqnames,":",start,"-",end,":",strand)) ->
+  query.hit.df %>% dplyr::mutate(granges_peak = paste0(seqnames,":",start,"-",end,":",strand)) ->
     query.hit.df
 
   transcript.mappings$transcript_name <- subject.hit.df$tx_name
@@ -639,6 +835,52 @@ apply_DEXSeq_test_sce <- function(peaks.sce.object, population.1, population.2 =
   return(dxrSig_subset)
 }
 
+
+### Given a results table from DUTest, order the peaks according to position
+make_utr3_peak_location_table <- function(peaks.object, res.table, strand, peaks.expressed, utr3.mappings) {
+  
+  if (strand == "1" | strand == "+") {
+    sort.decrease <- FALSE
+  } else if (strand == "-1" | strand == "-") {
+    sort.decrease <- TRUE
+  } else{
+    stop("Invalid strand specification - options are 1, +, -1 or -")
+  }
+  
+  locations.res.table <- c()
+  
+  for (this.gene in unique(res.table$gene_name)) {
+    all.sites <- SelectGenePeaks(peaks.object = peaks.object, gene = this.gene, feature.type = "UTR3")
+    sites.expressed <- intersect(all.sites, peaks.expressed)
+    
+    ## Pull out the differentiall used sites/s (can be more than one)
+    diff.site.set <- rownames(subset(res.table, gene_name == this.gene))
+    
+    for (diff.site in diff.site.set) {
+      exons.use <- unique(subset(utr3.mappings, peakID %in% diff.site)$exon_name)
+      sites.use <- unique(subset(utr3.mappings, exon_name %in% exons.use)$peakID)
+      sites.expressed <- intersect(sites.expressed, sites.use)
+      num.sites <- length(sites.expressed)
+      
+      if (length(sites.expressed) > 1) {
+        ## Order the expressed sites and record the relative location of 
+        ## the differentially used sites.
+        start.sites <- as.numeric(sub(".*:.*:(.*)-.*:.*", "\\1", sites.expressed))
+        names(start.sites) <- sites.expressed
+        start.sites <- sort(start.sites, decreasing = sort.decrease)
+        site.diff <- which(names(start.sites) %in% diff.site)
+        
+        this.res <- data.frame(SiteLocation = site.diff,
+                               NumSites = num.sites,
+                               row.names = diff.site,
+                               stringsAsFactors = FALSE)
+        locations.res.table <- rbind(locations.res.table, this.res)
+      }
+    }
+  }
+  
+  return(locations.res.table)
+}
 
 ############################################################
 #'
