@@ -2,7 +2,7 @@
 % Please edit documentation in R/count_polyA.R
 \name{make_reference}
 \alias{make_reference}
-\title{Build gene star-end reference from a gtf file}
+\title{Build gene start-end reference from a gtf file}
 \usage{
 make_reference(gtf_file)
 }

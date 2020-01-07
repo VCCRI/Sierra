@@ -25,13 +25,17 @@ DUTest(peaks.object, population.1, population.2 = NULL,
 
 \item{num.splits}{the number of pseudo-bulk profiles to create per identity class (default: 6)}
 
-\item{feature.type}{genomic feature types to run analysis on (default: all)}
+\item{seed.use}{seed to set the randomised assignment of cells to pseudo-bulk profiles}
+
+\item{feature.type}{genomic feature types to run analysis on (default: UTR3, exon)}
 
 \item{filter.pA.stretch}{whether to filter out peaks annotated as proximal to an A-rich region (default: FALSE)}
 
 \item{verbose}{whether to print outputs (TRUE by default)}
 
 \item{return.dexseq.res}{return the raw and unfiltered DEXSeq results object (FALSE by default)}
+
+\item{ncores}{number of cores to run DEXSeq with}
 
 \item{doMAPlot}{make an MA plot of results (FALSE by default)}
 }
