@@ -870,11 +870,14 @@ make_utr3_peak_location_table <- function(peaks.object, res.table, strand, peaks
         start.sites <- sort(start.sites, decreasing = sort.decrease)
         site.diff <- which(names(start.sites) %in% diff.site)
         
-        this.res <- data.frame(SiteLocation = site.diff,
-                               NumSites = num.sites,
-                               row.names = diff.site,
-                               stringsAsFactors = FALSE)
-        locations.res.table <- rbind(locations.res.table, this.res)
+        if (length(site.diff) == 1 & length(num.sites) == 1 & length(diff.site) == 1) {
+          this.res <- data.frame(SiteLocation = site.diff,
+                                 NumSites = num.sites,
+                                 row.names = diff.site,
+                                 stringsAsFactors = FALSE)
+          locations.res.table <- rbind(locations.res.table, this.res)
+        }
+        
       }
     }
   }
