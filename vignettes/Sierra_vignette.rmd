@@ -529,8 +529,58 @@ print(all.peaks)
 PlotRelativeExpressionBox(peaks.sce, peaks.to.plot = peaks.to.plot)
 ```
 
+#  Detecting specific forms of differential transcript usage
 
+Sierra provides some functions for detecting some specific forms of DTU - specifically,
+changes in 3'UTR length and alternative 3'-end use. 
 
+## Detecting shifts in 3'UTR length
+
+The function to evaluate shifts in 3'UTR length between cell populations is called `DetectUTRLengthShift`. This will perform DU testing on 3'UTR peaks, first filtering for peaks annotated as proximal to A-rich regions (in order to enrich for real polyA sites). For DTU genes, it selects for those that have multiple peaks on the same 3'UTR. Each DU peak is ranked according to its position from the termination exon, according to the total number of peaks on the 3'UTR - this information is used in the following step below to infer global changes in 3'UTR length. In addition to defining cell population(s) to test, `DetectUTRLengthShift` requires as input the reference information used above for annotation: 
+
+```
+reference.file <- paste0(extdata_path,"/Vignette_cellranger_genes_subset.gtf")
+gtf_gr <- rtracklayer::import(reference.file)
+gtf_TxDb <- GenomicFeatures::makeTxDbFromGFF(reference.file, format="gtf")
+res.table <- DetectUTRLengthShift(peaks.object = peaks.seurat, 
+                                  gtf_gr = gtf_gr,
+                                  gtf_TxDb = gtf_TxDb,
+                                  population.1 = "F-SL", 
+                                  population.2 = "EC1")
+```
+
+The output table of `DetectUTRLengthShift` is similar to `DUTest`, though with some additional columns of information relating to the peak position on the 3'UTR. The results table can be used as input to the `PlotUTRLengthShift` function to visualise global patterns of 3'UTR length shifts between the cell populations. By default, `PlotUTRLengthShift` will also perform a statistical test to determine whether there is a shift in relative peak location between the upregulated and downregulated peaks. 
+
+The above example only contains a few significant peaks, so is not a great example for the visualisation. Instead we will use a precomputed results table of proliferating versus resting fibroblasts (proliferating cells have been observed in several studies to have shortened 3'UTRs).
+
+```
+# Read in pre-calculated results table for this example
+results.file <- paste0(extdata_path,"/Cycling_vs_resting_fibro_UTR_length_res.tsv")
+res.table <- read.table(results.file, sep = "\t", header = TRUE, 
+                        row.names = 1, stringsAsFactors = FALSE)
+
+# Plot global shift in 3'UTR length 
+PlotUTRLengthShift(res.table)
+```
+
+```{r PlotUTRLengthShift, out.width='100%', fig.cap = 'PlotUTRLengthShift output',echo=FALSE}
+knitr::include_graphics('UTRLengthPlot.png')
+```
+
+## Detecting alternative 3'-end usage
+
+Another form of DTU that can be observed based on polyA sites is alternative 3'-end usage, such as the Cxcl12 example illustrated above. Sierra implements a function that tests for alternative 3'-end use by first evaluating DTU genes using peaks on 3' UTRs, then determining whether the DTU genes have peaks on distinct 3'UTRs, which would correspond to at least one transcript being differential. This is implemented in the function `DetectAEU`:
+
+```
+reference.file <- paste0(extdata_path,"/Vignette_cellranger_genes_subset.gtf")
+gtf_gr <- rtracklayer::import(reference.file)
+gtf_TxDb <- GenomicFeatures::makeTxDbFromGFF(reference.file, format="gtf")
+res.table <- DetectAEU(peaks.object = peaks.seurat, 
+                       gtf_gr = gtf_gr,
+                       gtf_TxDb = gtf_TxDb,
+                       population.1 = "F-SL", 
+                       population.2 = "EC1")
+```
 
 # Session Information-----------------------------------
 
