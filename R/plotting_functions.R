@@ -607,80 +607,94 @@ PlotRelativeExpressionViolin <- function(peaks.object, peaks.to.plot, do.plot=FA
   }
 }
 
-#########################################################
+##########################################################
 #'
-#' t-SNE plot of cell populations
+#' Plot global shifts in 3'UTR length
 #'
-#' Based on t-SNE coordinates and cluster identities stored in a Seurat object,
-#' plot t-SNE colouring cells according to cluster ID
-#'
-#' @param seurat.obect a Seurat object containing t-SNE coordinates and cluster ID's in @ident slot
-#' @param col.set a vector of colour codes corresponding to the number of clusters
-#' @param title optional plot title
-#' @param do.plot whether to print the plot to output (default: TRUE).
-#' @param pt.size size of the point (default: 0.75)
-#' @param show.labels whether to show the cluster labels (default: FALSE)
-#' @param return.plot whether to return the ggplot object (default: FALSE)
-#' @param simple.theme whether to remove axis (default: FALSE)
-#' @return NULL by default. Returns a ggplot2 object if return.plot = TRUE
+#' Plot global shifts in 3'UTR lengths between cell populations.
+#' Input is a table of results from the Detect3UTRLengthShift functions.
+#' By default evaluates whether there is a significant shift in 3'UTR length
+#' between upregulated and downregulated peaks using the Wilcoxon Rank-sum test.
+#' 
+#' @param results.table 
+#' @param plot.title
+#' @param do.ranksum.test
+#' @param return.plot
+#' @param do.plot
+#' 
+#' @return 
+#' 
 #' @examples
-#' plot_tsne(apa.seurat, show.labels = TRUE)
-#'
+#' res.table <- DetectUTRLengthShift(peaks.object, gtf_gr, gtf_TxDb, c1, c2)
+#' PlotUTRLengthShift(res.table)
+#' 
 #' @import ggplot2
+#' 
+#' @export
 #'
-plot_tsne <- function(seurat.object, col.set=NULL, title=NULL, do.plot=TRUE, pt.size = 0.75, show.labels = FALSE,
-                     return.plot = FALSE, simple.theme=FALSE) {
-  seurat.object.names <- names(seurat.object@ident)
+PlotUTRLengthShift <- function(results.table,
+                                plot.title = "Global shift in 3'UTR length",
+                                do.ranksum.test = TRUE,
+                                return.plot = TRUE,
+                                do.plot = FALSE) {
 
-  # get the tSNE coordinates
-  seurat.object.tsne1 <- seurat.object@dr$tsne@cell.embeddings[, 1]
-  names(seurat.object.tsne1) <- names(seurat.object@ident)
-
-  seurat.object.tsne2 <- seurat.object@dr$tsne@cell.embeddings[, 2]
-  names(seurat.object.tsne2) <- names(seurat.object@ident)
-
-  # If colors not provided use the deafult ggplot2 color scheme
-  if (is.null(col.set)){
-    col.set = scales::hue_pal()(length(table(seurat.object@ident)))
+  locations.res.table.up <- subset(res.table, FC_direction == "Up")
+  pos.upreg <- apply(as.matrix(locations.res.table.up[, c("SiteLocation","NumSites")]), 1, 
+                function(x) {relative_location(x[1], x[2])})
+  
+  locations.res.table.down <- subset(res.table, FC_direction == "Down")
+  pos.downreg <- apply(as.matrix(locations.res.table.down[, c("SiteLocation","NumSites")]), 1, 
+                function(x) {relative_location(x[1], x[2])})
+  
+  if (do.ranksum.test) {
+    this.test <- wilcox.test(pos.upreg, pos.downreg)
+    print("Wilcoxon Rank-sum test comparing relative peak locations for up- vs down-regulated peaks:")
+    print(paste0("P-value = ", this.test$p.value)) 
   }
-
-  # create the ggplot data-frame and generate a dot plot
-  ggData <- data.frame(tSNE_1=seurat.object.tsne1, tSNE_2=seurat.object.tsne2, cluster=seurat.object@ident)
-
-  if (simple.theme == FALSE) {
-    pl <- ggplot(ggData, aes(tSNE_1, tSNE_2, color=cluster)) + geom_point(size=pt.size) + xlab("t-SNE 1") + ylab("t-SNE 2") +
-      scale_color_manual(values=col.set, breaks=names(table(seurat.object@ident)),
-                         labels=names(table(seurat.object@ident)), name="Population") + guides(color = guide_legend(override.aes = list(size=4)))
-  } else {
-    pl <- ggplot(ggData, aes(tSNE_1, tSNE_2, color=cluster)) + geom_point(size=pt.size) + theme_void() +
-      scale_color_manual(values=col.set, breaks=names(table(seurat.object@ident)),
-                         labels=names(table(seurat.object@ident)), name="Population") + guides(color = guide_legend(override.aes = list(size=4)))
-  }
-
-  if (show.labels == TRUE) {
-    ggData %>%
-      dplyr::group_by(cluster) %>%
-      dplyr::summarize(tSNE_1 = median(x = tSNE_1), tSNE_2 = median(x = tSNE_2)) -> centers
-    centers[12, "tSNE_1"] = centers[12, "tSNE_1"] - 6
-
-    pl <- pl + geom_text(data = centers, mapping = aes(label = cluster), size = 4.5, colour="black", fontface="bold") +
-      theme(text = element_text(size = 16, family="Helvetica"))
-  }
-
-
-  if (!is.null(title)) {
-    pl <- pl + ggtitle(title)
-  }
-
+  
+  ggData <- data.frame(Peak_location = c(pos.upreg, pos.downreg),
+                       FC_direction = c(rep("Up", length(pos.upreg)), rep("Down", length(pos.downreg))))
+  ggData$FC_direction <- factor(ggData$FC_direction, levels = c("Up", "Down"))
+  
+  pl.density <- ggplot(ggData, aes(Peak_location, stat(count), fill = FC_direction)) + 
+    geom_density(alpha = 0.8) + ylab("") + theme_void(base_size = 18) + 
+    theme(axis.text = element_blank(), axis.title=element_blank(), axis.ticks = element_blank()) +
+    ggtitle(plot.title) + theme(legend.position = "none", plot.title = element_text(hjust = 0.5)) +
+    scale_fill_brewer(palette="Set1")
+  
+  pl.histogram <- ggplot(ggData, aes(Peak_location, fill = FC_direction)) + 
+    geom_histogram(position = position_dodge(), colour = "black", binwidth = 0.1, alpha = 0.8) +
+    theme_classic(base_size = 18) + xlab("Relative peak location") + ylab("Peak count") +
+    scale_fill_brewer(palette="Set1") + theme(legend.position = "right") +
+    guides(fill = guide_legend(title = "Fold-change\ndirection", title.position = "top"))
+    
+  
+  ### Combine the plots together
+  pl.combined <- cowplot::plot_grid(pl.density, pl.histogram, ncol=1, 
+                                    rel_heights = c(0.3, 0.8), axis = "lr", align = "v")
+  
   if (do.plot) {
-    plot(pl)
+    plot(pl.combined)
   }
-
+  
   if (return.plot) {
-    return(pl)
+    return(pl.combined)
   }
 }
 
+####################################################
+#'
+#' Given a peak position in a 3'UTR out of some n number of peaks,
+#' relative to the terminating exon, calculate the relative position
+#' of the query peak location on a scale of 0 to 1, where 0 indicates
+#' the most proximal location and 1 indicates most distal.
+#'
+relative_location <- function(location, n) {
+  make_range <- function(x){(x-min(x))/(max(x)-min(x))}
+  relative.locations <- make_range( (1:n) / n )
+  this.location <- relative.locations[location]
+  return(this.location)
+}
 
 #####################################################################
 ##
