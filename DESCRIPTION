@@ -1,7 +1,7 @@
 Package: Sierra
 Type: Package
 Title: PolyA counting and differential transcript usage analysis for scRNA-seq data
-Version: 0.2.0
+Version: 0.2.1
 Author: Ralph Patrick, David Humphreys and Kitty K. Lo
 Maintainer: Ralph Patrick <r.patrick@victorchang.edu.au>, David Humphresy <d.humphreys@victorchang.edu.au> and Kitty Lo <kitty.lo@sydney.edu.au>
 Description: Sierra is a pipeline for detecting differential transcript usage from barcoded polyA-enriched scRNA-seq experiments
