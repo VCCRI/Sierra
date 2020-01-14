@@ -515,6 +515,10 @@ FindPeaks <- function(output.file, gtf.file, bamfile, junctions.file,
   to.filter <- union(to.filter, which(is.na(peak.sites$Fit.start)))
   to.filter <- union(to.filter, which(is.na(peak.sites$Fit.end)))
   to.filter <- union(to.filter,  which(is.na(peak.sites$Fit.max.pos)))
+  
+  ## Check for any examples of peaks with start before end
+  sites.diffs <- peak.sites$Fit.end - peak.sites$Fit.start
+  to.filter <- union(to.filter, which(sites.diffs < 0))
 
   if (length(to.filter) > 0)
     peak.sites <- peak.sites[-to.filter,]
