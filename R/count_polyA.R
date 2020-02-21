@@ -226,9 +226,9 @@ make_reference <- function(gtf_file) {
 #' @param output.file a file containing polyA sites
 #' @param gtf.file reference (GTF) file
 #' @param bamfile scRNA-seq BAM file
-#' @param junctions.file white list file
-#' @param min.jcutoff name of output
-#' @param min.jcutoff.prop whether to count UMIs (default: TRUE)
+#' @param junctions.file file of splice junctions (e.g. produced by regtools)
+#' @param min.jcutoff minimum number of spliced reads across a junction for it to be considered (default: 50). 
+#' @param min.jcutoff.prop minimum proportion of junction reads out of all junction reads for that gene (default: 5%)
 #' @param min.cov.cutoff min.cov.cutoff
 #' @param min.cov.prop min.cov.prop
 #' @param min.peak.cutoff min.peak.cutoff

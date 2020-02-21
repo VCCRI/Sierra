@@ -16,11 +16,11 @@ FindPeaks(output.file, gtf.file, bamfile, junctions.file,
 
 \item{bamfile}{scRNA-seq BAM file}
 
-\item{junctions.file}{white list file}
+\item{junctions.file}{file of splice junctions (e.g. produced by regtools)}
 
-\item{min.jcutoff}{name of output}
+\item{min.jcutoff}{minimum number of spliced reads across a junction for it to be considered (default: 50).}
 
-\item{min.jcutoff.prop}{whether to count UMIs (default: TRUE)}
+\item{min.jcutoff.prop}{minimum proportion of junction reads out of all junction reads for that gene (default: 5%)}
 
 \item{min.cov.cutoff}{min.cov.cutoff}
 
