@@ -20,6 +20,7 @@
 #' @param AAA_motif_min_position Any polyA/polyT stretches before this postion are not considered (default 10)
 #' @param polystretch_length : the length of A or T to search for (default 13)
 #' @param max_mismatch number of allowed mismatches for motif matching (default 1)
+#' @parm append.chr.peaks : When TRUE (default) appends the character "chr" on chromosome entry in peaks file. 
 #'
 #' @return NULL. writes output to file
 #'
@@ -39,11 +40,12 @@ AnnotatePeaksFromGTF <- function(peak.sites.file,
                                  pA_motif_max_position = 50,
                                  AAA_motif_min_position = 10,
                                  polystretch_length=13,
-                                 max_mismatch=1) {
+                                 max_mismatch=1,
+                                 append.chr.peaks = TRUE) {
 
   ## Import the GTF reference
-  gtf_gr <- rtracklayer::import(gtf.file)
-  gtf_TxDb <- GenomicFeatures::makeTxDbFromGFF(gtf.file, format="gtf")
+  gtf_gr <- rtracklayer::import(reference.file)
+  gtf_TxDb <- GenomicFeatures::makeTxDbFromGFF(reference.file, format="gtf")
 
   ## Read in the peaks
   peak.table <- read.table(peak.sites.file, header = TRUE, sep="\t", stringsAsFactors = FALSE)
@@ -58,10 +60,15 @@ AnnotatePeaksFromGTF <- function(peak.sites.file,
 
   ## Also need to ensure MT chromosomes are labelled 'M'
   chrs.all <- sub("(.*):.*-.*:.*", "\\1", peaks.use)
-  chrs.all <- plyr::mapvalues(chrs.all, from="MT", to="M")
-  chrs.all <- paste0("chr", chrs.all)
-
-  peaks.use.chr.update <- paste0(chrs.all, sub(".*(:.*-.*:.*)", "\\1", peaks.use))
+  if (length(which(chrs.all == "MT")) > 0)
+  { chrs.all <- plyr::mapvalues(chrs.all, from="MT", to="M") }
+  
+  peaks.use.chr.update <- peaks.use
+  # Append "chr" to peaks to match 
+  if (append.chr.peaks)
+  { chrs.all <- paste0("chr", chrs.all)
+    peaks.use.chr.update <- paste0(chrs.all, sub(".*(:.*-.*:.*)", "\\1", peaks.use))
+  }
 
   gr <- GenomicRanges::GRanges(peaks.use.chr.update)
 
@@ -98,9 +105,12 @@ gene_Labels<- function(gr, reference_gr, annotationType)
 {
   all_hits <- GenomicAlignments::findOverlaps(gr , reference_gr, type= annotationType)
   if (length(all_hits) == 0)
-  {
-    warning("No samples matched")
-    return(-1)
+  { sanityCheck <- length(intersect(seqlevels(gr), seqlevels(reference_gr)))
+    msg <- paste0("No peaks aligned to any entry within gtf reference.",
+                      "\n Sanity check: ", sanityCheck,
+                      " seqnames (i.e. chromosomes) match between peak and reference file")
+    warning(msg)
+    return(NULL)
   }
 
   identified_gene_symbols <- reference_gr[S4Vectors::subjectHits(all_hits)]$gene_name
@@ -161,6 +171,37 @@ gene_Labels<- function(gr, reference_gr, annotationType)
 #' @param AAA_motif_min_position Any polyA/polyT stretches before this postion are not considered (default 10)
 #' @param polystretch_length : the length of A or T to search for (default 13)
 #'
+#' @examples 
+#' library(Sierra)
+#' peak.output.file <- c("Vignette_example_TIP_sham_peaks.txt",
+#'                       "Vignette_example_TIP_MI_peaks.txt")
+#'                       
+#' FindPeaks(output.file = peak.output.file[1],   # output filename
+#'           gtf.file = reference.file,           # gene model as a GTF file
+#'           bamfile = bamfile[1],                # BAM alignment filename.
+#'          junctions.file = junctions.file,     # BED filename of splice junctions exising in BAM file. 
+#'          ncores = 1)                          # number of cores to use
+#'          
+#'          
+#' FindPeaks(output.file = peak.output.file[2],   # output filename
+#'           gtf.file = reference.file,           # gene model as a GTF file
+#'           bamfile = bamfile[2],                # BAM alignment filename.
+#'           junctions.file = junctions.file,     # BED filename of splice junctions exising in BAM file. 
+#'           ncores = 1)      
+#'  
+#' peak.dataset.table = data.frame(Peak_file = peak.output.file,
+#' Identifier = c("TIP-example-Sham", "TIP-example-MI"), 
+#' stringsAsFactors = FALSE)
+#' 
+#' peak.merge.output.file = "TIP_merged_peaks.txt"
+#' MergePeakCoordinates(peak.dataset.table, output.file = peak.merge.output.file, ncores = 1)         
+#'           
+#' extdata_path <- system.file("extdata",package = "Sierra")
+#' reference.file <- paste0(extdata_path,"/Vignette_cellranger_genes_subset.gtf")
+#' genome <- BSgenome.Mmusculus.UCSC.mm10::BSgenome.Mmusculus.UCSC.mm10
+#' AnnotatePeaksFromGTF(peak.sites.file = peak.merge.output.file, gtf.file = reference.file, output.file = "TIP_merged_peak_annotations.txt", genome = genome)
+#'
+#'
 #' @return a dataframe with appended columns containing annotation
 #'
 ##
@@ -193,10 +234,15 @@ annotate_gr_from_gtf <- function(gr, invert_strand = FALSE, gtf_gr = NULL,
     GenomeInfoDb::seqlevels(gr) <-   gsub(pattern = "chr",replacement = "",x = GenomeInfoDb::seqlevels(gr))
     GenomeInfoDb::seqlevels(gtf_gr) <- gsub(pattern = "chr",replacement = "",x = GenomeInfoDb::seqlevels(gtf_gr))
   }
+  
 
   genes_gr <- gtf_gr[gtf_gr$type == "gene"]
 
   annotate_info <- gene_Labels(gr, genes_gr,annotationType)
+  if (is.null(annotate_info))
+  { warning("")
+    return(NULL)
+  }
 
   df <- as.data.frame(gr)
   df$gene_id <- ""
@@ -292,39 +338,47 @@ annotate_gr_from_gtf <- function(gr, invert_strand = FALSE, gtf_gr = NULL,
     df$CDS[idx_to_annotate_CDS] <- "YES"
   }
 
-#  browser()
-
   if (! is.null(genome))
-  {
+  { cat("\nAnalysing genomic motifs surrounding peaks (this can take some time)\n")
     if (isS4(genome))
     {
       ## Check if 'chr' character appended to chromosome number
-      if (grepl("chr.", as.character(gr@seqnames)[1]) == TRUE) {
-        motif_details <- lapply(X = as.character(gr),
-                                FUN = function(x) {
-                                  BaseComposition(genome,coord=x,mismatch=max_mismatch, AT_length=polystretch_length)})
-      } else {
-        motif_details <- lapply(X = paste("chr",as.character(gr),sep=''),
-                              FUN = function(x) {BaseComposition(genome,coord=x,mismatch=max_mismatch, AT_length=polystretch_length)})
-      }
-  
+      if (grepl("chr.", as.character(gr@seqnames)[1]) == FALSE) 
+      {  gr <- paste("chr",as.character(gr),sep='') }
+
+      # Set up progress bar so user can "watch" progress
+      pb <- txtProgressBar(min = 0, max = length(gr), style = 3)
+      motif_details <- lapply(X = 1:length(gr),
+                                FUN = function(i, gr, pb) {
+                                  setTxtProgressBar(pb, i)
+                                  nextgr <- gr[i]
+                                  BaseComposition(genome,coord=nextgr,mismatch=max_mismatch, AT_length=polystretch_length)
+                                  }, 
+                                  gr,pb
+                              )
+      cat("\n")  # Keep output neat as text bar does not append return character
+      
+
       df$pA_motif <- unlist( lapply(motif_details, FUN= function(x) {
-            pA_motif_position <- (max(unlist(x[1])) < pA_motif_max_position)
-            if (is.na(pA_motif_position))
-            {  pA_motif_position <- FALSE }
+            pA_motif_position <- FALSE
+            motif_pos <- unlist(x$pA_motif_pos)
+            if (length(motif_pos) > 0)
+              pA_motif_position <- (max(motif_pos) < pA_motif_max_position)
             return (pA_motif_position) } ))
   
       df$pA_stretch <- unlist( lapply(motif_details, FUN= function(x) {
-            pA_stretch_position <- (max(unlist(x[2])) > AAA_motif_min_position)
-            if (is.na(pA_stretch_position))
-            {  pA_stretch_position <- FALSE }
-            return (pA_stretch_position) } ))
+          pA_stretch_position <- FALSE
+          motif_pos <- unlist(x$pA_stretch_pos)
+          if (length(motif_pos) > 0)
+            pA_stretch_position <- (max(motif_pos) > AAA_motif_min_position)
+          return (pA_stretch_position) } ))
   
       df$pT_stretch <- unlist( lapply(motif_details, FUN= function(x) {
-        pT_stretch_position <- (max(unlist(x[3])) > AAA_motif_min_position)
-        if (is.na(pT_stretch_position))
-        {  pT_stretch_position <- FALSE }
-        return (pT_stretch_position) } ))
+          pT_stretch_position <- FALSE
+          motif_pos <- unlist(x$pT_stretch_pos)
+          if (length(motif_pos) > 0)
+            pT_stretch_position <- (max(motif_pos) > AAA_motif_min_position)
+          return (pT_stretch_position) } ))
     }
     else
     {
@@ -400,7 +454,7 @@ BaseComposition <- function(genome=NULL,  chrom=NULL, start=NULL, stop=NULL, str
                             mismatch=1, AT_length=13)
 {
   # Check inputs
-  if (!isS4(genome))
+  if (! isS4(genome))
   { warning("genome is not a BSgenome S4 object. Cannot continue.")
     return(NULL)
   }
@@ -480,7 +534,7 @@ BaseComposition <- function(genome=NULL,  chrom=NULL, start=NULL, stop=NULL, str
   {
     sequ_upstream <- sequ_tmp
   }
-#  browser()
+
   #<- longestConsecutive(seq, "A") # returns a integer
   A_pattern <- paste(rep("A",AT_length),collapse='')
   T_pattern <- paste(rep("T",AT_length),collapse='')
