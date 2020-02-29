@@ -56,3 +56,35 @@ You need to run the following code:
 
 annotationType can be c("any", "start", "end", "within", "equal"),
 }
+\examples{
+library(Sierra)
+peak.output.file <- c("Vignette_example_TIP_sham_peaks.txt",
+                      "Vignette_example_TIP_MI_peaks.txt")
+                      
+FindPeaks(output.file = peak.output.file[1],   # output filename
+          gtf.file = reference.file,           # gene model as a GTF file
+          bamfile = bamfile[1],                # BAM alignment filename.
+         junctions.file = junctions.file,     # BED filename of splice junctions exising in BAM file. 
+         ncores = 1)                          # number of cores to use
+         
+         
+FindPeaks(output.file = peak.output.file[2],   # output filename
+          gtf.file = reference.file,           # gene model as a GTF file
+          bamfile = bamfile[2],                # BAM alignment filename.
+          junctions.file = junctions.file,     # BED filename of splice junctions exising in BAM file. 
+          ncores = 1)      
+ 
+peak.dataset.table = data.frame(Peak_file = peak.output.file,
+Identifier = c("TIP-example-Sham", "TIP-example-MI"), 
+stringsAsFactors = FALSE)
+
+peak.merge.output.file = "TIP_merged_peaks.txt"
+MergePeakCoordinates(peak.dataset.table, output.file = peak.merge.output.file, ncores = 1)         
+          
+extdata_path <- system.file("extdata",package = "Sierra")
+reference.file <- paste0(extdata_path,"/Vignette_cellranger_genes_subset.gtf")
+genome <- BSgenome.Mmusculus.UCSC.mm10::BSgenome.Mmusculus.UCSC.mm10
+AnnotatePeaksFromGTF(peak.sites.file = peak.merge.output.file, gtf.file = reference.file, output.file = "TIP_merged_peak_annotations.txt", genome = genome)
+
+
+}

@@ -616,11 +616,11 @@ PlotRelativeExpressionViolin <- function(peaks.object, peaks.to.plot, do.plot=FA
 #' By default evaluates whether there is a significant shift in 3'UTR length
 #' between upregulated and downregulated peaks using the Wilcoxon Rank-sum test.
 #' 
-#' @param results.table 
-#' @param plot.title
-#' @param do.ranksum.test
-#' @param return.plot
-#' @param do.plot
+#' @param results.table table produced by the DetectUTRLengthShift function
+#' @param plot.title optional title
+#' @param do.ranksum.test whether to perform a ranksum test on the shift in UTR usage
+#' @param return.plot whether to return the ggplot2 object
+#' @param do.plot whether to print the figure to output
 #' 
 #' @return 
 #' 

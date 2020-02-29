@@ -228,7 +228,7 @@ make_reference <- function(gtf_file) {
 #' @param bamfile scRNA-seq BAM file
 #' @param junctions.file file of splice junctions (e.g. produced by regtools)
 #' @param min.jcutoff minimum number of spliced reads across a junction for it to be considered (default: 50). 
-#' @param min.jcutoff.prop minimum proportion of junction reads out of all junction reads for that gene (default: 5%)
+#' @param min.jcutoff.prop minimum proportion of junction reads out of all junction reads for that gene (default: 0.05)
 #' @param min.cov.cutoff min.cov.cutoff
 #' @param min.cov.prop min.cov.prop
 #' @param min.peak.cutoff min.peak.cutoff

@@ -9,9 +9,15 @@ PlotUTRLengthShift(results.table,
   return.plot = TRUE, do.plot = FALSE)
 }
 \arguments{
-\item{results.table}{}
+\item{results.table}{table produced by the DetectUTRLengthShift function}
 
-\item{do.plot}{}
+\item{plot.title}{optional title}
+
+\item{do.ranksum.test}{whether to perform a ranksum test on the shift in UTR usage}
+
+\item{return.plot}{whether to return the ggplot2 object}
+
+\item{do.plot}{whether to print the figure to output}
 }
 \value{
 

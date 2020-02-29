@@ -8,7 +8,7 @@ AnnotatePeaksFromGTF(peak.sites.file, gtf.file, output.file,
   genome = NULL, invert_strand = FALSE, annotationType = "any",
   transcriptDetails = TRUE, annotation_correction = TRUE,
   pA_motif_max_position = 50, AAA_motif_min_position = 10,
-  polystretch_length = 13, max_mismatch = 1)
+  polystretch_length = 13, max_mismatch = 1, append.chr.peaks = TRUE)
 }
 \arguments{
 \item{peak.sites.file}{a file of peak coordinates.}
@@ -25,8 +25,7 @@ AnnotatePeaksFromGTF(peak.sites.file, gtf.file, output.file,
 
 \item{transcriptDetails}{Boolean. If false will only return gene name. If true will return internal transcript position feature (eg exon/intron)}
 
-\item{annotation_correction}{Boolean. When multiple overlapping genes are identified will
-prioritise gene based on annotation. 3'UTR annotation trumps all other annotation.}
+\item{annotation_correction}{Boolean. When multiple overlapping genes are identified will prioritise gene based on annotation. 3'UTR annotation trumps all other annotation.}
 
 \item{pA_motif_max_position}{Any AAUAAA after this position are not considered (default 50nt)}
 
@@ -35,6 +34,8 @@ prioritise gene based on annotation. 3'UTR annotation trumps all other annotatio
 \item{polystretch_length}{: the length of A or T to search for (default 13)}
 
 \item{max_mismatch}{number of allowed mismatches for motif matching (default 1)}
+
+\item{append.chr.peaks}{: When TRUE (default) appends the character "chr" on chromosome entry in peaks file.}
 }
 \value{
 NULL. writes output to file

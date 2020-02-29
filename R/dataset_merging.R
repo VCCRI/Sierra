@@ -17,6 +17,7 @@
 #' generate_similarity_table(peaks.1, peaks.2)
 #'
 #' @importFrom magrittr "%>%"
+#' @importFrom foreach "%dopar%"
 #'
 generate_similarity_table <- function(peaks.1, peaks.2, ncores = 1) {
 

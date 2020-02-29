@@ -20,7 +20,7 @@ FindPeaks(output.file, gtf.file, bamfile, junctions.file,
 
 \item{min.jcutoff}{minimum number of spliced reads across a junction for it to be considered (default: 50).}
 
-\item{min.jcutoff.prop}{minimum proportion of junction reads out of all junction reads for that gene (default: 5%)}
+\item{min.jcutoff.prop}{minimum proportion of junction reads out of all junction reads for that gene (default: 0.05)}
 
 \item{min.cov.cutoff}{min.cov.cutoff}
 

@@ -14,13 +14,12 @@
 #' @param invert_strand Boolean to signifiy if strand of gr peaks should be inversed
 #' @param annotationType can be assigned "any" or "within". Default is "any" which states that the peak with gr must overlap annotation feature (eg exon)
 #' @param transcriptDetails Boolean. If false will only return gene name. If true will return internal transcript position feature (eg exon/intron)
-#' @param annotation_correction Boolean. When multiple overlapping genes are identified will
-#' prioritise gene based on annotation. 3'UTR annotation trumps all other annotation.
+#' @param annotation_correction Boolean. When multiple overlapping genes are identified will prioritise gene based on annotation. 3'UTR annotation trumps all other annotation.
 #' @param pA_motif_max_position Any AAUAAA after this position are not considered (default 50nt)
 #' @param AAA_motif_min_position Any polyA/polyT stretches before this postion are not considered (default 10)
 #' @param polystretch_length : the length of A or T to search for (default 13)
 #' @param max_mismatch number of allowed mismatches for motif matching (default 1)
-#' @parm append.chr.peaks : When TRUE (default) appends the character "chr" on chromosome entry in peaks file. 
+#' @param append.chr.peaks : When TRUE (default) appends the character "chr" on chromosome entry in peaks file. 
 #'
 #' @return NULL. writes output to file
 #'
