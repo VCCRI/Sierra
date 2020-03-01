@@ -75,6 +75,9 @@ PeakSeuratFromTransfer <- function(peak.data,
   # remove any cells not in the gene-level object
   cells.keep <- intersect(colnames(peak.data), colnames(genes.seurat))
   length(cells.keep)
+  if (length(cells.keep) == 0) {
+    stop("No cells overlapping with the Seurat object - please check that cell barcodes are matching.")
+  }
 
   peak.data <- peak.data[, cells.keep]
 
