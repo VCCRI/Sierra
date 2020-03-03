@@ -91,7 +91,12 @@ regtools junctions extract -s 1 Vignette_example_TIP_MI.bam -o Vignette_example_
 
 The Sierra pipeline requires a gene transfer formatted (GTF) file. Ideally this should be same GTF as provided in the alignment step. If CellRanger was used to align the data use the ``genes.gtf`` file contained within the CellRanger reference package.
 
-For this vignette a reduced GTF file has been provided that only contains a subset of genes. Similarly a reduced BAM file and peak file have also been created. Finally a white list of barcodes that identify single cells is also required. The following R code define the location of the vignette example files. 
+### Cell barcodes whitelist file
+
+Sierra requires a list of valid cell barcodes from your experiment to perform counting. If using CellRanger, this will be the barcodes.tsv file produced in the 'filtered_gene_bc_matrices_mex' folder, for example. 
+
+### Vignette example files
+For this vignette we have produced a number of reduced files. This includes a reduced GTF file containing a subset of genes, a reduced BAM file, peak file and a whitelist of barcodes identifying the single cells to include in the analysis. The following R code define the location of the vignette example files. 
 
 ```
 extdata_path <- system.file("extdata",package = "Sierra")
