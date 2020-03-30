@@ -8,6 +8,13 @@ gtf_gr <- rtracklayer::import(gtf_file)}
 \usage{
 rle_to_WIG(rle_input, gtf_gr = gtf_gr, geneSymbol = "Dnajc19")
 }
+\arguments{
+\item{rle_input}{rle input object}
+
+\item{gtf_gr}{GTF file as genomics ranges pbject}
+
+\item{geneSymbol}{name of gene to interrogate}
+}
 \description{
 load(file="c:/BAM/scRNA_polyA/FC.RData")
 gtf_file <- "u:/Reference/mm10/cellranger_genes.gtf.gz"

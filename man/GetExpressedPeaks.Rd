@@ -4,17 +4,21 @@
 \alias{GetExpressedPeaks}
 \title{Identify peaks expressed within a certain percentage of cells}
 \usage{
-GetExpressedPeaks(peaks.object, population.1, population.2 = NULL,
-  threshold = 0.05)
+GetExpressedPeaks(
+  peaks.object,
+  population.1,
+  population.2 = NULL,
+  threshold = 0.05
+)
 }
 \arguments{
+\item{peaks.object}{the peaks object either Seurat of SingleCellExperiment class.}
+
+\item{population.1}{target cluster}
+
+\item{population.2}{background cluster. If NULL (deafult) all non-target cells}
+
 \item{threshold}{percentage threshold of detected (non-zero) expression for including a peak}
-
-\item{seurat.object}{the}
-
-\item{cluster1}{target cluster}
-
-\item{cluster2}{background cluster. If NULL (deafult) all non-target cells}
 }
 \value{
 an array of peak (or gene) names
@@ -25,7 +29,9 @@ background cluster. Considers peaks expressed in some x\% of cells to be highly 
 union of peaks identified from the target and background cluster
 }
 \examples{
-get_highly_expressed_peaks(seurat.object, "1")
-get_highly_expressed_peaks(seurat.object, cluster1 = "1", cluster2 = "2")
 
+\dontrun{
+    get_highly_expressed_peaks(seurat.object, "1")
+    get_highly_expressed_peaks(seurat.object, cluster1 = "1", cluster2 = "2")
+ }
 }

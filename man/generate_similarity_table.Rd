@@ -11,7 +11,7 @@ generate_similarity_table(peaks.1, peaks.2, ncores = 1)
 
 \item{peaks.2}{second set of peaks being compared}
 
-\item{plot.distribution}{whether to plot the distribution of similarites between the peaks (default: FALSE).}
+\item{ncores}{number of cores for multithreading (default 1)}
 }
 \value{
 a data-frame with peaks from peaks.1 mapped to the closest corresponding peak in peaks.2.
@@ -22,6 +22,11 @@ calculate the amount of overlapping nucleotides to the nearest peak in peaks.2. 
 is not available in peaks.2, ditance is set to -1e7.
 }
 \examples{
-generate_similarity_table(peaks.1, peaks.2)
+\dontrun{
+extdata_path <- system.file("extdata",package = "Sierra")
+peak.sites.file <- paste0(extdata_path,"/TIP_merged_peaks.txt")
+peak.table <- read.table(peak.sites.file, sep="\t", header = TRUE, stringsAsFactors = FALSE)
 
+generate_similarity_table(peak.table, peak.table)
+}
 }

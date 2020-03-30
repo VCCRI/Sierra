@@ -4,8 +4,12 @@
 \alias{GetRelativeExpression}
 \title{Calculate relative expression between two or more peaks}
 \usage{
-GetRelativeExpression(peaks.object, peak.set = NULL, gene.name = NULL,
-  feature.type = c("UTR3", "exon"))
+GetRelativeExpression(
+  peaks.object,
+  peak.set = NULL,
+  gene.name = NULL,
+  feature.type = c("UTR3", "exon")
+)
 }
 \arguments{
 \item{peaks.object}{Seurat object}
@@ -25,6 +29,8 @@ the expression of each peak by the mean of the peak expression for that gene -
 or set of provided peaks
 }
 \examples{
-get_relative_expression_seurat(peaks.seurat.object, gene.name = "Cxcl12")
+\dontrun{
+    GetRelativeExpression(peaks.seurat.object, gene.name = "Cxcl12")
+}
 
 }

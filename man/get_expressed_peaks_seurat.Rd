@@ -4,8 +4,12 @@
 \alias{get_expressed_peaks_seurat}
 \title{Identify highly expressed peaks}
 \usage{
-get_expressed_peaks_seurat(peaks.seurat.object, population.1,
-  population.2 = NULL, threshold = 0.05)
+get_expressed_peaks_seurat(
+  peaks.seurat.object,
+  population.1,
+  population.2 = NULL,
+  threshold = 0.05
+)
 }
 \arguments{
 \item{peaks.seurat.object}{the peak-count Seurat object}
@@ -25,7 +29,8 @@ background cluster. Considers peaks expressed in some x\% of cells to be highly 
 union of peaks identified from the target and background cluster
 }
 \examples{
-get_highly_expressed_peaks(seurat.object, "1")
-get_highly_expressed_peaks(seurat.object, population.1 = "1", population.2 = "2")
-
+\dontrun{
+  get_highly_expressed_peaks(seurat.object, "1")
+  get_highly_expressed_peaks(seurat.object, population.1 = "1", population.2 = "2")
+}
 }

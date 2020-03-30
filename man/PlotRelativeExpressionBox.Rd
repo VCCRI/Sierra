@@ -4,9 +4,16 @@
 \alias{PlotRelativeExpressionBox}
 \title{Generate a box plot plot using relative expression}
 \usage{
-PlotRelativeExpressionBox(peaks.object, peaks.to.plot, do.plot = FALSE,
-  figure.title = NULL, return.plot = TRUE, pt.size = 0.5,
-  col.set = NULL, txt.size = 14)
+PlotRelativeExpressionBox(
+  peaks.object,
+  peaks.to.plot,
+  do.plot = FALSE,
+  figure.title = NULL,
+  return.plot = TRUE,
+  pt.size = 0.5,
+  col.set = NULL,
+  txt.size = 14
+)
 }
 \arguments{
 \item{peaks.object}{Peak object of either Seurat or SCE class}
@@ -17,7 +24,13 @@ PlotRelativeExpressionBox(peaks.object, peaks.to.plot, do.plot = FALSE,
 
 \item{figure.title}{Optional figure title}
 
-\item{pt.size}{Size of the points on the t-SNE plot}
+\item{return.plot}{Boolean (default True) identifying if plot should be returned.}
+
+\item{pt.size}{Size of the points on the t-SNE plot (default 0.5)}
+
+\item{col.set}{col set (default NULL)}
+
+\item{txt.size}{sie of text (default 14)}
 }
 \value{
 a ggplot2 object
@@ -27,6 +40,7 @@ Given two or more peaks to plot, a relative expression score and
 generate a box plot according to cell identities
 }
 \examples{
-PlotRelativeExpressionBox(peaks.object, this.peak.set)
-
+\dontrun{
+   PlotRelativeExpressionBox(peaks.object, this.peak.set)
+ }
 }

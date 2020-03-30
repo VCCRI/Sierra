@@ -4,10 +4,19 @@
 \alias{NewPeakSeurat}
 \title{Create a new peak-level Seurat object from the peak counts}
 \usage{
-NewPeakSeurat(peak.data, annot.info, project.name = "PolyA",
-  cell.idents = NULL, tsne.coords = NULL, umap.coords = NULL,
-  min.cells = 10, min.peaks = 200, norm.scale.factor = 10000,
-  filter.gene.mismatch = TRUE, verbose = TRUE)
+NewPeakSeurat(
+  peak.data,
+  annot.info,
+  project.name = "PolyA",
+  cell.idents = NULL,
+  tsne.coords = NULL,
+  umap.coords = NULL,
+  min.cells = 10,
+  min.peaks = 200,
+  norm.scale.factor = 10000,
+  filter.gene.mismatch = TRUE,
+  verbose = TRUE
+)
 }
 \arguments{
 \item{peak.data}{matrix of peak counts}
@@ -39,6 +48,8 @@ a new peak-level Seurat object
 Creates a new peak-level Seurat object from the peak counts and annotation table
 }
 \examples{
-peak.seurat = NewPeakSeurat(peak.data, genes.seurat, annot.info)
 
+\dontrun{ 
+     peak.seurat = NewPeakSeurat(peak.data, genes.seurat, annot.info)
+ }
 }

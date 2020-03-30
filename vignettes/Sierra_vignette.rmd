@@ -314,7 +314,7 @@ DimPlot(peaks.seurat, reduction = 'tsne', label = TRUE, pt.size = 0.5)
 
 For this example data-set there are four fibroblast clusters (F-SL, F-SH, F-Act and F-WntX) and three endothelial cell (EC) clusters. 
 
-```{r dimplot, out.width='100%', fig.cap = 'DimPlot output',echo=FALSE}
+```{r DimPlot, out.width='100%', fig.cap = 'DimPlot output',echo=FALSE}
 knitr::include_graphics('DimPlot.png')
 ```
 

@@ -15,9 +15,10 @@ geneToGR(geneID, gtf_gr)
 geneToGR converts a gene sybol to genomic ranges coordinate
 }
 \examples{
-gtf_file <- "u:/Reference/mm10/cellranger_genes.gtf.gz"
-gtf_gr <- rtracklayer::import(gtf_file)
-gtf_gr=gtf_gr, geneSymbol="Dnajc19"
-geneGR  <- geneToGR(gtf_gr=gtf_gr, geneSymbol="Dnajc19")
-
+\dontrun{
+    gtf_file <- "u:/Reference/mm10/cellranger_genes.gtf.gz"
+    gtf_gr <- rtracklayer::import(gtf_file)
+    geneSymbol <- "Dnajc19"
+    geneGR  <- geneToGR(gtf_gr=gtf_gr, geneSymbol="Dnajc19")
+}
 }

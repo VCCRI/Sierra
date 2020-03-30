@@ -4,9 +4,16 @@
 \alias{PeakSeuratFromTransfer}
 \title{Create a peak count Seurat object using a gene-level object}
 \usage{
-PeakSeuratFromTransfer(peak.data, genes.seurat, annot.info,
-  project.name = "PolyA", min.cells = 10, min.peaks = 200,
-  norm.scale.factor = 10000, filter.gene.mismatch = TRUE)
+PeakSeuratFromTransfer(
+  peak.data,
+  genes.seurat,
+  annot.info,
+  project.name = "PolyA",
+  min.cells = 10,
+  min.peaks = 200,
+  norm.scale.factor = 10000,
+  filter.gene.mismatch = TRUE
+)
 }
 \arguments{
 \item{peak.data}{matrix of peak counts}
@@ -33,6 +40,7 @@ Creates a new peak Seurat object, importing information on clustering and dimens
 such as t-SNE and UMAP coordinates, from a Seurat object that has been processed at the gene level.
 }
 \examples{
-peak.seurat <- PeakSeuratFromTransfer(peak.data, genes.seurat, annot.info)
-
+\dontrun{
+     peak.seurat <- PeakSeuratFromTransfer(peak.data, genes.seurat, annot.info)
+}
 }

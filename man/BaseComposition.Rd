@@ -4,9 +4,18 @@
 \alias{BaseComposition}
 \title{Identify polyA motif and/or polyA stretches from provided genomic coordinates}
 \usage{
-BaseComposition(genome = NULL, chrom = NULL, start = NULL,
-  stop = NULL, strand = NULL, coord = NULL, offset = -50,
-  length = 250, mismatch = 1, AT_length = 13)
+BaseComposition(
+  genome = NULL,
+  chrom = NULL,
+  start = NULL,
+  stop = NULL,
+  strand = NULL,
+  coord = NULL,
+  offset = -50,
+  length = 250,
+  mismatch = 1,
+  AT_length = 13
+)
 }
 \arguments{
 \item{genome}{genome object of organism.}
@@ -14,6 +23,8 @@ BaseComposition(genome = NULL, chrom = NULL, start = NULL,
 \item{chrom}{chromosome}
 
 \item{start}{Upstream start position}
+
+\item{stop}{downstream end position}
 
 \item{strand}{'+' or '-'. This will define the applied direction of offset}
 
@@ -26,8 +37,6 @@ BaseComposition(genome = NULL, chrom = NULL, start = NULL,
 \item{mismatch}{: The max number of mismatches allowed in poly A/T stretch (default 1)}
 
 \item{AT_length}{: length of A/T to search for within input sequence (default 13)}
-
-\item{end}{downstream end position}
 }
 \value{
 a dataframe with appended columns containing annotation
@@ -59,9 +68,10 @@ chrom <- chr8
 \details{
 start <- 70331172
 
-stop <- 70331574
+      stop <- 70331574
 
-strand <- "+"
+      strand <- "+"
+
 
 You need to run the following code:
      genome <-  GenomicFeatures::makeTxDbFromGFF(gtf_file, format="gtf")

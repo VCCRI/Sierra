@@ -4,11 +4,22 @@
 \alias{DUTest}
 \title{Apply DEXSeq to detect differential peak usage}
 \usage{
-DUTest(peaks.object, population.1, population.2 = NULL,
-  exp.thresh = 0.1, fc.thresh = 0.25, adj.pval.thresh = 0.05,
-  num.splits = 6, seed.use = 1, feature.type = c("UTR3", "exon"),
-  filter.pA.stretch = FALSE, verbose = TRUE, do.MAPlot = FALSE,
-  return.dexseq.res = FALSE, ncores = 1)
+DUTest(
+  peaks.object,
+  population.1,
+  population.2 = NULL,
+  exp.thresh = 0.1,
+  fc.thresh = 0.25,
+  adj.pval.thresh = 0.05,
+  num.splits = 6,
+  seed.use = 1,
+  feature.type = c("UTR3", "exon"),
+  filter.pA.stretch = FALSE,
+  verbose = TRUE,
+  do.MAPlot = FALSE,
+  return.dexseq.res = FALSE,
+  ncores = 1
+)
 }
 \arguments{
 \item{peaks.object}{Either a Seurat or SCE object of peaks}
@@ -33,11 +44,11 @@ DUTest(peaks.object, population.1, population.2 = NULL,
 
 \item{verbose}{whether to print outputs (TRUE by default)}
 
+\item{do.MAPlot}{make an MA plot of results (FALSE by default)}
+
 \item{return.dexseq.res}{return the raw and unfiltered DEXSeq results object (FALSE by default)}
 
 \item{ncores}{number of cores to run DEXSeq with}
-
-\item{doMAPlot}{make an MA plot of results (FALSE by default)}
 }
 \value{
 a data-frame of results.
@@ -48,6 +59,7 @@ a 'pseudo-bulk' profile of cell populations by aggregating counts from individua
 into a smaller number of profiles, defined by num.splits.
 }
 \examples{
-DUTest(apa.seurat.object, population.1 = "1", population.2 = "2")
-
+\dontrun{
+       DUTest(apa.seurat.object, population.1 = "1", population.2 = "2")
+}
 }

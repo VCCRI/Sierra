@@ -4,18 +4,32 @@
 \alias{PlotCoverage}
 \title{PlotCoverage}
 \usage{
-PlotCoverage(genome_gr, geneSymbol = "", wig_data = NULL,
-  bamfiles = NULL, wig_same_strand = TRUE, genome = NULL,
-  pdf_output = FALSE, wig_data.tracknames = NULL,
-  bamfile.tracknames = NULL, output_file_name = "",
-  zoom_3UTR = FALSE)
+PlotCoverage(
+  genome_gr,
+  geneSymbol = "",
+  wig_data = NULL,
+  bamfiles = NULL,
+  wig_same_strand = TRUE,
+  genome = NULL,
+  pdf_output = FALSE,
+  wig_data.tracknames = NULL,
+  bamfile.tracknames = NULL,
+  output_file_name = "",
+  zoom_3UTR = FALSE
+)
 }
 \arguments{
+\item{genome_gr}{: genome granges object}
+
+\item{geneSymbol}{: Name of gene symbol}
+
 \item{wig_data}{can be a data frame or a genomic ranges object. Must be stranded.}
 
 \item{bamfiles}{: BAM filenames that are to be displayed as data tracks}
 
 \item{wig_same_strand}{Display same strand or opposing strand of wig data (compared to reference gene)}
+
+\item{genome}{: genome object}
 
 \item{pdf_output}{: If true will create output pdf files}
 
@@ -25,7 +39,7 @@ PlotCoverage(genome_gr, geneSymbol = "", wig_data = NULL,
 
 \item{output_file_name}{: Used if pdf_output is true. Location of where files will be placed.}
 
-\item{zoom_UTR}{: If TRUE will create a second figure which will zoom in on 3'UTR.}
+\item{zoom_3UTR}{: If TRUE will create a second figure which will zoom in on 3'UTR.}
 }
 \value{
 NULL by default.

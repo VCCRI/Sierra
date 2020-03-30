@@ -4,10 +4,10 @@
 \alias{merge_bam_coverage}
 \title{merge_bam_coverage}
 \usage{
-merge_bam_coverage(bamfiles, to_extract)
+merge_bam_coverage(bamfiles)
 }
 \arguments{
-\item{bamfile}{: A list of BAM files that are to be merged}
+\item{bamfiles}{: A list of BAM files that are to be merged}
 }
 \description{
 merge_bam_coverage

@@ -4,9 +4,13 @@
 \alias{PlotUTRLengthShift}
 \title{Plot global shifts in 3'UTR length}
 \usage{
-PlotUTRLengthShift(results.table,
-  plot.title = "Global shift in 3'UTR length", do.ranksum.test = TRUE,
-  return.plot = TRUE, do.plot = FALSE)
+PlotUTRLengthShift(
+  results.table,
+  plot.title = "Global shift in 3'UTR length",
+  do.ranksum.test = TRUE,
+  return.plot = TRUE,
+  do.plot = FALSE
+)
 }
 \arguments{
 \item{results.table}{table produced by the DetectUTRLengthShift function}
@@ -19,9 +23,6 @@ PlotUTRLengthShift(results.table,
 
 \item{do.plot}{whether to print the figure to output}
 }
-\value{
-
-}
 \description{
 Plot global shifts in 3'UTR lengths between cell populations.
 Input is a table of results from the Detect3UTRLengthShift functions.
@@ -29,7 +30,9 @@ By default evaluates whether there is a significant shift in 3'UTR length
 between upregulated and downregulated peaks using the Wilcoxon Rank-sum test.
 }
 \examples{
-res.table <- DetectUTRLengthShift(peaks.object, gtf_gr, gtf_TxDb, c1, c2)
-PlotUTRLengthShift(res.table)
 
+\dontrun{
+  res.table <- DetectUTRLengthShift(peaks.object, gtf_gr, gtf_TxDb, c1, c2)
+  PlotUTRLengthShift(res.table)
+ }
 }

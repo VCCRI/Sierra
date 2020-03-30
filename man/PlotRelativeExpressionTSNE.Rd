@@ -4,20 +4,30 @@
 \alias{PlotRelativeExpressionTSNE}
 \title{Generate a t-SNE plot using relative expression}
 \usage{
-PlotRelativeExpressionTSNE(peaks.object, peaks.to.plot, do.plot = FALSE,
-  figure.title = NULL, return.plot = TRUE, pt.size = 0.5,
-  txt.size = 14)
+PlotRelativeExpressionTSNE(
+  peaks.object,
+  peaks.to.plot,
+  do.plot = FALSE,
+  figure.title = NULL,
+  return.plot = TRUE,
+  pt.size = 0.5,
+  txt.size = 14
+)
 }
 \arguments{
+\item{peaks.object}{peak object either Seurat or SingleCellExperiment class}
+
 \item{peaks.to.plot}{Set of peaks to plot}
 
 \item{do.plot}{Whether to plot to output (TRUE by default)}
 
 \item{figure.title}{Optional figure title}
 
-\item{pt.size}{size of the points on the t-SNE plot}
+\item{return.plot}{boolean of whether to return plot. Default is TRUE.}
 
-\item{seurat.object}{Seurat object}
+\item{pt.size}{size of the points on the t-SNE plot. Default 0.5}
+
+\item{txt.size}{size of text. Default 14}
 }
 \value{
 a ggplot2 object
@@ -27,6 +37,7 @@ Given two or more peaks to plot, a relative expression score and
 plot on t-SNE coordinates
 }
 \examples{
-PlotRelativeExpressionTSNE(peaks.seurat, this.peak.set)
-
+\dontrun{
+    PlotRelativeExpressionTSNE(peaks.seurat, this.peak.set)
+ }
 }

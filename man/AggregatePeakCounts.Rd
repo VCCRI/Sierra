@@ -4,8 +4,7 @@
 \alias{AggregatePeakCounts}
 \title{Aggregate multiple peak count outputs together}
 \usage{
-AggregatePeakCounts(peak.sites.file, count.dirs, output.dir,
-  exp.labels = NULL)
+AggregatePeakCounts(peak.sites.file, count.dirs, output.dir, exp.labels = NULL)
 }
 \arguments{
 \item{peak.sites.file}{a file containing peak site coordinates}
@@ -23,6 +22,14 @@ NULL. Writes counts to file.
 Aggregate multiple peak count outputs together
 }
 \examples{
+
+extdata_path <- system.file("extdata",package = "Sierra")
+peak.sites.file <- paste0(extdata_path,"/TIP_merged_peaks.txt")
+count.dirs <- c("example_TIP_sham_counts", "example_TIP_MI_counts")
+output.dir <- "example_TIP_aggregate"
+
+ \dontrun{ 
 AggregatePeakCounts(peak.sites.file, count.dirs, output.dir)
+}
 
 }

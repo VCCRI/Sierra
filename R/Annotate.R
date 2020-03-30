@@ -24,7 +24,20 @@
 #' @return NULL. writes output to file
 #'
 #' @examples 
-#' AnnotatePeaksFromGTF(peak.sites.file, gtf.file, output.file, genome)
+#' 
+#' extdata_path <- system.file("extdata",package = "Sierra")
+#' peak.merge.output.file <- paste0(extdata_path, "/TIP_merged_peaks.txt")
+#' reference.file <- paste0(extdata_path,"/Vignette_cellranger_genes_subset.gtf")
+#' 
+#' \dontrun{
+#'  genome <- BSgenome.Mmusculus.UCSC.mm10::BSgenome.Mmusculus.UCSC.mm10
+#' 
+#' 
+#'  AnnotatePeaksFromGTF(peak.sites.file = peak.merge.output.file, 
+#'                     gtf.file = reference.file, 
+#'                     output.file = "TIP_merged_peak_annotations.txt", 
+#'                     genome = genome)
+#'         }
 #'
 #' @export
 #'
@@ -169,36 +182,13 @@ gene_Labels<- function(gr, reference_gr, annotationType)
 #' @param pA_motif_max_position Any AAUAAA after this position are not considered (default 50nt)
 #' @param AAA_motif_min_position Any polyA/polyT stretches before this postion are not considered (default 10)
 #' @param polystretch_length : the length of A or T to search for (default 13)
+#' @param max_mismatch : The number of mismatches tolerated in polystretch
 #'
 #' @examples 
 #' library(Sierra)
 #' peak.output.file <- c("Vignette_example_TIP_sham_peaks.txt",
 #'                       "Vignette_example_TIP_MI_peaks.txt")
 #'                       
-#' FindPeaks(output.file = peak.output.file[1],   # output filename
-#'           gtf.file = reference.file,           # gene model as a GTF file
-#'           bamfile = bamfile[1],                # BAM alignment filename.
-#'          junctions.file = junctions.file,     # BED filename of splice junctions exising in BAM file. 
-#'          ncores = 1)                          # number of cores to use
-#'          
-#'          
-#' FindPeaks(output.file = peak.output.file[2],   # output filename
-#'           gtf.file = reference.file,           # gene model as a GTF file
-#'           bamfile = bamfile[2],                # BAM alignment filename.
-#'           junctions.file = junctions.file,     # BED filename of splice junctions exising in BAM file. 
-#'           ncores = 1)      
-#'  
-#' peak.dataset.table = data.frame(Peak_file = peak.output.file,
-#' Identifier = c("TIP-example-Sham", "TIP-example-MI"), 
-#' stringsAsFactors = FALSE)
-#' 
-#' peak.merge.output.file = "TIP_merged_peaks.txt"
-#' MergePeakCoordinates(peak.dataset.table, output.file = peak.merge.output.file, ncores = 1)         
-#'           
-#' extdata_path <- system.file("extdata",package = "Sierra")
-#' reference.file <- paste0(extdata_path,"/Vignette_cellranger_genes_subset.gtf")
-#' genome <- BSgenome.Mmusculus.UCSC.mm10::BSgenome.Mmusculus.UCSC.mm10
-#' AnnotatePeaksFromGTF(peak.sites.file = peak.merge.output.file, gtf.file = reference.file, output.file = "TIP_merged_peak_annotations.txt", genome = genome)
 #'
 #'
 #' @return a dataframe with appended columns containing annotation
@@ -415,7 +405,7 @@ annotate_gr_from_gtf <- function(gr, invert_strand = FALSE, gtf_gr = NULL,
 #' @param genome genome object of organism.
 #' @param chrom chromosome
 #' @param start Upstream start position
-#' @param end downstream end position
+#' @param stop downstream end position
 #' @param strand '+' or '-'. This will define the applied direction of offset
 #' @param coord coordinates
 #' @param offset The

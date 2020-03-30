@@ -4,10 +4,21 @@
 \alias{DetectAEU}
 \title{Find alternative 3' end usage between two single-cell populations}
 \usage{
-DetectAEU(peaks.object, gtf_gr, gtf_TxDb, population.1,
-  population.2 = NULL, exp.thresh = 0.1, fc.thresh = 0.25,
-  adj.pval.thresh = 0.05, num.splits = 6, seed.use = 1,
-  verbose = TRUE, do.MAPlot = FALSE, ncores = 1)
+DetectAEU(
+  peaks.object,
+  gtf_gr,
+  gtf_TxDb,
+  population.1,
+  population.2 = NULL,
+  exp.thresh = 0.1,
+  fc.thresh = 0.25,
+  adj.pval.thresh = 0.05,
+  num.splits = 6,
+  seed.use = 1,
+  verbose = TRUE,
+  do.MAPlot = FALSE,
+  ncores = 1
+)
 }
 \arguments{
 \item{peaks.object}{Either a Seurat or SCE object of peaks}
@@ -32,7 +43,9 @@ DetectAEU(peaks.object, gtf_gr, gtf_TxDb, population.1,
 
 \item{verbose}{whether to print outputs (TRUE by default)}
 
-\item{doMAPlot}{make an MA plot of results (FALSE by default)}
+\item{do.MAPlot}{make an MA plot of results (FALSE by default)}
+
+\item{ncores}{Number of cores for multithreading}
 }
 \value{
 a data-frame of results.
@@ -43,6 +56,7 @@ test for differential usage between 3'UTRs. For DU 3'UTR peaks, evaluates whethe
 fall in different 3'UTRs.
 }
 \examples{
-DetectAEU(apa.seurat.object, population.1 = "1", population.2 = "2")
-
+\dontrun{
+     DetectAEU(apa.seurat.object, population.1 = "1", population.2 = "2")
+ }
 }

@@ -4,10 +4,18 @@
 \alias{PlotRelativeExpressionViolin}
 \title{Generate a violin plot plot using relative expression}
 \usage{
-PlotRelativeExpressionViolin(peaks.object, peaks.to.plot,
-  do.plot = FALSE, figure.title = NULL, return.plot = TRUE,
-  pt.size = 0.5, col.set = NULL, txt.size = 14, add.jitter = TRUE,
-  jitter.pt.size = 0.25)
+PlotRelativeExpressionViolin(
+  peaks.object,
+  peaks.to.plot,
+  do.plot = FALSE,
+  figure.title = NULL,
+  return.plot = TRUE,
+  pt.size = 0.5,
+  col.set = NULL,
+  txt.size = 14,
+  add.jitter = TRUE,
+  jitter.pt.size = 0.25
+)
 }
 \arguments{
 \item{peaks.object}{Peak object of either Seurat or SCE class}
@@ -18,7 +26,13 @@ PlotRelativeExpressionViolin(peaks.object, peaks.to.plot,
 
 \item{figure.title}{Optional figure title}
 
+\item{return.plot}{Boolean of whether to return plot (default TRUE)}
+
 \item{pt.size}{size of the points on the t-SNE plot}
+
+\item{col.set}{default NULL}
+
+\item{txt.size}{size of text. Default 14}
 
 \item{add.jitter}{whether to add a geom_jitter to the plot (default: TRUE)}
 
@@ -32,6 +46,7 @@ Given two or more peaks to plot, a relative expression score and
 generate a violin plot according to cell identities
 }
 \examples{
-PlotRelativeExpressionViolin(peaks.object, this.peak.set)
-
+\dontrun{
+   PlotRelativeExpressionViolin(peaks.object, this.peak.set)
+}
 }

@@ -13,27 +13,31 @@
 #' @param gtf_gr gene model genomic ranges. Only used if geneSymbol is defined.
 #' @param geneSymbol Gene symbol. Used to identify the genomic coordinates to extract reads from.
 #' @param gi_ext The number of nucleotides to extend the genomic interval in extracting reads from (default 50).
-#' @param rle_output: If TRUE will generate and return rle_list object
+#' @param rle_output If TRUE will generate and return rle_list object
 #'
 #' @return a rleList of coverage for each cell type
 #'
 #' @examples
+#' \dontrun{
 #' extdata_path <- system.file("extdata",package = "scpolya")
 #' load(paste(extdata_path,"TIP_vignette_gene_Seurat.RData",sep="/"))
 #' cellbc.df <- data.frame(celltype=genes.seurat@active.ident, cellbc= names(genes.seurat@active.ident))
-#' bam <- "c:/BAM/Harvey/scpolyA/one_percent.bam"
-#' splitBam(bam, cellbc.df, "c:/TEMP/")
-#'
+#' bamfile <- c(paste0(extdata_path,"/Vignette_example_TIP_sham.bam")
+#' 
+#' splitBam(bam, cellbc.df)
+#' }
 #'
 #' # Example 2 extract reads that overlap a gene
-#'
+#' \dontrun{
 #' gtf_file <- "u:/Reference/mm10/cellranger_genes.gtf.gz"
 #' gtf_gr <- rtracklayer::import(gtf_file)
 #' extdata_path <- system.file("extdata",package = "scpolya")
 #' load(paste(extdata_path,"TIP_vignette_gene_Seurat.RData",sep="/"))
-#' cellbc.df <- data.frame(celltype=genes.seurat@active.ident, cellbc= names(genes.seurat@active.ident))
+#' cellbc.df <- data.frame(celltype=genes.seurat@active.ident, 
+#'                        cellbc= names(genes.seurat@active.ident))
 #' bam <- "R:/scpolyA_BAM_link/possorted_genome_bam.bam"
 #' splitBam(bam, cellbc.df, outdir="c:/TEMP/", gtf_gr=gtf_gr, geneSymbol="Dnajc19")
+#' }
 #'
 #'
 #' @export
@@ -130,10 +134,10 @@ SplitBam <- function(bam, cellbc.df, outdir=NULL, yieldSize = 1000000,
 #' 
 #' merge_bam_coverage
 #'
-#' @param bamfile : A list of BAM files that are to be merged
+#' @param bamfiles : A list of BAM files that are to be merged
 #'
 #'
-merge_bam_coverage <- function(bamfiles, to_extract)
+merge_bam_coverage <- function(bamfiles)
 {
 
   warning("Function is not finished .. expect errors?")
@@ -165,11 +169,12 @@ merge_bam_coverage <- function(bamfiles, to_extract)
 #' @param gtf_gr : Granges object of a gtf file
 #'
 #' @examples
-#' gtf_file <- "u:/Reference/mm10/cellranger_genes.gtf.gz"
-#' gtf_gr <- rtracklayer::import(gtf_file)
-#' gtf_gr=gtf_gr, geneSymbol="Dnajc19"
-#' geneGR  <- geneToGR(gtf_gr=gtf_gr, geneSymbol="Dnajc19")
-#'
+#' \dontrun{
+#'     gtf_file <- "u:/Reference/mm10/cellranger_genes.gtf.gz"
+#'     gtf_gr <- rtracklayer::import(gtf_file)
+#'     geneSymbol <- "Dnajc19"
+#'     geneGR  <- geneToGR(gtf_gr=gtf_gr, geneSymbol="Dnajc19")
+#' }
 geneToGR <- function(geneID, gtf_gr)
 {
   if (! is.null(geneSymbol))
@@ -260,6 +265,10 @@ seqmonk_file_to_rle <- function(fn)
 #' load(file="c:/BAM/scRNA_polyA/FC.RData")
 #' gtf_file <- "u:/Reference/mm10/cellranger_genes.gtf.gz"
 #' gtf_gr <- rtracklayer::import(gtf_file)
+#'
+#' @param rle_input   rle input object
+#' @param gtf_gr   GTF file as genomics ranges pbject
+#' @param geneSymbol name of gene to interrogate
 #'
 rle_to_WIG <- function(rle_input, gtf_gr=gtf_gr, geneSymbol="Dnajc19")
 {

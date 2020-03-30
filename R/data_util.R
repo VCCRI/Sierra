@@ -12,8 +12,9 @@
 #' @param sites.file file containing peak coordinate names corresponding to rows in the matrix
 #' @return a sparseMatrix
 #' @examples
-#' count.mat = ReadPeakCounts(data.dir = data.dir)
-#'
+#' \dontrun{
+#'         count.mat = ReadPeakCounts()
+#'  }
 #' @export
 #'
 ReadPeakCounts <- function(data.dir = NULL, mm.file = NULL, barcodes.file = NULL, sites.file = NULL) {
@@ -55,8 +56,9 @@ ReadPeakCounts <- function(data.dir = NULL, mm.file = NULL, barcodes.file = NULL
 #' @return a new peak-level Seurat object
 #'
 #' @examples
-#' peak.seurat <- PeakSeuratFromTransfer(peak.data, genes.seurat, annot.info)
-#'
+#' \dontrun{
+#'      peak.seurat <- PeakSeuratFromTransfer(peak.data, genes.seurat, annot.info)
+#' }
 #' @export
 #'
 PeakSeuratFromTransfer <- function(peak.data, 
@@ -145,8 +147,10 @@ PeakSeuratFromTransfer <- function(peak.data,
 #' @return a new peak-level Seurat object
 #'
 #' @examples
-#' peak.seurat = NewPeakSeurat(peak.data, genes.seurat, annot.info)
-#'
+#' 
+#' \dontrun{ 
+#'      peak.seurat = NewPeakSeurat(peak.data, genes.seurat, annot.info)
+#'  }
 #' @export
 #'
 NewPeakSeurat <- function(peak.data, annot.info, project.name = "PolyA", cell.idents = NULL,
@@ -305,8 +309,9 @@ NewPeakSeurat <- function(peak.data, annot.info, project.name = "PolyA", cell.id
 #' @return a new peak-level SCE object
 #'
 #' @examples
-#' peak.sce = NewPeakSCE(peak.data, genes.seurat, annot.info)
-#'
+#' \dontrun{
+#'     peak.sce = NewPeakSCE(peak.data, genes.seurat, annot.info)
+#' }
 #' @export
 #'
 #' @import SingleCellExperiment
@@ -469,8 +474,9 @@ NewPeakSCE <- function(peak.data, annot.info, cell.idents = NULL,
 #' @param feature.type type of genomic features to use
 #' @return a list of peak IDs
 #' @examples
-#' peak.list = SelectGenePeaks(peaks.object, "PTPRC", feature.type = c("UTR3", "exon"))
-#'
+#' \dontrun{
+#'      peak.list = SelectGenePeaks(peaks.object, "PTPRC", feature.type = c("UTR3", "exon"))
+#' }
 #' @export
 #'
 SelectGenePeaks <- function(peaks.object, gene, feature.type = c("UTR3", "UTR5", "exon", "intron")) {

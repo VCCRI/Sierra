@@ -4,8 +4,12 @@
 \alias{ReadPeakCounts}
 \title{Read in peak data saved in MEX format}
 \usage{
-ReadPeakCounts(data.dir = NULL, mm.file = NULL, barcodes.file = NULL,
-  sites.file = NULL)
+ReadPeakCounts(
+  data.dir = NULL,
+  mm.file = NULL,
+  barcodes.file = NULL,
+  sites.file = NULL
+)
 }
 \arguments{
 \item{data.dir}{directory where output from CountPeaks is stored}
@@ -23,6 +27,7 @@ a sparseMatrix
 Read in peak data saved in MEX format
 }
 \examples{
-count.mat = ReadPeakCounts(data.dir = data.dir)
-
+\dontrun{
+        count.mat = ReadPeakCounts()
+ }
 }

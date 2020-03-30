@@ -4,8 +4,12 @@
 \alias{get_expressed_peaks_sce}
 \title{Identify highly expressed peaks}
 \usage{
-get_expressed_peaks_sce(peaks.sce.object, population.1,
-  population.2 = NULL, threshold = 0.05)
+get_expressed_peaks_sce(
+  peaks.sce.object,
+  population.1,
+  population.2 = NULL,
+  threshold = 0.05
+)
 }
 \arguments{
 \item{peaks.sce.object}{the peak-count SCE object}
@@ -25,7 +29,8 @@ background cluster. Considers peaks expressed in some x\% of cells to be highly 
 union of peaks identified from the target and background cluster
 }
 \examples{
+\dontrun{
 get_expressed_peaks_sce(peak.sce, "1")
 get_expressed_peaks_sce(peak.sce, population.1 = "1", population.2 = "2")
-
+}
 }

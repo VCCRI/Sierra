@@ -12,9 +12,30 @@
 #' @param whitelist.file white list file
 #' @param output.dir name of directory to write output (will be created if it doesn't exist)
 #' @param countUMI whether to count UMIs (default: TRUE)
+#' @param ncores Number of cores for multithreading
 #' @return NULL. Writes counts to file.
 #' @examples
-#' CountPeaks(peak.sites.file, reference.file, bamfile, whitelist.file, output.dir)
+#' 
+#' extdata_path <- system.file("extdata",package = "Sierra")
+#' reference.file <- paste0(extdata_path,"/Vignette_cellranger_genes_subset.gtf")
+#' 
+#' bamfile <- c(paste0(extdata_path,"/Vignette_example_TIP_sham.bam"),
+#'              paste0(extdata_path,"/Vignette_example_TIP_MI.bam") )
+#'              
+#' whitelist.bc.file <- paste0(extdata_path,"/example_TIP_sham_whitelist_barcodes.tsv")
+#'   
+#' peak.merge.output.file = paste0(extdata_path, "/TIP_merged_peaks.txt")
+#'  
+#' \dontrun{                                
+#' CountPeaks(peak.sites.file = peak.merge.output.file, 
+#'              gtf.file = reference.file,
+#'              bamfile = bamfile[1], 
+#'              whitelist.file = whitelist.bc.file[1],
+#'              output.dir = count.dirs[1], 
+#'              countUMI = TRUE, 
+#'              ncores = 1)
+#'  }
+#' 
 #'
 #' @importFrom magrittr "%>%"
 #' @importFrom foreach "%dopar%"
@@ -160,7 +181,11 @@ CountPeaks <- function(peak.sites.file, gtf.file, bamfile, whitelist.file, outpu
 #' @param x x
 #' @return to write
 #' @examples
+#' \dontrun{
 #' make_exons(x)
+#' }
+#' 
+#' 
 make_exons <- function(x) {
   to.write <- paste0("(", as.character(x[1]), ",")
   niters <- length(x) -1
@@ -180,6 +205,8 @@ make_exons <- function(x) {
 ###################################################################
 #'
 #' Build gene start-end reference from a gtf file
+#'
+#' @param gtf_file  gtf file
 #'
 #' Takes a GTF file as input and creates a table of chromosome start-end
 #' positions for each gene. Works with GTF files downloaded from 10x Genomics website.
@@ -236,7 +263,19 @@ make_reference <- function(gtf_file) {
 #' @param ncores number of cores to use
 #' @return NULL. Writes counts to file.
 #' @examples
-#' FindPeaks(output.file, reference.file, bamfile, junctions.file)
+#' 
+#' extdata_path <- system.file("extdata",package = "Sierra")
+#' reference.file <- paste0(extdata_path,"/Vignette_cellranger_genes_subset.gtf")
+#' junctions.file <- paste0(extdata_path,"/Vignette_example_TIP_sham_junctions.bed")
+#' 
+#' bamfile <- c(paste0(extdata_path,"/Vignette_example_TIP_sham.bam"),
+#'              paste0(extdata_path,"/Vignette_example_TIP_MI.bam") )
+#'              
+#' peak.output.file <- c("Vignette_example_TIP_sham_peaks.txt",  "Vignette_example_TIP_MI_peaks.txt")
+#' 
+#' 
+#' FindPeaks(output.file=peak.output.file[1], gtf.file = reference.file, 
+#'              bamfile=bamfile[1], junctions.file=junctions.file)
 #'
 #' @importFrom magrittr "%>%"
 #' @importFrom foreach "%dopar%"
@@ -554,8 +593,16 @@ FindPeaks <- function(output.file, gtf.file, bamfile, junctions.file,
 #' @param exp.labels optional labels to append to cell barcodes corresponding to count.dirs
 #' @return NULL. Writes counts to file.
 #' @examples
-#' AggregatePeakCounts(peak.sites.file, count.dirs, output.dir)
+#' 
+#' extdata_path <- system.file("extdata",package = "Sierra")
+#' peak.sites.file <- paste0(extdata_path,"/TIP_merged_peaks.txt")
+#' count.dirs <- c("example_TIP_sham_counts", "example_TIP_MI_counts")
+#' output.dir <- "example_TIP_aggregate"
 #'
+#'  \dontrun{ 
+#' AggregatePeakCounts(peak.sites.file, count.dirs, output.dir)
+#' }
+#' 
 #' @export
 #'
 AggregatePeakCounts <- function(peak.sites.file, count.dirs, output.dir, exp.labels = NULL) {

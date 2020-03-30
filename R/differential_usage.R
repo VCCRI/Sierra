@@ -19,13 +19,14 @@
 #' @param feature.type genomic feature types to run analysis on (default: UTR3, exon)
 #' @param filter.pA.stretch whether to filter out peaks annotated as proximal to an A-rich region (default: FALSE)
 #' @param verbose whether to print outputs (TRUE by default)
-#' @param doMAPlot make an MA plot of results (FALSE by default)
+#' @param do.MAPlot make an MA plot of results (FALSE by default)
 #' @param return.dexseq.res return the raw and unfiltered DEXSeq results object (FALSE by default)
 #' @param ncores number of cores to run DEXSeq with 
 #' @return a data-frame of results.
 #' @examples
-#' DUTest(apa.seurat.object, population.1 = "1", population.2 = "2")
-#'
+#' \dontrun{
+#'        DUTest(apa.seurat.object, population.1 = "1", population.2 = "2")
+#' }
 #' @export
 #'
 DUTest <- function(peaks.object, 
@@ -94,7 +95,8 @@ DUTest <- function(peaks.object,
 #' @param num.splits the number of pseudo-bulk profiles to create per identity class (default: 6)
 #' @param seed.use seed to set the randomised assignment of cells to pseudo-bulk profiles
 #' @param verbose whether to print outputs (TRUE by default)
-#' @param doMAPlot make an MA plot of results (FALSE by default)
+#' @param do.MAPlot make an MA plot of results (FALSE by default)
+#' @param ncores Number of cores for multithreading
 #' @return a data-frame of results.
 #' 
 #' @importFrom magrittr "%>%"
@@ -270,11 +272,13 @@ DetectUTRLengthShift <- function(peaks.object,
 #' @param num.splits the number of pseudo-bulk profiles to create per identity class (default: 6)
 #' @param seed.use seed to set the randomised assignment of cells to pseudo-bulk profiles
 #' @param verbose whether to print outputs (TRUE by default)
-#' @param doMAPlot make an MA plot of results (FALSE by default)
+#' @param do.MAPlot make an MA plot of results (FALSE by default)
+#' @param ncores Number of cores for multithreading
 #' @return a data-frame of results.
 #' @examples
-#' DetectAEU(apa.seurat.object, population.1 = "1", population.2 = "2")
-#'
+#' \dontrun{
+#'      DetectAEU(apa.seurat.object, population.1 = "1", population.2 = "2")
+#'  }
 #' @export
 #' 
 #' @importFrom magrittr "%>%"
@@ -434,15 +438,19 @@ DetectAEU <- function(peaks.object, gtf_gr, gtf_TxDb, population.1, population.2
 #' @param fc.thresh threshold for log2 fold-change difference for returned results
 #' @param adj.pval.thresh threshold for adjusted P-value for returned results
 #' @param num.splits the number of pseudo-bulk profiles to create per identity class (default: 6)
+#' @param seed.use seed
 #' @param feature.type genomic feature types to run analysis on (default: all)
 #' @param filter.pA.stretch whether to filter out peaks annotated as proximal to an A-rich region (default: FALSE)
 #' @param verbose whether to print outputs (TRUE by default)
-#' @param doMAPlot make an MA plot of results (FALSE by default)
+#' @param do.MAPlot make an MA plot of results (FALSE by default)
 #' @param return.dexseq.res return the raw and unfiltered DEXSeq results object (FALSE by default)
+#' @param ncores Number of cores to use for multithreading
 #' @return a data-frame of results.
 #' @examples
-#' apply_DEXSeq_test(apa.seurat.object, population.1 = "1", population.2 = "2")
-#'
+#' 
+#' \dontrun{
+#'    apply_DEXSeq_test(apa.seurat.object, population.1 = "1", population.2 = "2")
+#'  }
 #'
 apply_DEXSeq_test_seurat <- function(apa.seurat.object, population.1, population.2 = NULL, exp.thresh = 0.1,
                               fc.thresh=0.25, adj.pval.thresh = 0.05, num.splits = 6, seed.use = 1,
@@ -643,15 +651,19 @@ apply_DEXSeq_test_seurat <- function(apa.seurat.object, population.1, population
 #' @param fc.thresh threshold for log2 fold-change difference for returned results
 #' @param adj.pval.thresh threshold for adjusted P-value for returned results
 #' @param num.splits the number of pseudo-bulk profiles to create per identity class (default: 6)
+#' @param seed.use seed use
 #' @param feature.type genomic feature types to run analysis on (degault: all)
 #' @param filter.pA.stretch whether to filter out peaks annotated as proximal to an A-rich region (default: FALSE)
 #' @param verbose whether to print outputs (TRUE by default)
-#' @param doMAPlot make an MA plot of results (FALSE by default)
+#' @param do.MAPlot make an MA plot of results (FALSE by default)
 #' @param return.dexseq.res return the raw and unfiltered DEXSeq results object (FALSE by default)
+#' @param ncores Number of cores to use for multithreading
 #' @return a data-frame of results.
 #' @examples
-#' apply_DEXSeq_test(apa.seurat.object, population.1 = "1", population.2 = "2")
-#'
+#' 
+#' \dontrun{
+#' apply_DEXSeq_test_sce(apa.seurat.object, population.1 = "1", population.2 = "2")
+#' }
 #'
 apply_DEXSeq_test_sce <- function(peaks.sce.object, population.1, population.2 = NULL, exp.thresh = 0.1,
                                      fc.thresh=0.25, adj.pval.thresh = 0.05, num.splits = 6, seed.use = 1,
@@ -893,15 +905,17 @@ make_utr3_peak_location_table <- function(peaks.object, res.table, strand, peaks
 #' background cluster. Considers peaks expressed in some x\% of cells to be highly expressed. Returns the
 #' union of peaks identified from the target and background cluster
 #'
-#' @param seurat.object the
-#' @param cluster1 target cluster
-#' @param cluster2 background cluster. If NULL (deafult) all non-target cells
+#' @param peaks.object the peaks object either Seurat of SingleCellExperiment class.
+#' @param population.1 target cluster
+#' @param population.2 background cluster. If NULL (deafult) all non-target cells
 #' @param threshold percentage threshold of detected (non-zero) expression for including a peak
 #' @return an array of peak (or gene) names
 #' @examples
-#' get_highly_expressed_peaks(seurat.object, "1")
-#' get_highly_expressed_peaks(seurat.object, cluster1 = "1", cluster2 = "2")
-#'
+#' 
+#' \dontrun{
+#'     get_highly_expressed_peaks(seurat.object, "1")
+#'     get_highly_expressed_peaks(seurat.object, cluster1 = "1", cluster2 = "2")
+#'  }
 #' @export
 #'
 GetExpressedPeaks <- function(peaks.object, population.1, population.2=NULL, threshold=0.05) {
@@ -935,9 +949,10 @@ GetExpressedPeaks <- function(peaks.object, population.1, population.2=NULL, thr
 #' @param threshold percentage threshold of detected (non-zero) expression for including a peak
 #' @return an array of peak (or gene) names
 #' @examples
-#' get_highly_expressed_peaks(seurat.object, "1")
-#' get_highly_expressed_peaks(seurat.object, population.1 = "1", population.2 = "2")
-#'
+#' \dontrun{
+#'   get_highly_expressed_peaks(seurat.object, "1")
+#'   get_highly_expressed_peaks(seurat.object, population.1 = "1", population.2 = "2")
+#' }
 get_expressed_peaks_seurat <- function(peaks.seurat.object, population.1, population.2=NULL, threshold=0.05) {
 
   if (length(population.1) == 1){ # cluster identity used as input
@@ -986,9 +1001,10 @@ get_expressed_peaks_seurat <- function(peaks.seurat.object, population.1, popula
 #' @param threshold percentage threshold of detected (non-zero) expression for including a peak
 #' @return an array of peak (or gene) names
 #' @examples
+#' \dontrun{
 #' get_expressed_peaks_sce(peak.sce, "1")
 #' get_expressed_peaks_sce(peak.sce, population.1 = "1", population.2 = "2")
-#'
+#' }
 get_expressed_peaks_sce <- function(peaks.sce.object, population.1, population.2=NULL, threshold=0.05) {
 
   if (length(population.1) == 1){ # cluster identity used as input

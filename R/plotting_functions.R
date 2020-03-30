@@ -15,7 +15,9 @@
 #' @return a matrix of relative expression
 #'
 #' @examples
-#' get_relative_expression_seurat(peaks.seurat.object, gene.name = "Cxcl12")
+#' \dontrun{
+#'     GetRelativeExpression(peaks.seurat.object, gene.name = "Cxcl12")
+#' }
 #'
 #' @export
 #'
@@ -47,14 +49,15 @@ GetRelativeExpression <- function(peaks.object, peak.set = NULL, gene.name = NUL
 #'
 #' @param peaks.seurat.object Seurat object
 #' @param peak.set set of peaks
-#' @param gene_name gene name for retrieving a set of peaks
+#' @param gene.name gene name for retrieving a set of peaks
 #' @param feature.type features to consider. 3'UTR and exon by default.
 #'
 #' @return a matrix of relative expression
 #'
 #' @examples
+#' \dontrun{
 #' get_relative_expression_seurat(peaks.seurat.object, gene.name = "Cxcl12")
-#'
+#' }
 get_relative_expression_seurat <- function(peaks.seurat.object, peak.set = NULL, gene.name = NULL,
                                     feature.type = c("UTR3", "exon")) {
 
@@ -139,14 +142,15 @@ get_relative_expression_seurat <- function(peaks.seurat.object, peak.set = NULL,
 #'
 #' @param peaks.sce.object Seurat object
 #' @param peak.set set of peaks
-#' @param gene_name gene name for retrieving a set of peaks
+#' @param gene.name gene name for retrieving a set of peaks
 #' @param feature.type features to consider. 3'UTR and exon by default.
 #'
 #' @return a matrix of relative expression
 #'
 #' @examples
+#' \dontrun{
 #' get_relative_expression(peaks.seurat, gene.name = "Cxcl12")
-#'
+#' }
 get_relative_expression_sce <- function(peaks.sce.object, peak.set = NULL, gene.name = NULL,
                                     feature.type = c("UTR3", "exon")) {
 
@@ -226,15 +230,15 @@ get_relative_expression_sce <- function(peaks.sce.object, peak.set = NULL, gene.
 #' Produce an arrow plot of peak expression, utlising the gggenes package.
 #'
 #' @param peaks.seurat.object a Seurat object containing t-SNE coordinates and cluster ID's in @ident slot
-#' @param col.set a vector of colour codes corresponding to the number of clusters
 #' @param gene_name optional plot title
 #' @param peaks.use whether to print the plot to output (default: TRUE).
 #' @param population.ids size of the point (default: 0.75)
 #' @param return.plot whether to return the ggplot object (default: FALSE)
 #' @return NULL by default. Returns a ggplot2 object if return.plot = TRUE
 #' @examples
+#' \dontrun{
 #' do_arrow_plot(peaks.seurat.object, gene_name = Favouritegene1)
-#'
+#' }
 #' @import ggplot2
 #'
 do_arrow_plot <- function(peaks.seurat.object, gene_name, peaks.use = NULL, population.ids = NULL,
@@ -291,17 +295,20 @@ do_arrow_plot <- function(peaks.seurat.object, gene_name, peaks.use = NULL, popu
 #' Given two or more peaks to plot, a relative expression score and
 #' plot on t-SNE coordinates
 #'
-#' @param seurat.object Seurat object
+#' @param peaks.object peak object either Seurat or SingleCellExperiment class
 #' @param peaks.to.plot Set of peaks to plot
 #' @param do.plot Whether to plot to output (TRUE by default)
 #' @param figure.title Optional figure title
-#' @param pt.size size of the points on the t-SNE plot
+#' @param return.plot boolean of whether to return plot. Default is TRUE.
+#' @param pt.size size of the points on the t-SNE plot. Default 0.5
+#' @param txt.size size of text. Default 14
 #'
 #' @return a ggplot2 object
 #'
 #' @examples
-#' PlotRelativeExpressionTSNE(peaks.seurat, this.peak.set)
-#'
+#' \dontrun{
+#'     PlotRelativeExpressionTSNE(peaks.seurat, this.peak.set)
+#'  }
 #' @import ggplot2
 #'
 #' @export
@@ -368,13 +375,16 @@ PlotRelativeExpressionTSNE <- function(peaks.object, peaks.to.plot, do.plot=FALS
 #' @param peaks.to.plot Set of peaks to plot
 #' @param do.plot Whether to plot to output (TRUE by default)
 #' @param figure.title Optional figure title
-#' @param pt.size size of the points on the t-SNE plot
+#' @param return.plot Boolean of whether to return plot (default TRUE)
+#' @param pt.size size of the points on the t-SNE plot. Default 0.5
+#' @param txt.size size of text. Default 14
 #'
 #' @return a ggplot2 object
 #'
 #' @examples
-#' PlotRelativeExpressionUMAP(peaks.seurat, this.peak.set)
-#'
+#' \dontrun{
+#'    PlotRelativeExpressionUMAP(peaks.seurat, this.peak.set)
+#'  }
 #' @import ggplot2
 #'
 #' @export
@@ -441,13 +451,17 @@ PlotRelativeExpressionUMAP <- function(peaks.object, peaks.to.plot, do.plot=FALS
 #' @param peaks.to.plot Set of peaks to plot
 #' @param do.plot Whether to plot to output (TRUE by default)
 #' @param figure.title Optional figure title
-#' @param pt.size Size of the points on the t-SNE plot
+#' @param return.plot Boolean (default True) identifying if plot should be returned.
+#' @param pt.size Size of the points on the t-SNE plot (default 0.5)
+#' @param col.set col set (default NULL)
+#' @param txt.size sie of text (default 14)
 #'
 #' @return a ggplot2 object
 #'
 #' @examples
-#' PlotRelativeExpressionBox(peaks.object, this.peak.set)
-#'
+#' \dontrun{
+#'    PlotRelativeExpressionBox(peaks.object, this.peak.set)
+#'  }
 #' @import ggplot2
 #'
 #' @export
@@ -526,15 +540,19 @@ PlotRelativeExpressionBox <- function(peaks.object, peaks.to.plot, do.plot=FALSE
 #' @param peaks.to.plot Set of peaks to plot
 #' @param do.plot Whether to plot to output (TRUE by default)
 #' @param figure.title Optional figure title
+#' @param return.plot Boolean of whether to return plot (default TRUE)
 #' @param pt.size size of the points on the t-SNE plot
+#' @param col.set default NULL
+#' @param txt.size size of text. Default 14
 #' @param add.jitter whether to add a geom_jitter to the plot (default: TRUE)
 #' @param jitter.pt.size size of point for geom_jitter (default = 0.25)
 #'
 #' @return a ggplot2 object
 #'
 #' @examples
-#' PlotRelativeExpressionViolin(peaks.object, this.peak.set)
-#'
+#' \dontrun{
+#'    PlotRelativeExpressionViolin(peaks.object, this.peak.set)
+#' }
 #' @import ggplot2
 #'
 #' @export
@@ -622,12 +640,13 @@ PlotRelativeExpressionViolin <- function(peaks.object, peaks.to.plot, do.plot=FA
 #' @param return.plot whether to return the ggplot2 object
 #' @param do.plot whether to print the figure to output
 #' 
-#' @return 
 #' 
 #' @examples
-#' res.table <- DetectUTRLengthShift(peaks.object, gtf_gr, gtf_TxDb, c1, c2)
-#' PlotUTRLengthShift(res.table)
 #' 
+#' \dontrun{
+#'   res.table <- DetectUTRLengthShift(peaks.object, gtf_gr, gtf_TxDb, c1, c2)
+#'   PlotUTRLengthShift(res.table)
+#'  }
 #' @import ggplot2
 #' 
 #' @export
@@ -689,6 +708,10 @@ PlotUTRLengthShift <- function(results.table,
 #' of the query peak location on a scale of 0 to 1, where 0 indicates
 #' the most proximal location and 1 indicates most distal.
 #'
+#' @param location location
+#' @param n number of locations
+#'
+#'
 relative_location <- function(location, n) {
   make_range <- function(x){(x-min(x))/(max(x)-min(x))}
   relative.locations <- make_range( (1:n) / n )
@@ -703,14 +726,17 @@ relative_location <- function(location, n) {
 #' @description
 #' Plots read coverage across a gene for a set of BAM files and/or wig data.
 #'
+#' @param genome_gr : genome granges object
+#' @param geneSymbol : Name of gene symbol
 #' @param wig_data can be a data frame or a genomic ranges object. Must be stranded.
 #' @param bamfiles : BAM filenames that are to be displayed as data tracks
 #' @param wig_same_strand Display same strand or opposing strand of wig data (compared to reference gene)
+#' @param genome  : genome object
 #' @param bamfile.tracknames : BAM track display names. Assumed to be in same order as bamfiles.
 #' @param wig_data.tracknames : WIG track display names. Assumed to be in same order as wig_data.
 #' @param pdf_output : If true will create output pdf files
 #' @param output_file_name : Used if pdf_output is true. Location of where files will be placed.
-#' @param zoom_UTR : If TRUE will create a second figure which will zoom in on 3'UTR.
+#' @param zoom_3UTR : If TRUE will create a second figure which will zoom in on 3'UTR.
 #' @return NULL by default.
 #' @examples
 #' 

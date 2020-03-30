@@ -4,11 +4,21 @@
 \alias{AnnotatePeaksFromGTF}
 \title{Annotates a set of peak coordinates from a GTF}
 \usage{
-AnnotatePeaksFromGTF(peak.sites.file, gtf.file, output.file,
-  genome = NULL, invert_strand = FALSE, annotationType = "any",
-  transcriptDetails = TRUE, annotation_correction = TRUE,
-  pA_motif_max_position = 50, AAA_motif_min_position = 10,
-  polystretch_length = 13, max_mismatch = 1, append.chr.peaks = TRUE)
+AnnotatePeaksFromGTF(
+  peak.sites.file,
+  gtf.file,
+  output.file,
+  genome = NULL,
+  invert_strand = FALSE,
+  annotationType = "any",
+  transcriptDetails = TRUE,
+  annotation_correction = TRUE,
+  pA_motif_max_position = 50,
+  AAA_motif_min_position = 10,
+  polystretch_length = 13,
+  max_mismatch = 1,
+  append.chr.peaks = TRUE
+)
 }
 \arguments{
 \item{peak.sites.file}{a file of peak coordinates.}
@@ -46,6 +56,19 @@ Annotate a set of peak coordinates according to genomic features the coordinates
 canonical polyA motif, A-rich regions and T-rich regions.
 }
 \examples{
-AnnotatePeaksFromGTF(peak.sites.file, gtf.file, output.file, genome)
+
+extdata_path <- system.file("extdata",package = "Sierra")
+peak.merge.output.file <- paste0(extdata_path, "/TIP_merged_peaks.txt")
+reference.file <- paste0(extdata_path,"/Vignette_cellranger_genes_subset.gtf")
+
+\dontrun{
+ genome <- BSgenome.Mmusculus.UCSC.mm10::BSgenome.Mmusculus.UCSC.mm10
+
+
+ AnnotatePeaksFromGTF(peak.sites.file = peak.merge.output.file, 
+                    gtf.file = reference.file, 
+                    output.file = "TIP_merged_peak_annotations.txt", 
+                    genome = genome)
+        }
 
 }

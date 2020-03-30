@@ -9,6 +9,11 @@ the most proximal location and 1 indicates most distal.}
 \usage{
 relative_location(location, n)
 }
+\arguments{
+\item{location}{location}
+
+\item{n}{number of locations}
+}
 \description{
 Given a peak position in a 3'UTR out of some n number of peaks,
 relative to the terminating exon, calculate the relative position

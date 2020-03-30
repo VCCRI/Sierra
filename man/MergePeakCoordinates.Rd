@@ -4,8 +4,13 @@
 \alias{MergePeakCoordinates}
 \title{Merge peaks across a list of data-sets}
 \usage{
-MergePeakCoordinates(peak.dataset.table, output.file, sim.thresh = 0.75,
-  allow.match.var = 0.25, ncores = 1)
+MergePeakCoordinates(
+  peak.dataset.table,
+  output.file,
+  sim.thresh = 0.75,
+  allow.match.var = 0.25,
+  ncores = 1
+)
 }
 \arguments{
 \item{peak.dataset.table}{a dataframe with two required columnss: one called "Peak_file" , which
@@ -30,6 +35,7 @@ Then compares each peak set as a reference to the remaining sets to identify pea
 Returns a list of peaks that have been merged, as well as the unique peaks from each data-set.
 }
 \examples{
-MergePeakCoordinates(peak.dataset.table, output.file, ncores = 4)
-
+\dontrun{
+     MergePeakCoordinates(peak.dataset.table, output.file, ncores = 1)
+ }
 }

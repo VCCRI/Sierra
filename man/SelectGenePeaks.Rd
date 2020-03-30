@@ -4,8 +4,11 @@
 \alias{SelectGenePeaks}
 \title{Return peaks associated with a select gene.}
 \usage{
-SelectGenePeaks(peaks.object, gene, feature.type = c("UTR3", "UTR5",
-  "exon", "intron"))
+SelectGenePeaks(
+  peaks.object,
+  gene,
+  feature.type = c("UTR3", "UTR5", "exon", "intron")
+)
 }
 \arguments{
 \item{peaks.object}{Peaks SCE or Seurat object.}
@@ -21,6 +24,7 @@ a list of peak IDs
 Returns peaks associated with a select gene.
 }
 \examples{
-peak.list = SelectGenePeaks(peaks.object, "PTPRC", feature.type = c("UTR3", "exon"))
-
+\dontrun{
+     peak.list = SelectGenePeaks(peaks.object, "PTPRC", feature.type = c("UTR3", "exon"))
+}
 }

@@ -16,5 +16,9 @@ to write
 Helper function
 }
 \examples{
+\dontrun{
 make_exons(x)
+}
+
+
 }

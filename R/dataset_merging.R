@@ -11,11 +11,17 @@
 #'
 #' @param peaks.1 first set of peaks - used as a reference point
 #' @param peaks.2 second set of peaks being compared
-#' @param plot.distribution whether to plot the distribution of similarites between the peaks (default: FALSE).
+#' @param ncores number of cores for multithreading (default 1)
+#' 
 #' @return a data-frame with peaks from peaks.1 mapped to the closest corresponding peak in peaks.2.
 #' @examples
-#' generate_similarity_table(peaks.1, peaks.2)
-#'
+#' \dontrun{
+#' extdata_path <- system.file("extdata",package = "Sierra")
+#' peak.sites.file <- paste0(extdata_path,"/TIP_merged_peaks.txt")
+#' peak.table <- read.table(peak.sites.file, sep="\t", header = TRUE, stringsAsFactors = FALSE)
+#' 
+#' generate_similarity_table(peak.table, peak.table)
+#' }
 #' @importFrom magrittr "%>%"
 #' @importFrom foreach "%dopar%"
 #'
@@ -146,11 +152,12 @@ generate_similarity_table <- function(peaks.1, peaks.2, ncores = 1) {
 #' and calculates the level of overlap.
 #'
 #' @param peaks.1 the set of peaks to merge
-#' @param plot.distribution whether to plot the distribution of similarites between the peaks (default: FALSE).
+#' @param ncores Number of cores for multithreading
 #' @return a data-frame with peaks from peaks.1 mapped to the closest peak within itself
 #' @examples
+#' \dontrun{
 #' generate_similarity_table(peaks.1)
-#'
+#' }
 #' @importFrom magrittr "%>%"
 #' @importFrom foreach "%dopar%"
 #'
@@ -292,11 +299,12 @@ generate_self_similarity_table <- function(peaks.1, ncores = 1) {
 #' @param apa.similarity.table the set of peaks to merge
 #' @param sim.thresh The required similarity threshold for merging (default: 0.75)
 #' @param allow.match.var The allowance for deviation from the sim.thresh for comparison peaks (default: 0.25)
-#' @param return.peaks Whether to return a full table of results or simply a vector of merged peaks
+#' @param return.type Whether to return a full table of results or simply a vector of merged peaks
 #' @return a table of merged peaks with original merged peaks or a vector of merged peaks
 #' @examples
+#' \dontrun{
 #' generate_self_merged_peaks(apa.similarity.table)
-#'
+#' }
 #' @importFrom magrittr "%>%"
 #'
 generate_self_merged_peaks <- function(apa.similarity.table, sim.thresh = 0.75, allow.match.var = 0.25,
@@ -374,9 +382,11 @@ generate_self_merged_peaks <- function(apa.similarity.table, sim.thresh = 0.75, 
 #' @param sim.thresh The required similarity threshold for merging (default: 0.75)
 #' @param allow.match.var The allowance for deviation from the sim.thresh for comparison peaks (default: 0.25)
 #' @return a data-frame containing peaks, their class (merged or unique) and the original peak from the reference
+#' @param ncores Number of cores for multithreading
 #' @examples
-#' generate_merged_peak_table(dataset.1, peak.dataset.table, self.merged.peaks.list)
-#'
+#' \dontrun{
+#'      generate_merged_peak_table(dataset.1, peak.dataset.table, self.merged.peaks.list)
+#'  }
 #' @importFrom magrittr "%>%"
 #'
 generate_merged_peak_table <- function(dataset.1, peak.dataset.list, self.merged.peaks.list,
@@ -504,8 +514,9 @@ generate_merged_peak_table <- function(dataset.1, peak.dataset.list, self.merged
 #' @param ncores number of cores to use (default 1)
 #' @return NULL. writes out a set of merged peaks to output.file
 #' @examples
-#' MergePeakCoordinates(peak.dataset.table, output.file, ncores = 4)
-#'
+#' \dontrun{
+#'      MergePeakCoordinates(peak.dataset.table, output.file, ncores = 1)
+#'  }
 #' @importFrom magrittr "%>%"
 #'
 #' @export

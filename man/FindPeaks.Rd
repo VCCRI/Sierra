@@ -4,10 +4,19 @@
 \alias{FindPeaks}
 \title{Do peak calling on a scRNA-seq BAM file}
 \usage{
-FindPeaks(output.file, gtf.file, bamfile, junctions.file,
-  min.jcutoff = 50, min.jcutoff.prop = 0.05, min.cov.cutoff = 500,
-  min.cov.prop = 0.05, min.peak.cutoff = 200, min.peak.prop = 0.05,
-  ncores = 1)
+FindPeaks(
+  output.file,
+  gtf.file,
+  bamfile,
+  junctions.file,
+  min.jcutoff = 50,
+  min.jcutoff.prop = 0.05,
+  min.cov.cutoff = 500,
+  min.cov.prop = 0.05,
+  min.peak.cutoff = 200,
+  min.peak.prop = 0.05,
+  ncores = 1
+)
 }
 \arguments{
 \item{output.file}{a file containing polyA sites}
@@ -39,6 +48,18 @@ NULL. Writes counts to file.
 Do peak calling on a scRNA-seq BAM file...
 }
 \examples{
-FindPeaks(output.file, reference.file, bamfile, junctions.file)
+
+extdata_path <- system.file("extdata",package = "Sierra")
+reference.file <- paste0(extdata_path,"/Vignette_cellranger_genes_subset.gtf")
+junctions.file <- paste0(extdata_path,"/Vignette_example_TIP_sham_junctions.bed")
+
+bamfile <- c(paste0(extdata_path,"/Vignette_example_TIP_sham.bam"),
+             paste0(extdata_path,"/Vignette_example_TIP_MI.bam") )
+             
+peak.output.file <- c("Vignette_example_TIP_sham_peaks.txt",  "Vignette_example_TIP_MI_peaks.txt")
+
+
+FindPeaks(output.file=peak.output.file[1], gtf.file = reference.file, 
+             bamfile=bamfile[1], junctions.file=junctions.file)
 
 }

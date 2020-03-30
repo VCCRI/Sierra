@@ -4,8 +4,12 @@
 \alias{generate_self_merged_peaks}
 \title{Merge a set of peaks}
 \usage{
-generate_self_merged_peaks(apa.similarity.table, sim.thresh = 0.75,
-  allow.match.var = 0.25, return.type = "peak_list")
+generate_self_merged_peaks(
+  apa.similarity.table,
+  sim.thresh = 0.75,
+  allow.match.var = 0.25,
+  return.type = "peak_list"
+)
 }
 \arguments{
 \item{apa.similarity.table}{the set of peaks to merge}
@@ -14,7 +18,7 @@ generate_self_merged_peaks(apa.similarity.table, sim.thresh = 0.75,
 
 \item{allow.match.var}{The allowance for deviation from the sim.thresh for comparison peaks (default: 0.25)}
 
-\item{return.peaks}{Whether to return a full table of results or simply a vector of merged peaks}
+\item{return.type}{Whether to return a full table of results or simply a vector of merged peaks}
 }
 \value{
 a table of merged peaks with original merged peaks or a vector of merged peaks
@@ -26,6 +30,7 @@ some x\% (75\% by default) or more overlap with the other, and the other has at 
 y is a percentage of allowed variance (25\% by default)
 }
 \examples{
+\dontrun{
 generate_self_merged_peaks(apa.similarity.table)
-
+}
 }

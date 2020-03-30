@@ -9,7 +9,7 @@ generate_self_similarity_table(peaks.1, ncores = 1)
 \arguments{
 \item{peaks.1}{the set of peaks to merge}
 
-\item{plot.distribution}{whether to plot the distribution of similarites between the peaks (default: FALSE).}
+\item{ncores}{Number of cores for multithreading}
 }
 \value{
 a data-frame with peaks from peaks.1 mapped to the closest peak within itself
@@ -21,6 +21,7 @@ to be merged. This function looks for the most similar peak (non-self) within a 
 and calculates the level of overlap.
 }
 \examples{
+\dontrun{
 generate_similarity_table(peaks.1)
-
+}
 }

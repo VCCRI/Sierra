@@ -4,9 +4,14 @@
 \alias{generate_merged_peak_table}
 \title{Merge peaks across data-sets based on a reference}
 \usage{
-generate_merged_peak_table(dataset.1, peak.dataset.list,
-  self.merged.peaks.list, sim.thresh = 0.75, allow.match.var = 0.25,
-  ncores = 1)
+generate_merged_peak_table(
+  dataset.1,
+  peak.dataset.list,
+  self.merged.peaks.list,
+  sim.thresh = 0.75,
+  allow.match.var = 0.25,
+  ncores = 1
+)
 }
 \arguments{
 \item{dataset.1}{the reference peak data-set}
@@ -18,6 +23,8 @@ generate_merged_peak_table(dataset.1, peak.dataset.list,
 \item{sim.thresh}{The required similarity threshold for merging (default: 0.75)}
 
 \item{allow.match.var}{The allowance for deviation from the sim.thresh for comparison peaks (default: 0.25)}
+
+\item{ncores}{Number of cores for multithreading}
 }
 \value{
 a data-frame containing peaks, their class (merged or unique) and the original peak from the reference
@@ -30,6 +37,7 @@ overlap with the other, and the other has at least x-(y*x)\% overlap where y is 
 variance (25\% by default).
 }
 \examples{
-generate_merged_peak_table(dataset.1, peak.dataset.table, self.merged.peaks.list)
-
+\dontrun{
+     generate_merged_peak_table(dataset.1, peak.dataset.table, self.merged.peaks.list)
+ }
 }

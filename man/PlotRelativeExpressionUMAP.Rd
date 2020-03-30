@@ -4,9 +4,15 @@
 \alias{PlotRelativeExpressionUMAP}
 \title{Generate a t-SNE plot using relative expression}
 \usage{
-PlotRelativeExpressionUMAP(peaks.object, peaks.to.plot, do.plot = FALSE,
-  figure.title = NULL, return.plot = TRUE, pt.size = 0.5,
-  txt.size = 14)
+PlotRelativeExpressionUMAP(
+  peaks.object,
+  peaks.to.plot,
+  do.plot = FALSE,
+  figure.title = NULL,
+  return.plot = TRUE,
+  pt.size = 0.5,
+  txt.size = 14
+)
 }
 \arguments{
 \item{peaks.object}{Seurat object}
@@ -17,7 +23,11 @@ PlotRelativeExpressionUMAP(peaks.object, peaks.to.plot, do.plot = FALSE,
 
 \item{figure.title}{Optional figure title}
 
-\item{pt.size}{size of the points on the t-SNE plot}
+\item{return.plot}{Boolean of whether to return plot (default TRUE)}
+
+\item{pt.size}{size of the points on the t-SNE plot. Default 0.5}
+
+\item{txt.size}{size of text. Default 14}
 }
 \value{
 a ggplot2 object
@@ -27,6 +37,7 @@ Given two or more peaks to plot, calculate a relative expression score and
 plot on UMAP coordinates
 }
 \examples{
-PlotRelativeExpressionUMAP(peaks.seurat, this.peak.set)
-
+\dontrun{
+   PlotRelativeExpressionUMAP(peaks.seurat, this.peak.set)
+ }
 }

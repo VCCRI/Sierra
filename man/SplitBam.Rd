@@ -4,9 +4,16 @@
 \alias{SplitBam}
 \title{Utility to split a bam file into multiple bam files based on the barcode}
 \usage{
-SplitBam(bam, cellbc.df, outdir = NULL, yieldSize = 1e+06,
-  gtf_gr = NULL, geneSymbol = NULL, gi_ext = 50,
-  rle_output = FALSE)
+SplitBam(
+  bam,
+  cellbc.df,
+  outdir = NULL,
+  yieldSize = 1e+06,
+  gtf_gr = NULL,
+  geneSymbol = NULL,
+  gi_ext = 50,
+  rle_output = FALSE
+)
 }
 \arguments{
 \item{bam}{CellRanger outputted bam file with the CB field}
@@ -23,7 +30,7 @@ SplitBam(bam, cellbc.df, outdir = NULL, yieldSize = 1e+06,
 
 \item{gi_ext}{The number of nucleotides to extend the genomic interval in extracting reads from (default 50).}
 
-\item{rle_output:}{If TRUE will generate and return rle_list object}
+\item{rle_output}{If TRUE will generate and return rle_list object}
 }
 \value{
 a rleList of coverage for each cell type
@@ -34,22 +41,26 @@ bam into multiple bam files, one per cell barcode.
 Bam file needs to have the barcode stored in the "CB" field.
 }
 \examples{
+\dontrun{
 extdata_path <- system.file("extdata",package = "scpolya")
 load(paste(extdata_path,"TIP_vignette_gene_Seurat.RData",sep="/"))
 cellbc.df <- data.frame(celltype=genes.seurat@active.ident, cellbc= names(genes.seurat@active.ident))
-bam <- "c:/BAM/Harvey/scpolyA/one_percent.bam"
-splitBam(bam, cellbc.df, "c:/TEMP/")
+bamfile <- c(paste0(extdata_path,"/Vignette_example_TIP_sham.bam")
 
+splitBam(bam, cellbc.df)
+}
 
 # Example 2 extract reads that overlap a gene
-
+\dontrun{
 gtf_file <- "u:/Reference/mm10/cellranger_genes.gtf.gz"
 gtf_gr <- rtracklayer::import(gtf_file)
 extdata_path <- system.file("extdata",package = "scpolya")
 load(paste(extdata_path,"TIP_vignette_gene_Seurat.RData",sep="/"))
-cellbc.df <- data.frame(celltype=genes.seurat@active.ident, cellbc= names(genes.seurat@active.ident))
+cellbc.df <- data.frame(celltype=genes.seurat@active.ident, 
+                       cellbc= names(genes.seurat@active.ident))
 bam <- "R:/scpolyA_BAM_link/possorted_genome_bam.bam"
 splitBam(bam, cellbc.df, outdir="c:/TEMP/", gtf_gr=gtf_gr, geneSymbol="Dnajc19")
+}
 
 
 }

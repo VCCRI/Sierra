@@ -4,11 +4,20 @@
 \alias{annotate_gr_from_gtf}
 \title{Annotates a granges object with overlapping genes from gtf file.}
 \usage{
-annotate_gr_from_gtf(gr, invert_strand = FALSE, gtf_gr = NULL,
-  annotationType = "any", transcriptDetails = FALSE, gtf_TxDb,
-  annotation_correction = TRUE, genome = NULL,
-  pA_motif_max_position = 50, AAA_motif_min_position = 10,
-  polystretch_length = 13, max_mismatch = 1)
+annotate_gr_from_gtf(
+  gr,
+  invert_strand = FALSE,
+  gtf_gr = NULL,
+  annotationType = "any",
+  transcriptDetails = FALSE,
+  gtf_TxDb,
+  annotation_correction = TRUE,
+  genome = NULL,
+  pA_motif_max_position = 50,
+  AAA_motif_min_position = 10,
+  polystretch_length = 13,
+  max_mismatch = 1
+)
 }
 \arguments{
 \item{gr}{a granges object of peaks to annotate}
@@ -33,6 +42,8 @@ prioritise gene based on annotation. 3'UTR annotation trumps all other annotatio
 \item{AAA_motif_min_position}{Any polyA/polyT stretches before this postion are not considered (default 10)}
 
 \item{polystretch_length}{: the length of A or T to search for (default 13)}
+
+\item{max_mismatch}{: The number of mismatches tolerated in polystretch}
 }
 \value{
 a dataframe with appended columns containing annotation
@@ -43,9 +54,9 @@ gr is the genomic ranges that need to be annotation. Ideally original input shou
 \details{
 chr8:70331172-70331574:+   # chr:start-end:strand
 
-This could already exist within an R object or you can copy it in via readClipboard.
+  This could already exist within an R object or you can copy it in via readClipboard.
 
-gr <- GRanges(readClipboard())
+ gr <- GRanges(readClipboard())
 
 You need to run the following code:
         gtf_file <- "u:/Reference/hg38/hg38_gene.gtf.gz"
@@ -61,30 +72,6 @@ library(Sierra)
 peak.output.file <- c("Vignette_example_TIP_sham_peaks.txt",
                       "Vignette_example_TIP_MI_peaks.txt")
                       
-FindPeaks(output.file = peak.output.file[1],   # output filename
-          gtf.file = reference.file,           # gene model as a GTF file
-          bamfile = bamfile[1],                # BAM alignment filename.
-         junctions.file = junctions.file,     # BED filename of splice junctions exising in BAM file. 
-         ncores = 1)                          # number of cores to use
-         
-         
-FindPeaks(output.file = peak.output.file[2],   # output filename
-          gtf.file = reference.file,           # gene model as a GTF file
-          bamfile = bamfile[2],                # BAM alignment filename.
-          junctions.file = junctions.file,     # BED filename of splice junctions exising in BAM file. 
-          ncores = 1)      
- 
-peak.dataset.table = data.frame(Peak_file = peak.output.file,
-Identifier = c("TIP-example-Sham", "TIP-example-MI"), 
-stringsAsFactors = FALSE)
-
-peak.merge.output.file = "TIP_merged_peaks.txt"
-MergePeakCoordinates(peak.dataset.table, output.file = peak.merge.output.file, ncores = 1)         
-          
-extdata_path <- system.file("extdata",package = "Sierra")
-reference.file <- paste0(extdata_path,"/Vignette_cellranger_genes_subset.gtf")
-genome <- BSgenome.Mmusculus.UCSC.mm10::BSgenome.Mmusculus.UCSC.mm10
-AnnotatePeaksFromGTF(peak.sites.file = peak.merge.output.file, gtf.file = reference.file, output.file = "TIP_merged_peak_annotations.txt", genome = genome)
 
 
 }
