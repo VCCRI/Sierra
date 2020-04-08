@@ -560,9 +560,8 @@ The above example only contains a few significant peaks, so is not a great examp
 
 ```
 # Read in pre-calculated results table for this example
-results.file <- paste0(extdata_path,"/Cycling_vs_resting_fibro_UTR_length_res.tsv")
-res.table <- read.table(results.file, sep = "\t", header = TRUE, 
-                        row.names = 1, stringsAsFactors = FALSE)
+results.file <- paste0(extdata_path,"/Cycling_vs_resting_fibro_UTR_length_res.RData")
+load(results.file)
 
 # Plot global shift in 3'UTR length 
 PlotUTRLengthShift(res.table)

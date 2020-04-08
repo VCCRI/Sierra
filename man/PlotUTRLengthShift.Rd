@@ -4,13 +4,9 @@
 \alias{PlotUTRLengthShift}
 \title{Plot global shifts in 3'UTR length}
 \usage{
-PlotUTRLengthShift(
-  results.table,
-  plot.title = "Global shift in 3'UTR length",
-  do.ranksum.test = TRUE,
-  return.plot = TRUE,
-  do.plot = FALSE
-)
+PlotUTRLengthShift(results.table,
+  plot.title = "Global shift in 3'UTR length", do.ranksum.test = TRUE,
+  return.plot = TRUE, do.plot = FALSE)
 }
 \arguments{
 \item{results.table}{table produced by the DetectUTRLengthShift function}
@@ -31,8 +27,10 @@ between upregulated and downregulated peaks using the Wilcoxon Rank-sum test.
 }
 \examples{
 
-\dontrun{
-  res.table <- DetectUTRLengthShift(peaks.object, gtf_gr, gtf_TxDb, c1, c2)
-  PlotUTRLengthShift(res.table)
- }
+extdata_path <- system.file("extdata",package = "Sierra")
+results.file <- paste0(extdata_path,"/Cycling_vs_resting_fibro_UTR_length_res.RData")
+load(results.file)
+
+PlotUTRLengthShift(res.table)
+
 }
