@@ -29,7 +29,7 @@
 #' peak.merge.output.file <- paste0(extdata_path, "/TIP_merged_peaks.txt")
 #' reference.file <- paste0(extdata_path,"/Vignette_cellranger_genes_subset.gtf")
 #' 
-#' \dontrun{
+#' 
 #'  genome <- BSgenome.Mmusculus.UCSC.mm10::BSgenome.Mmusculus.UCSC.mm10
 #' 
 #' 
@@ -37,7 +37,7 @@
 #'                     gtf.file = reference.file, 
 #'                     output.file = "TIP_merged_peak_annotations.txt", 
 #'                     genome = genome)
-#'         }
+#'
 #'
 #' @export
 #'
@@ -116,8 +116,12 @@ AnnotatePeaksFromGTF <- function(peak.sites.file,
 gene_Labels<- function(gr, reference_gr, annotationType)
 {
   all_hits <- GenomicAlignments::findOverlaps(gr , reference_gr, type= annotationType)
+  if (length(reference_gr) ==0)
+  { warning("No entries in reference to annotate. Cannot continue")
+    return(NULL)
+  }
   if (length(all_hits) == 0)
-  { sanityCheck <- length(intersect(seqlevels(gr), seqlevels(reference_gr)))
+  { sanityCheck <- length(intersect(GenomeInfoDb::seqlevels(gr), GenomeInfoDb::seqlevels(reference_gr)))
     msg <- paste0("No peaks aligned to any entry within gtf reference.",
                       "\n Sanity check: ", sanityCheck,
                       " seqnames (i.e. chromosomes) match between peak and reference file")
@@ -186,11 +190,30 @@ gene_Labels<- function(gr, reference_gr, annotationType)
 #'
 #' @examples 
 #' library(Sierra)
-#' peak.output.file <- c("Vignette_example_TIP_sham_peaks.txt",
-#'                       "Vignette_example_TIP_MI_peaks.txt")
-#'                       
+#' 
+#'  # Generate peaks for Cxcl12, Arhgap10, Mast4,  using mm10 coordinates:
+#'  gr_peaks <- GenomicRanges::GRanges(c("chr6:117174600-117175065:+",
+#'             "chr6:117180975-117181367:+",
+#'             "chr8:77250366-77250686:-",
+#'             "chr8:77426400-77517833:-",
+#'             "chr13:102905701-102906230:-",
+#'             "chr13:103139934-103171545:-"))
+#'             
+#'  # Load other files from vignette           
+#'  extdata_path <- system.file("extdata",package = "Sierra")
+#'  reference.file <- paste0(extdata_path,"/Vignette_cellranger_genes_subset.gtf")
+#'  
+#'  # convert gtf file to both granges and a TXDb object
+#'  gtf_gr <- rtracklayer::import(reference.file)
+#'  gtf_TxDb <- GenomicFeatures::makeTxDbFromGFF(reference.file, format="gtf")
+#'  
+#'  genome <- BSgenome.Mmusculus.UCSC.mm10::BSgenome.Mmusculus.UCSC.mm10          
+#'   
+#'  annotate_gr_from_gtf(gr = gr_peaks, gtf_gr = gtf_gr,
+#'                       gtf_TxDb = gtf_TxDb, genome = genome)
 #'
-#'
+#'  annotate_gr_from_gtf(gr = gr_peaks, gtf_gr = gtf_gr,
+#'                       gtf_TxDb = gtf_TxDb, genome = genome, transcriptDetails=TRUE)                                            
 #' @return a dataframe with appended columns containing annotation
 #'
 ##
@@ -224,8 +247,27 @@ annotate_gr_from_gtf <- function(gr, invert_strand = FALSE, gtf_gr = NULL,
     GenomeInfoDb::seqlevels(gtf_gr) <- gsub(pattern = "chr",replacement = "",x = GenomeInfoDb::seqlevels(gtf_gr))
   }
   
+  # Do some simple checks to ensure granges object has required fields
+  if (length(grep(pattern="type",x=colnames(as.data.frame(gtf_gr)))) ==0)
+  {
+    message("Annotation reference does not have a type field. This field is used
+            to extract gene, transcript, exon, UTR information. Cannot continue")
+    return(NULL)
+  }
 
-  genes_gr <- gtf_gr[gtf_gr$type == "gene"]
+  # Check that the type field has required annotations
+  listed_annotations <- names(table(gtf_gr$type))
+  if (length(grep(pattern = "gene",x = listed_annotations)))
+  { genes_gr <- gtf_gr[gtf_gr$type == "gene"] }
+  else if (length(grep(pattern = "transcript",x = listed_annotations)))
+  { genes_gr <- gtf_gr[gtf_gr$type == "transcript"] }
+  else if (length(grep(pattern = "exon",x = listed_annotations)))
+  { genes_gr <- gtf_gr[gtf_gr$type == "exon"] }
+  else # No way can continue
+  {
+    message("Reference has no recognised labels to annotate. Cannot continue")
+    return(NULL)
+  }
 
   annotate_info <- gene_Labels(gr, genes_gr,annotationType)
   if (is.null(annotate_info))
@@ -263,8 +305,8 @@ annotate_gr_from_gtf <- function(gr, invert_strand = FALSE, gtf_gr = NULL,
         df_with_gene_labels$UTR3 <- rep(NA, nrow(df_with_gene_labels))
         df_with_gene_labels$UTR3[UTR_annotate_info$idx_to_annotate] <- UTR_annotate_info$identified_gene_symbols
       }
-      else
-      {
+      else if (length(grep(pattern = "UTR",x = listed_annotations)))
+      { 
         UTR_GR <- gtf_gr[gtf_gr$type == "UTR"]   # This will be used to retrieve gene names from ALL UTRs
         real_3UTRs_idx <- GenomicAlignments::findOverlaps(UTR_GR , UTR_3_GR,type = annotationType)
 
@@ -272,11 +314,18 @@ annotate_gr_from_gtf <- function(gr, invert_strand = FALSE, gtf_gr = NULL,
         df_with_gene_labels$UTR3 <- rep(NA, nrow(df_with_gene_labels))
         df_with_gene_labels$UTR3[UTR_annotate_info$idx_to_annotate] <- UTR_annotate_info$identified_gene_symbols
       }
+      else
+      {
+        warning("Setting annotation_correction to FALSE as GTF does not have type metadata field containing 'UTR' or 'three_prime_utr'")
+        annotation_correction <- FALSE
+      }
 
       # Copy relevant updated annotations
       # Grab index of annotated entries and copy to main df.
-      df$gene_id[UTR_annotate_info$idx_to_annotate] <- UTR_annotate_info$identified_gene_symbols
-      ok_to_annotate <- setdiff(ok_to_annotate, UTR_annotate_info$idx_to_annotate)
+      if (annotation_correction)
+      { df$gene_id[UTR_annotate_info$idx_to_annotate] <- UTR_annotate_info$identified_gene_symbols
+        ok_to_annotate <- setdiff(ok_to_annotate, UTR_annotate_info$idx_to_annotate)
+      }
     }
 
     cat("\nAnnotating 5' UTRs")
