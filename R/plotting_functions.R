@@ -643,10 +643,12 @@ PlotRelativeExpressionViolin <- function(peaks.object, peaks.to.plot, do.plot=FA
 #' 
 #' @examples
 #' 
-#' \dontrun{
-#'   res.table <- DetectUTRLengthShift(peaks.object, gtf_gr, gtf_TxDb, c1, c2)
-#'   PlotUTRLengthShift(res.table)
-#'  }
+#' extdata_path <- system.file("extdata",package = "Sierra")
+#' results.file <- paste0(extdata_path,"/Cycling_vs_resting_fibro_UTR_length_res.RData")
+#' load(results.file)
+#' 
+#' PlotUTRLengthShift(res.table)
+#'
 #' @import ggplot2
 #' 
 #' @export
@@ -657,11 +659,11 @@ PlotUTRLengthShift <- function(results.table,
                                 return.plot = TRUE,
                                 do.plot = FALSE) {
 
-  locations.res.table.up <- subset(res.table, FC_direction == "Up")
+  locations.res.table.up <- subset(results.table, FC_direction == "Up")
   pos.upreg <- apply(as.matrix(locations.res.table.up[, c("SiteLocation","NumSites")]), 1, 
                 function(x) {relative_location(x[1], x[2])})
   
-  locations.res.table.down <- subset(res.table, FC_direction == "Down")
+  locations.res.table.down <- subset(results.table, FC_direction == "Down")
   pos.downreg <- apply(as.matrix(locations.res.table.down[, c("SiteLocation","NumSites")]), 1, 
                 function(x) {relative_location(x[1], x[2])})
   
