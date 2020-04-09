@@ -400,21 +400,21 @@ annotate_gr_from_gtf <- function(gr, invert_strand = FALSE, gtf_gr = NULL,
       df$pA_motif <- unlist( lapply(motif_details, FUN= function(x) {
             pA_motif_position <- FALSE
             motif_pos <- unlist(x$pA_motif_pos)
-            if (length(motif_pos) > 0)
+            if (!is.na(motif_pos) & length(motif_pos) > 0)
               pA_motif_position <- (max(motif_pos) < pA_motif_max_position)
             return (pA_motif_position) } ))
   
       df$pA_stretch <- unlist( lapply(motif_details, FUN= function(x) {
           pA_stretch_position <- FALSE
           motif_pos <- unlist(x$pA_stretch_pos)
-          if (length(motif_pos) > 0)
+          if (!is.na(motif_pos) & length(motif_pos) > 0)
             pA_stretch_position <- (max(motif_pos) > AAA_motif_min_position)
           return (pA_stretch_position) } ))
   
       df$pT_stretch <- unlist( lapply(motif_details, FUN= function(x) {
           pT_stretch_position <- FALSE
           motif_pos <- unlist(x$pT_stretch_pos)
-          if (length(motif_pos) > 0)
+          if (!is.na(motif_pos) & length(motif_pos) > 0)
             pT_stretch_position <- (max(motif_pos) > AAA_motif_min_position)
           return (pT_stretch_position) } ))
     }
@@ -567,8 +567,7 @@ BaseComposition <- function(genome=NULL,  chrom=NULL, start=NULL, stop=NULL, str
   {
     sequ <- Biostrings::reverseComplement(sequ_tmp)
     sequ_upstream <- Biostrings::reverseComplement(sequ_upstream)
-  }
-  else # strand '+'
+  } else # strand '+'
   {
     sequ_upstream <- sequ_tmp
   }
@@ -581,7 +580,7 @@ BaseComposition <- function(genome=NULL,  chrom=NULL, start=NULL, stop=NULL, str
   pT_stretch <- Biostrings::matchPattern(pattern=T_pattern, subject=sequ_upstream, max.mismatch=1)
 
   return(list(pA_motif_pos = start(pA_motif)[1], pA_stretch_pos = start(pA_stretch)[1],
-              pT_stretch_pos = start(pT_stretch),
+              pT_stretch_pos = start(pT_stretch)[1],
               sequence = list(upstream=sequ_upstream, downstream=sequ) ))
 }
 
