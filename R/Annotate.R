@@ -550,6 +550,11 @@ BaseComposition <- function(genome=NULL,  chrom=NULL, start=NULL, stop=NULL, str
   ## Default parameters for '+' strand
   seq_start_position <- stop + offset
   seq_end_position <- stop + length + offset
+  
+  if(chrom == "chrMT")
+  {
+    chrom <- 'chrM'
+  }
 
   sequ <- BSgenome::getSeq(genome, chrom, seq_start_position, seq_end_position)   # Always get +ve strand
   sequ_upstream <- {}
