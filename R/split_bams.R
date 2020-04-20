@@ -28,17 +28,20 @@
 #' }
 #'
 #' # Example 2 extract reads that overlap a gene
-#' \dontrun{
-#' gtf_file <- "u:/Reference/mm10/cellranger_genes.gtf.gz"
-#' gtf_gr <- rtracklayer::import(gtf_file)
-#' extdata_path <- system.file("extdata",package = "scpolya")
+#' 
+#' extdata_path <- system.file("extdata",package = "Sierra")
+#' gtf.file <- paste0(extdata_path,"/Vignette_cellranger_genes_subset.gtf")
+#' gtf.gr <- rtracklayer::import(gtf.file)
+#' 
 #' load(paste(extdata_path,"TIP_vignette_gene_Seurat.RData",sep="/"))
 #' cellbc.df <- data.frame(celltype=genes.seurat@active.ident, 
 #'                        cellbc= names(genes.seurat@active.ident))
-#' bam <- "R:/scpolyA_BAM_link/possorted_genome_bam.bam"
-#' splitBam(bam, cellbc.df, outdir="c:/TEMP/", gtf_gr=gtf_gr, geneSymbol="Dnajc19")
-#' }
-#'
+#'                        
+#'                        
+#' bam.file <- paste0(extdata_path,"/Vignette_example_TIP_mi.bam")
+#' outdir <-  tempdir()  # change this to a meaningful location
+#' splitBam(bam.file, cellbc.df, outdir=outdir, gtf_gr=gtf_gr, geneSymbol="Dnajc19")
+#' 
 #'
 #' @export
 #' 
@@ -160,20 +163,20 @@ merge_bam_coverage <- function(bamfiles)
 }
 
 ##################################################################
-#' geneToGR converts a gene sybol to genomic ranges coordinate
+#' geneToGR converts a gene symbol to genomic ranges coordinate
 #' 
-#' geneToGR converts a gene sybol to genomic ranges coordinate
+#' geneToGR converts a gene symbol to genomic ranges coordinate
 #'
 #' @param geneID : Gene symbol
 #' @param gtf_gr : Granges object of a gtf file
 #'
 #' @examples
-#' \dontrun{
-#'     gtf_file <- "u:/Reference/mm10/cellranger_genes.gtf.gz"
-#'     gtf_gr <- rtracklayer::import(gtf_file)
-#'     geneSymbol <- "Dnajc19"
+#'     extdata_path <- system.file("extdata",package = "Sierra")
+#'     gtf.file <- paste0(extdata_path,"/Vignette_cellranger_genes_subset.gtf")
+#'     gtf.gr <- rtracklayer::import(gtf.file)
+#'     
 #'     geneGR  <- geneToGR(gtf_gr=gtf_gr, geneSymbol="Dnajc19")
-#' }
+#'
 geneToGR <- function(geneID, gtf_gr)
 {
   if (! is.null(geneSymbol))

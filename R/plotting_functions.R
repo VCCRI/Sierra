@@ -745,11 +745,12 @@ relative_location <- function(location, n) {
 #' extdata_path <- system.file("extdata",package = "Sierra")
 #' reference.file <- paste0(extdata_path,"/Vignette_cellranger_genes_subset.gtf")
 #' gtf_gr <- rtracklayer::import(reference.file)
-#' bam.files <- c(paste0(extdata_path,"/Fibroblast.Cxcl12.bam"),
-#'                  paste0(extdata_path,"/EC.Cxcl12.bam"))
+#' bam.files <- c(paste0(extdata_path,"/Vignette_example_TIP_mi.bam"),
+#'                  paste0(extdata_path,"/Vignette_example_TIP_sham.bam"))
 #' 
-#' PlotCoverage(genome_gr = gtf_gr, geneSymbol = "Cxcl12", genome = "mm10", 
-#'            bamfiles = bam.files, bamfile.tracknames=c("Fibroblast", "Endothelial"))
+#' 
+#' PlotCoverage(genome_gr = gtf_gr, geneSymbol = "Lrrc58", genome = "mm10", 
+#'            bamfiles = bam.files, bamfile.tracknames=c("MI", "sham"))
 #'
 #' @import Gviz
 #' @export
