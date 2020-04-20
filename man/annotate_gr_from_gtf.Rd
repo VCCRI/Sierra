@@ -69,9 +69,28 @@ annotationType can be c("any", "start", "end", "within", "equal"),
 }
 \examples{
 library(Sierra)
-peak.output.file <- c("Vignette_example_TIP_sham_peaks.txt",
-                      "Vignette_example_TIP_MI_peaks.txt")
-                      
 
+ # Generate peaks for Cxcl12, Arhgap10, Mast4,  using mm10 coordinates:
+ gr_peaks <- GenomicRanges::GRanges(c("chr6:117174600-117175065:+",
+            "chr6:117180975-117181367:+",
+            "chr8:77250366-77250686:-",
+            "chr8:77426400-77517833:-",
+            "chr13:102905701-102906230:-",
+            "chr13:103139934-103171545:-"))
+            
+ # Load other files from vignette           
+ extdata_path <- system.file("extdata",package = "Sierra")
+ reference.file <- paste0(extdata_path,"/Vignette_cellranger_genes_subset.gtf")
+ 
+ # convert gtf file to both granges and a TXDb object
+ gtf_gr <- rtracklayer::import(reference.file)
+ gtf_TxDb <- GenomicFeatures::makeTxDbFromGFF(reference.file, format="gtf")
+ 
+ genome <- BSgenome.Mmusculus.UCSC.mm10::BSgenome.Mmusculus.UCSC.mm10          
+  
+ annotate_gr_from_gtf(gr = gr_peaks, gtf_gr = gtf_gr,
+                      gtf_TxDb = gtf_TxDb, genome = genome)
 
+ annotate_gr_from_gtf(gr = gr_peaks, gtf_gr = gtf_gr,
+                      gtf_TxDb = gtf_TxDb, genome = genome, transcriptDetails=TRUE)                                            
 }

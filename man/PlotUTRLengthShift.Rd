@@ -4,9 +4,13 @@
 \alias{PlotUTRLengthShift}
 \title{Plot global shifts in 3'UTR length}
 \usage{
-PlotUTRLengthShift(results.table,
-  plot.title = "Global shift in 3'UTR length", do.ranksum.test = TRUE,
-  return.plot = TRUE, do.plot = FALSE)
+PlotUTRLengthShift(
+  results.table,
+  plot.title = "Global shift in 3'UTR length",
+  do.ranksum.test = TRUE,
+  return.plot = TRUE,
+  do.plot = FALSE
+)
 }
 \arguments{
 \item{results.table}{table produced by the DetectUTRLengthShift function}

@@ -2,23 +2,23 @@
 % Please edit documentation in R/split_bams.R
 \name{geneToGR}
 \alias{geneToGR}
-\title{geneToGR converts a gene sybol to genomic ranges coordinate}
+\title{geneToGR converts a gene symbol to genomic ranges coordinate}
 \usage{
-geneToGR(geneID, gtf_gr)
+geneToGR(geneSymbol, gtf_gr)
 }
 \arguments{
-\item{geneID}{: Gene symbol}
-
 \item{gtf_gr}{: Granges object of a gtf file}
+
+\item{geneSymbol}{: Gene symbol}
 }
 \description{
-geneToGR converts a gene sybol to genomic ranges coordinate
+geneToGR converts a gene symbol to genomic ranges coordinate
 }
 \examples{
-\dontrun{
-    gtf_file <- "u:/Reference/mm10/cellranger_genes.gtf.gz"
-    gtf_gr <- rtracklayer::import(gtf_file)
-    geneSymbol <- "Dnajc19"
-    geneGR  <- geneToGR(gtf_gr=gtf_gr, geneSymbol="Dnajc19")
-}
+    library('Sierra')
+    extdata_path <- system.file("extdata",package = "Sierra")
+    gtf.file <- paste0(extdata_path,"/Vignette_cellranger_genes_subset.gtf")
+    gtf.gr <- rtracklayer::import(gtf.file)
+    
+    geneGR  <- geneToGR(geneSymbol= "Dnajc19",gtf_gr=gtf.gr)
 }

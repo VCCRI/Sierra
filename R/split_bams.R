@@ -18,13 +18,15 @@
 #' @return a rleList of coverage for each cell type
 #'
 #' @examples
+#' library('Sierra')
 #' \dontrun{
 #' extdata_path <- system.file("extdata",package = "scpolya")
 #' load(paste(extdata_path,"TIP_vignette_gene_Seurat.RData",sep="/"))
-#' cellbc.df <- data.frame(celltype=genes.seurat@active.ident, cellbc= names(genes.seurat@active.ident))
+#' cellbc.df <- data.frame(celltype=genes.seurat@active.ident, 
+#'                         cellbc= names(genes.seurat@active.ident))
 #' bamfile <- c(paste0(extdata_path,"/Vignette_example_TIP_sham.bam")
 #' 
-#' splitBam(bam, cellbc.df)
+#' SplitBam(bam, cellbc.df)
 #' }
 #'
 #' # Example 2 extract reads that overlap a gene
@@ -40,7 +42,7 @@
 #'                        
 #' bam.file <- paste0(extdata_path,"/Vignette_example_TIP_mi.bam")
 #' outdir <-  tempdir()  # change this to a meaningful location
-#' splitBam(bam.file, cellbc.df, outdir=outdir, gtf_gr=gtf_gr, geneSymbol="Dnajc19")
+#' SplitBam(bam.file, cellbc.df, outdir=outdir, gtf_gr=gtf.gr, geneSymbol="Dnajc19")
 #' 
 #'
 #' @export
@@ -167,17 +169,18 @@ merge_bam_coverage <- function(bamfiles)
 #' 
 #' geneToGR converts a gene symbol to genomic ranges coordinate
 #'
-#' @param geneID : Gene symbol
+#' @param geneSymbol : Gene symbol
 #' @param gtf_gr : Granges object of a gtf file
 #'
 #' @examples
+#'     library('Sierra')
 #'     extdata_path <- system.file("extdata",package = "Sierra")
 #'     gtf.file <- paste0(extdata_path,"/Vignette_cellranger_genes_subset.gtf")
 #'     gtf.gr <- rtracklayer::import(gtf.file)
 #'     
-#'     geneGR  <- geneToGR(gtf_gr=gtf_gr, geneSymbol="Dnajc19")
-#'
-geneToGR <- function(geneID, gtf_gr)
+#'     geneGR  <- geneToGR(geneSymbol= "Dnajc19",gtf_gr=gtf.gr)
+#' @export
+geneToGR <- function(geneSymbol, gtf_gr)
 {
   if (! is.null(geneSymbol))
   {

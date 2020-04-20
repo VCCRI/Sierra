@@ -41,26 +41,31 @@ bam into multiple bam files, one per cell barcode.
 Bam file needs to have the barcode stored in the "CB" field.
 }
 \examples{
+library('Sierra')
 \dontrun{
-extdata_path <- system.file("extdata",package = "scpolya")
-load(paste(extdata_path,"TIP_vignette_gene_Seurat.RData",sep="/"))
-cellbc.df <- data.frame(celltype=genes.seurat@active.ident, cellbc= names(genes.seurat@active.ident))
-bamfile <- c(paste0(extdata_path,"/Vignette_example_TIP_sham.bam")
-
-splitBam(bam, cellbc.df)
-}
-
-# Example 2 extract reads that overlap a gene
-\dontrun{
-gtf_file <- "u:/Reference/mm10/cellranger_genes.gtf.gz"
-gtf_gr <- rtracklayer::import(gtf_file)
 extdata_path <- system.file("extdata",package = "scpolya")
 load(paste(extdata_path,"TIP_vignette_gene_Seurat.RData",sep="/"))
 cellbc.df <- data.frame(celltype=genes.seurat@active.ident, 
-                       cellbc= names(genes.seurat@active.ident))
-bam <- "R:/scpolyA_BAM_link/possorted_genome_bam.bam"
-splitBam(bam, cellbc.df, outdir="c:/TEMP/", gtf_gr=gtf_gr, geneSymbol="Dnajc19")
+                        cellbc= names(genes.seurat@active.ident))
+bamfile <- c(paste0(extdata_path,"/Vignette_example_TIP_sham.bam")
+
+SplitBam(bam, cellbc.df)
 }
+
+# Example 2 extract reads that overlap a gene
+
+extdata_path <- system.file("extdata",package = "Sierra")
+gtf.file <- paste0(extdata_path,"/Vignette_cellranger_genes_subset.gtf")
+gtf.gr <- rtracklayer::import(gtf.file)
+
+load(paste(extdata_path,"TIP_vignette_gene_Seurat.RData",sep="/"))
+cellbc.df <- data.frame(celltype=genes.seurat@active.ident, 
+                       cellbc= names(genes.seurat@active.ident))
+                       
+                       
+bam.file <- paste0(extdata_path,"/Vignette_example_TIP_mi.bam")
+outdir <-  tempdir()  # change this to a meaningful location
+SplitBam(bam.file, cellbc.df, outdir=outdir, gtf_gr=gtf.gr, geneSymbol="Dnajc19")
 
 
 }

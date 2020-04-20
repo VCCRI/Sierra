@@ -215,7 +215,7 @@ gene_Labels<- function(gr, reference_gr, annotationType)
 #'  annotate_gr_from_gtf(gr = gr_peaks, gtf_gr = gtf_gr,
 #'                       gtf_TxDb = gtf_TxDb, genome = genome, transcriptDetails=TRUE)                                            
 #' @return a dataframe with appended columns containing annotation
-#'
+#' @export
 ##
 ## Written March 2019
 annotate_gr_from_gtf <- function(gr, invert_strand = FALSE, gtf_gr = NULL,

@@ -61,7 +61,7 @@ extdata_path <- system.file("extdata",package = "Sierra")
 peak.merge.output.file <- paste0(extdata_path, "/TIP_merged_peaks.txt")
 reference.file <- paste0(extdata_path,"/Vignette_cellranger_genes_subset.gtf")
 
-\dontrun{
+
  genome <- BSgenome.Mmusculus.UCSC.mm10::BSgenome.Mmusculus.UCSC.mm10
 
 
@@ -69,6 +69,6 @@ reference.file <- paste0(extdata_path,"/Vignette_cellranger_genes_subset.gtf")
                     gtf.file = reference.file, 
                     output.file = "TIP_merged_peak_annotations.txt", 
                     genome = genome)
-        }
+
 
 }
