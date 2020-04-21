@@ -40,6 +40,7 @@
 #' @importFrom magrittr "%>%"
 #' @importFrom foreach "%dopar%"
 #' @importFrom Matrix writeMM
+#' @import utils
 #'
 #' @export
 CountPeaks <- function(peak.sites.file, gtf.file, bamfile, whitelist.file, output.dir, countUMI=TRUE,

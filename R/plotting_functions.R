@@ -649,7 +649,7 @@ PlotRelativeExpressionViolin <- function(peaks.object, peaks.to.plot, do.plot=FA
 #' 
 #' PlotUTRLengthShift(res.table)
 #'
-#' @import ggplot2
+#' @import ggplot2, dplyr
 #' 
 #' @export
 #'
