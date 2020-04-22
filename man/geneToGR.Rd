@@ -7,9 +7,9 @@
 geneToGR(geneSymbol, gtf_gr)
 }
 \arguments{
-\item{gtf_gr}{: Granges object of a gtf file}
-
 \item{geneSymbol}{: Gene symbol}
+
+\item{gtf_gr}{: Granges object of a gtf file}
 }
 \description{
 geneToGR converts a gene symbol to genomic ranges coordinate
