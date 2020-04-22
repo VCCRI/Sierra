@@ -729,7 +729,7 @@ apply_DEXSeq_test_sce <- function(peaks.sce.object, population.1, population.2 =
   profile.set1 = matrix(, nrow = length(peaks.use), ncol = length(cell.sets1))
   for (i in 1:length(cell.sets1)) {
     this.set <- cell.sets1[[i]]
-    sub.matrix <- peaks.sce.object@assays$data$counts[peaks.use, this.set]
+    sub.matrix <- SingleCellExperiment::counts(peaks.sce.object)[peaks.use, this.set]
     if (length(this.set) > 1) {
       this.profile <- as.numeric(apply(sub.matrix, 1, function(x) sum(x)))
       profile.set1[, i] <- this.profile
@@ -757,7 +757,7 @@ apply_DEXSeq_test_sce <- function(peaks.sce.object, population.1, population.2 =
   profile.set2 = matrix(, nrow = length(peaks.use), ncol = length(cell.sets2))
   for (i in 1:length(cell.sets2)) {
     this.set <- cell.sets2[[i]]
-    sub.matrix <- peaks.sce.object@assays$data$counts[peaks.use, this.set]
+    sub.matrix <- SingleCellExperiment::counts(peaks.sce.object)[peaks.use, this.set]
     if (length(this.set) > 1) {
       this.profile <- as.numeric(apply(sub.matrix, 1, function(x) sum(x)))
       profile.set2[, i] <- this.profile
@@ -1025,7 +1025,7 @@ get_expressed_peaks_sce <- function(peaks.sce.object, population.1, population.2
   peak.names = rownames(peaks.sce.object)
 
   # Get the peaks/APA sites expressed in the foreground set based on proportion of non-zeros
-  this.data <- peaks.sce.object@assays$data$counts
+  this.data <- SingleCellExperiment::counts(peaks.sce.object)
   nz.row.foreground = tabulate(this.data[, foreground.set]@i + 1, nbins = nrow(peaks.sce.object))
   nz.prop.foreground = nz.row.foreground/length(foreground.set)
   peaks.foreground = peak.names[which(nz.prop.foreground > threshold)]
@@ -1082,7 +1082,7 @@ get_percent_expression <- function(peaks.object, this.cluster, remainder=FALSE, 
     peak.names = rownames(peaks.object)
 
     # Get the peaks/APA sites expressed in the foreground set based on proportion of non-zeros
-    this.data <- peaks.object@assays$data$counts
+    this.data <- SingleCellExperiment::counts(peaks.object)
     nz.row.cells = tabulate(this.data[, cell.set]@i + 1, nbins = length(peak.names))
     nz.prop.cells = nz.row.cells/length(cell.set)
     names(nz.prop.cells) = peak.names
