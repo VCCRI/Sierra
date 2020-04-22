@@ -8,7 +8,7 @@ Description: Sierra is a pipeline for detecting differential transcript usage fr
 License: file LICENSE
 Encoding: UTF-8
 LazyData: true
-biocViews: software,transcriptomics, SingleCell, RNASeq, GeneExpression, Sequencing, Visualization, StatisticalMethod, TranscriptomeVariant 
+BiocViews: software,transcriptomics, SingleCell, RNASeq, GeneExpression, Sequencing, Visualization, StatisticalMethod, TranscriptomeVariant 
 Imports:
     GenomicRanges,
     GenomicAlignments,
