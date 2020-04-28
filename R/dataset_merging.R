@@ -386,6 +386,11 @@ generate_self_merged_peaks <- function(apa.similarity.table, sim.thresh = 0.75, 
 #' @examples
 #' \dontrun{
 #'      generate_merged_peak_table(dataset.1, peak.dataset.table, self.merged.peaks.list)
+#'      
+#'      
+#'      
+#'      
+#'      
 #'  }
 #' @importFrom magrittr "%>%"
 #'
@@ -514,9 +519,44 @@ generate_merged_peak_table <- function(dataset.1, peak.dataset.list, self.merged
 #' @param ncores number of cores to use (default 1)
 #' @return NULL. writes out a set of merged peaks to output.file
 #' @examples
-#' \dontrun{
-#'      MergePeakCoordinates(peak.dataset.table, output.file, ncores = 1)
-#'  }
+#'      
+#'      
+#' library(Sierra)
+#' extdata_path <- system.file("extdata",package = "Sierra")
+#' reference.file <- paste0(extdata_path,"/Vignette_cellranger_genes_subset.gtf")
+#' junctions.file <- paste0(extdata_path,"/Vignette_example_TIP_sham_junctions.bed")
+#' bamfile <- c(paste0(extdata_path,"/Vignette_example_TIP_sham.bam"),
+#'             paste0(extdata_path,"/Vignette_example_TIP_mi.bam") )
+#' whitelist.bc.file <- c(paste0(extdata_path,"/example_TIP_sham_whitelist_barcodes.tsv"),
+#'                       paste0(extdata_path,"/example_TIP_MI_whitelist_barcodes.tsv"))
+#'
+#' ### Peak calling
+#' peak.output.file <- c("Vignette_example_TIP_sham_peaks.txt",
+#'                      "Vignette_example_TIP_MI_peaks.txt")
+#' FindPeaks(output.file = peak.output.file[1],   # output filename
+#'          gtf.file = reference.file,           # gene model as a GTF file
+#' bamfile = bamfile[1],                # BAM alignment filename.
+#'          junctions.file = junctions.file,     # BED filename of splice junctions exising in BAM file.
+#'          ncores = 1)                          # number of cores to use
+#'
+#'
+#' FindPeaks(output.file = peak.output.file[2],   # output filename
+#'          gtf.file = reference.file,           # gene model as a GTF file
+#'          bamfile = bamfile[2],                # BAM alignment filename.
+#'          junctions.file = junctions.file,     # BED filename of splice junctions exising in BAM file.
+#'          ncores = 1)
+#'
+#' #### Peak merging
+#' peak.dataset.table = data.frame(Peak_file = peak.output.file,
+#'                                Identifier = c("TIP-example-Sham", "TIP-example-MI"),
+#'                                stringsAsFactors = FALSE)
+#'
+#' peak.merge.output.file = "TIP_merged_peaks.txt"
+#' MergePeakCoordinates(peak.dataset.table, output.file = peak.merge.output.file, ncores = 1)
+#'      
+#'      
+#'      
+#'  
 #' @importFrom magrittr "%>%"
 #'
 #' @export

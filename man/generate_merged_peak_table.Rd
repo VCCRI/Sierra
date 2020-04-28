@@ -39,5 +39,10 @@ variance (25\% by default).
 \examples{
 \dontrun{
      generate_merged_peak_table(dataset.1, peak.dataset.table, self.merged.peaks.list)
+     
+     
+     
+     
+     
  }
 }

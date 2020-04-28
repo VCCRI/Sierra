@@ -54,7 +54,7 @@ reference.file <- paste0(extdata_path,"/Vignette_cellranger_genes_subset.gtf")
 junctions.file <- paste0(extdata_path,"/Vignette_example_TIP_sham_junctions.bed")
 
 bamfile <- c(paste0(extdata_path,"/Vignette_example_TIP_sham.bam"),
-             paste0(extdata_path,"/Vignette_example_TIP_MI.bam") )
+             paste0(extdata_path,"/Vignette_example_TIP_mi.bam") )
              
 peak.output.file <- c("Vignette_example_TIP_sham_peaks.txt",  "Vignette_example_TIP_MI_peaks.txt")
 

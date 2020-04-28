@@ -41,7 +41,7 @@ extdata_path <- system.file("extdata",package = "Sierra")
 reference.file <- paste0(extdata_path,"/Vignette_cellranger_genes_subset.gtf")
 
 bamfile <- c(paste0(extdata_path,"/Vignette_example_TIP_sham.bam"),
-             paste0(extdata_path,"/Vignette_example_TIP_MI.bam") )
+             paste0(extdata_path,"/Vignette_example_TIP_mi.bam") )
              
 whitelist.bc.file <- paste0(extdata_path,"/example_TIP_sham_whitelist_barcodes.tsv")
   

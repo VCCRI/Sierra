@@ -12,9 +12,45 @@
 #' @param sites.file file containing peak coordinate names corresponding to rows in the matrix
 #' @return a sparseMatrix
 #' @examples
+#' 
+#' 
+#' library(Sierra)
+#' extdata_path <- system.file("extdata",package = "Sierra")
+#' reference.file <- paste0(extdata_path,"/Vignette_cellranger_genes_subset.gtf")
+#' junctions.file <- paste0(extdata_path,"/Vignette_example_TIP_sham_junctions.bed")
+#' bamfile <- paste0(extdata_path,"/Vignette_example_TIP_sham.bam")
+#' 
+#' whitelist.bc.file <- paste0(extdata_path,"/example_TIP_sham_whitelist_barcodes.tsv")
+#'
+#' ### Peak calling
+#' peak.output.file <- c("Vignette_example_TIP_sham_peaks.txt")
+#' 
+#' FindPeaks(output.file = peak.output.file[1],   # output filename
+#'          gtf.file = reference.file,           # gene model as a GTF file
+#' bamfile = bamfile[1],                # BAM alignment filename.
+#'          junctions.file = junctions.file,     # BED filename of splice junctions exising in BAM file.
+#'          ncores = 1)                          # number of cores to use
+#'
+#'
+#' #### Peak merging
+#' peak.dataset.table = data.frame(Peak_file = peak.output.file,
+#'                                Identifier = c("TIP-example-Sham"),
+#'                                stringsAsFactors = FALSE)
+#'
+#' peak.merge.output.file = "TIP_merged_peaks.txt"
 #' \dontrun{
-#'         count.mat = ReadPeakCounts()
+#' MergePeakCoordinates(peak.dataset.table, output.file = peak.merge.output.file, ncores = 1)
+#' 
+#' count.dir <- c("example_TIP_sham_counts")
+#' CountPeaks(peak.sites.file = peak.merge.output.file,  gtf.file = reference.file,
+#'           bamfile = bamfile[1], whitelist.file = whitelist.bc.file[1],
+#'           output.dir = count.dir,  countUMI = TRUE, ncores = 1)
+#'             
+#' 
+#'  count.mat = ReadPeakCounts(count.dir)    # This will search directory and open required files
 #'  }
+#'  
+#'  
 #' @export
 #'
 ReadPeakCounts <- function(data.dir = NULL, mm.file = NULL, barcodes.file = NULL, sites.file = NULL) {
@@ -148,9 +184,22 @@ PeakSeuratFromTransfer <- function(peak.data,
 #'
 #' @examples
 #' 
-#' \dontrun{ 
-#'      peak.seurat = NewPeakSeurat(peak.data, genes.seurat, annot.info)
-#'  }
+#' extdata_path <- system.file("extdata",package = "Sierra")
+#' load(paste0(extdata_path,"/TIP_cell_info.RData"))
+#' 
+#' \dontrun{
+#' peak.annotations <- read.table("TIP_merged_peak_annotations.txt", header = TRUE,sep = "\t",
+#'                             row.names = 1, stringsAsFactors = FALSE)
+#'                             
+#' 
+#' 
+#' peaks.seurat <- NewPeakSeurat(peak.data = peak.counts, 
+#'                              annot.info = peak.annotations, 
+#'                              cell.idents = tip.populations,
+#'                              tsne.coords = tip.tsne.coordinates,
+#'                              min.cells = 0, min.peaks = 0)
+#' }
+#' 
 #' @export
 #'
 NewPeakSeurat <- function(peak.data, annot.info, project.name = "PolyA", cell.idents = NULL,

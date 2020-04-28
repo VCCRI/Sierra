@@ -20,7 +20,7 @@
 #' reference.file <- paste0(extdata_path,"/Vignette_cellranger_genes_subset.gtf")
 #' 
 #' bamfile <- c(paste0(extdata_path,"/Vignette_example_TIP_sham.bam"),
-#'              paste0(extdata_path,"/Vignette_example_TIP_MI.bam") )
+#'              paste0(extdata_path,"/Vignette_example_TIP_mi.bam") )
 #'              
 #' whitelist.bc.file <- paste0(extdata_path,"/example_TIP_sham_whitelist_barcodes.tsv")
 #'   
@@ -270,7 +270,7 @@ make_reference <- function(gtf_file) {
 #' junctions.file <- paste0(extdata_path,"/Vignette_example_TIP_sham_junctions.bed")
 #' 
 #' bamfile <- c(paste0(extdata_path,"/Vignette_example_TIP_sham.bam"),
-#'              paste0(extdata_path,"/Vignette_example_TIP_MI.bam") )
+#'              paste0(extdata_path,"/Vignette_example_TIP_mi.bam") )
 #'              
 #' peak.output.file <- c("Vignette_example_TIP_sham_peaks.txt",  "Vignette_example_TIP_MI_peaks.txt")
 #' 
@@ -595,15 +595,53 @@ FindPeaks <- function(output.file, gtf.file, bamfile, junctions.file,
 #' @return NULL. Writes counts to file.
 #' @examples
 #' 
+#' library(Sierra)
 #' extdata_path <- system.file("extdata",package = "Sierra")
-#' peak.sites.file <- paste0(extdata_path,"/TIP_merged_peaks.txt")
-#' count.dirs <- c("example_TIP_sham_counts", "example_TIP_MI_counts")
-#' output.dir <- "example_TIP_aggregate"
+#' reference.file <- paste0(extdata_path,"/Vignette_cellranger_genes_subset.gtf")
+#' junctions.file <- paste0(extdata_path,"/Vignette_example_TIP_sham_junctions.bed")
+#' bamfile <- c(paste0(extdata_path,"/Vignette_example_TIP_sham.bam"),
+#'             paste0(extdata_path,"/Vignette_example_TIP_mi.bam") )
+#' whitelist.bc.file <- c(paste0(extdata_path,"/example_TIP_sham_whitelist_barcodes.tsv"),
+#'                       paste0(extdata_path,"/example_TIP_MI_whitelist_barcodes.tsv"))
 #'
-#'  \dontrun{ 
-#' AggregatePeakCounts(peak.sites.file, count.dirs, output.dir)
-#' }
+#' ### Peak calling
+#' peak.output.file <- c("Vignette_example_TIP_sham_peaks.txt",
+#'                      "Vignette_example_TIP_MI_peaks.txt")
+#' FindPeaks(output.file = peak.output.file[1],   # output filename
+#'          gtf.file = reference.file,           # gene model as a GTF file
+#' bamfile = bamfile[1],                # BAM alignment filename.
+#'          junctions.file = junctions.file,     # BED filename of splice junctions exising in BAM file.
+#'          ncores = 1)                          # number of cores to use
+#'
+#'
+#' FindPeaks(output.file = peak.output.file[2],   # output filename
+#'          gtf.file = reference.file,           # gene model as a GTF file
+#'          bamfile = bamfile[2],                # BAM alignment filename.
+#'          junctions.file = junctions.file,     # BED filename of splice junctions exising in BAM file.
+#'          ncores = 1)
+#'
+#' #### Peak merging
+#' peak.dataset.table = data.frame(Peak_file = peak.output.file,
+#'                                Identifier = c("TIP-example-Sham", "TIP-example-MI"),
+#'                                stringsAsFactors = FALSE)
+#'
+#' peak.merge.output.file = "TIP_merged_peaks.txt"
+#' MergePeakCoordinates(peak.dataset.table, output.file = peak.merge.output.file, ncores = 1)
 #' 
+#' count.dirs <- c("example_TIP_sham_counts", "example_TIP_MI_counts")
+#' #sham data set
+#' CountPeaks(peak.sites.file = peak.merge.output.file,  gtf.file = reference.file,
+#'           bamfile = bamfile[1], whitelist.file = whitelist.bc.file[1],
+#'           output.dir = count.dirs[1],  countUMI = TRUE, ncores = 1)
+#'  # MI data set
+#'  CountPeaks(peak.sites.file = peak.merge.output.file,  gtf.file = reference.file,
+#'             bamfile = bamfile[2], whitelist.file = whitelist.bc.file[2],
+#'             output.dir = count.dirs[2],  countUMI = TRUE, ncores = 1)
+#'             
+#'  out.dir <- "example_TIP_aggregate"
+#'  AggregatePeakCounts(peak.sites.file = peak.merge.output.file, count.dirs = count.dirs,
+#'                    exp.labels = c("Sham", "MI"), output.dir = out.dir)      
+#'  
 #' @export
 #'
 AggregatePeakCounts <- function(peak.sites.file, count.dirs, output.dir, exp.labels = NULL) {

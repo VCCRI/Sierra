@@ -24,9 +24,24 @@
 #' @param ncores number of cores to run DEXSeq with 
 #' @return a data-frame of results.
 #' @examples
+#' 
+#' 
+#' 
+#' extdata_path <- system.file("extdata",package = "Sierra")
+#' load(paste0(extdata_path,"/TIP_cell_info.RData"))
 #' \dontrun{
-#'        DUTest(apa.seurat.object, population.1 = "1", population.2 = "2")
+#' peak.annotations <- read.table("TIP_merged_peak_annotations.txt", header = TRUE,sep = "\t",
+#'                                       row.names = 1,stringsAsFactors = FALSE)
+#' peaks.seurat <- NewPeakSeurat(peak.data = peak.counts, 
+#'                              annot.info = peak.annotations, 
+#'                              cell.idents = tip.populations,
+#'                              tsne.coords = tip.tsne.coordinates,
+#'                              min.cells = 0, min.peaks = 0)
+#' 
+#' res.table = DUTest(peaks.seurat, population.1 = "F-SL", population.2 = "EC1",
+#'                          exp.thresh = 0.1,  feature.type = c("UTR3", "exon"))
 #' }
+#'
 #' @export
 #'
 DUTest <- function(peaks.object, 

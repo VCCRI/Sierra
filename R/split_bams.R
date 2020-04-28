@@ -277,7 +277,7 @@ seqmonk_file_to_rle <- function(fn)
 #'
 rle_to_WIG <- function(rle_input, gtf_gr=gtf_gr, geneSymbol="Dnajc19")
 {
-  toExtract <-geneToGR(geneID=geneSymbol, gtf_gr)
+  toExtract <-geneToGR(geneSymbol=geneSymbol, gtf_gr)
   tmp <- GenomicRanges::findOverlaps(FC$gr,toExtract)
   idx <- S4Vectors::queryHits(tmp)
   min_idx <- min(idx)
