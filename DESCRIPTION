@@ -1,7 +1,7 @@
 Package: Sierra
 Type: Package
 Title: PolyA counting and differential transcript usage analysis for scRNA-seq data
-Version: 0.99.9
+Version: 0.99.10
 Author: Ralph Patrick, David Humphreys and Kitty K. Lo
 Maintainer: David Humphreys <d.humphreys@victorchang.edu.au>
 Description: Sierra is a pipeline for detecting differential transcript usage from barcoded polyA-enriched scRNA-seq experiments
@@ -33,7 +33,7 @@ Imports:
     magrittr,
     BSgenome, BiocGenerics, BiocParallel, Biostrings, GenomeInfoDb,
     GenomicFeatures, IRanges, Rsamtools, SummarizedExperiment,
-    data.table, genefilter, rtracklayer, scales, utils
+    data.table, genefilter, rtracklayer, scales
 RoxygenNote: 7.1.0
 Suggests: 
     Seurat,
