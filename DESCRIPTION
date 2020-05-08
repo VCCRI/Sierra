@@ -34,7 +34,7 @@ Imports:
     BSgenome, BiocGenerics, BiocParallel, Biostrings, GenomeInfoDb,
     GenomicFeatures, IRanges, Rsamtools, SummarizedExperiment,
     data.table, genefilter, rtracklayer, scales, utils
-RoxygenNote: 7.0.2
+RoxygenNote: 7.1.0
 Suggests: 
     Seurat,
     knitr,
