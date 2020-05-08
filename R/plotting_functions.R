@@ -396,9 +396,24 @@ PlotRelativeExpressionTSNE <- function(peaks.object, peaks.to.plot, do.plot=FALS
 #' @return a ggplot2 object
 #'
 #' @examples
-#' \dontrun{
-#'    PlotRelativeExpressionUMAP(peaks.seurat, this.peak.set)
-#'  }
+#' 
+#' ## Load example data for two peaks from the Cxcl12 gene
+#' extdata_path <- system.file("extdata",package = "Sierra")
+#' load(paste0(extdata_path, "/Cxcl12_example.RData"))
+#' load(paste0(extdata_path, "/TIP_cell_info.RData"))
+#' 
+#' ## Create an SCE object holding the peak data
+#' ## Note, for this example we are recycling t-SNE coordinates to demonstrate running of the function
+#' peaks.sce <- NewPeakSCE(peak.data = peak.counts, 
+#'                         annot.info = peak.annotations, 
+#'                         cell.idents = tip.populations, 
+#'                         umap.coords = tip.tsne.coordinates,
+#'                         min.cells = 0, min.peaks = 0)
+#'                         
+#' ## Plot relative expression of example peaks on t-SNE coordinates
+#' PlotRelativeExpressionUMAP(peaks.object = peaks.sce, 
+#'       peaks.to.plot = c("Cxcl12:6:117174603-117175050:1", "Cxcl12:6:117180974-117181367:1"))
+#' 
 #' @import ggplot2
 #'
 #' @export
@@ -473,10 +488,23 @@ PlotRelativeExpressionUMAP <- function(peaks.object, peaks.to.plot, do.plot=FALS
 #' @return a ggplot2 object
 #'
 #' @examples
-#' \dontrun{
-#'    PlotRelativeExpressionBox(peaks.object, this.peak.set)
-#'  }
-#' @import ggplot2
+#' 
+#' #' ## Load example data for two peaks from the Cxcl12 gene
+#' extdata_path <- system.file("extdata",package = "Sierra")
+#' load(paste0(extdata_path, "/Cxcl12_example.RData"))
+#' load(paste0(extdata_path, "/TIP_cell_info.RData"))
+#' 
+#' ## Create an SCE object holding the peak data
+#' peaks.sce <- NewPeakSCE(peak.data = peak.counts, 
+#'                         annot.info = peak.annotations, 
+#'                         cell.idents = tip.populations, 
+#'                         tsne.coords = tip.tsne.coordinates,
+#'                         min.cells = 0, min.peaks = 0)
+#'                         
+#' ## Plot relative expression of example peaks on t-SNE coordinates
+#' PlotRelativeExpressionBox(peaks.object = peaks.sce, 
+#'       peaks.to.plot = c("Cxcl12:6:117174603-117175050:1", "Cxcl12:6:117180974-117181367:1"))
+#' 
 #'
 #' @export
 #'
@@ -564,9 +592,23 @@ PlotRelativeExpressionBox <- function(peaks.object, peaks.to.plot, do.plot=FALSE
 #' @return a ggplot2 object
 #'
 #' @examples
-#' \dontrun{
-#'    PlotRelativeExpressionViolin(peaks.object, this.peak.set)
-#' }
+#' 
+#' #' ## Load example data for two peaks from the Cxcl12 gene
+#' extdata_path <- system.file("extdata",package = "Sierra")
+#' load(paste0(extdata_path, "/Cxcl12_example.RData"))
+#' load(paste0(extdata_path, "/TIP_cell_info.RData"))
+#' 
+#' ## Create an SCE object holding the peak data
+#' peaks.sce <- NewPeakSCE(peak.data = peak.counts, 
+#'                         annot.info = peak.annotations, 
+#'                         cell.idents = tip.populations, 
+#'                         tsne.coords = tip.tsne.coordinates,
+#'                         min.cells = 0, min.peaks = 0)
+#'                         
+#' ## Plot relative expression of example peaks on t-SNE coordinates
+#' PlotRelativeExpressionViolin(peaks.object = peaks.sce, 
+#'       peaks.to.plot = c("Cxcl12:6:117174603-117175050:1", "Cxcl12:6:117180974-117181367:1"))
+#' 
 #' @import ggplot2
 #'
 #' @export

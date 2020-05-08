@@ -40,7 +40,22 @@ Given two or more peaks to plot, a relative expression score and
 generate a box plot according to cell identities
 }
 \examples{
-\dontrun{
-   PlotRelativeExpressionBox(peaks.object, this.peak.set)
- }
+
+#' ## Load example data for two peaks from the Cxcl12 gene
+extdata_path <- system.file("extdata",package = "Sierra")
+load(paste0(extdata_path, "/Cxcl12_example.RData"))
+load(paste0(extdata_path, "/TIP_cell_info.RData"))
+
+## Create an SCE object holding the peak data
+peaks.sce <- NewPeakSCE(peak.data = peak.counts, 
+                        annot.info = peak.annotations, 
+                        cell.idents = tip.populations, 
+                        tsne.coords = tip.tsne.coordinates,
+                        min.cells = 0, min.peaks = 0)
+                        
+## Plot relative expression of example peaks on t-SNE coordinates
+PlotRelativeExpressionBox(peaks.object = peaks.sce, 
+      peaks.to.plot = c("Cxcl12:6:117174603-117175050:1", "Cxcl12:6:117180974-117181367:1"))
+
+
 }
