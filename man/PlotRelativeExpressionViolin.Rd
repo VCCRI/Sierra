@@ -47,7 +47,7 @@ generate a violin plot according to cell identities
 }
 \examples{
 
-#' ## Load example data for two peaks from the Cxcl12 gene
+## Load example data for two peaks from the Cxcl12 gene
 extdata_path <- system.file("extdata",package = "Sierra")
 load(paste0(extdata_path, "/Cxcl12_example.RData"))
 load(paste0(extdata_path, "/TIP_cell_info.RData"))
