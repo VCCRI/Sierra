@@ -247,6 +247,47 @@ make_reference <- function(gtf_file) {
 
 ###################################################################
 #'
+#' Fit Gaussian curve to the coverage 
+#'
+#' @param 
+#' @param fit.method Either NLS or MLE 
+#'
+#' Takes a GTF file as input and creates a table of chromosome start-end
+#' positions for each gene. Works with GTF files downloaded from 10x Genomics website.
+#'
+fit_gaussian <- function(fit.data, maxval, fit.method) {
+
+  if(fit.method == "NLS") { 
+    nls.res <- NULL
+    tryCatch({
+      nls.res <- nls( y ~ k*exp(-1/2*(x-mu)^2/sigma^2),
+                      start=c(mu=300,sigma=100,k=maxval) , data = fit.data)
+    }, error = function(err) { })
+    return(nls.res)
+  } else if(fit.method == "MLE") { 
+
+    x = fit.data$x 
+    y = fit.data$y 
+    
+    # Likelihood function for MLE 
+    LL <- function(mu, sigma,k) { 
+      R = dnorm(y, k*exp(-1/2*(x-mu)^2/sigma^2), 10)
+      return(-sum(log(R)))
+    }
+    
+    mle.fit = NULL 
+    tryCatch({
+       mle.fit = mle(LL, start = list(mu = 300, sigma=100, k =maxval))
+    }, error = function(err) { })  
+    return(mle.fit)
+  } else {
+    stop("Fit method need to be either NLS or MLE")
+  } 
+  
+} 
+
+###################################################################
+#'
 #' Do peak calling on a scRNA-seq BAM file
 #'
 #' Do peak calling on a scRNA-seq BAM file...
@@ -262,6 +303,7 @@ make_reference <- function(gtf_file) {
 #' @param min.peak.cutoff min.peak.cutoff
 #' @param min.peak.prop min.peak.prop
 #' @param ncores number of cores to use
+#' @param fit.method NLS or MLE [default: NLS]
 #' @return NULL. Writes counts to file.
 #' @examples
 #' 
@@ -286,7 +328,10 @@ make_reference <- function(gtf_file) {
 #'
 FindPeaks <- function(output.file, gtf.file, bamfile, junctions.file,
                        min.jcutoff=50, min.jcutoff.prop = 0.05, min.cov.cutoff = 500,
-                       min.cov.prop = 0.05, min.peak.cutoff=200, min.peak.prop = 0.05, ncores = 1) {
+                       min.cov.prop = 0.05, min.peak.cutoff=200, min.peak.prop = 0.05, ncores = 1,
+                       fit.method = "NLS") {
+
+  if(!fit.method %in% c("NLS", "MLE") ) { stop("fit.method needs to be either NLS or MLE. ")}
 
   lock <- tempfile()
   #genes.ref <- read.table(reference.file,
@@ -390,19 +435,22 @@ FindPeaks <- function(output.file, gtf.file, bamfile, junctions.file,
           #message("max peak: ", data.no.juncs[maxpeak, "pos"])
 
           fit.data <- data.frame(x = seq(1,end-start+1), y = data.no.juncs[start:end,"coverage"])
-          nls.res <- NULL
-          tryCatch({
-            nls.res <- nls( y ~ k*exp(-1/2*(x-mu)^2/sigma^2),
-                            start=c(mu=300,sigma=100,k=maxval) , data = fit.data)
-          }, error = function(err) { })
-
-          if(!is.null(nls.res)) {
-            residuals <- sum(summary(nls.res)$residuals )
-            v <- summary(nls.res)$parameters[,"Estimate"]
-            fitted.peak <- maxpeak - 300 + floor(v[1])
-            from <- fitted.peak - 3*floor(v[2])
-            to <- fitted.peak + 3*floor(v[2])
-
+          #nls.res <- NULL
+          #tryCatch({
+          #  nls.res <- nls( y ~ k*exp(-1/2*(x-mu)^2/sigma^2),
+          #                  start=c(mu=300,sigma=100,k=maxval) , data = fit.data)
+          #}, error = function(err) { })
+          gaussian.fit <- fit_gaussian(fit.data, maxval, fit.method)
+          if(!is.null(gaussian.fit)) {
+            
+            est_mu <- coef(gaussian.fit)["mu"]
+            est_sigma <- coef(gaussian.fit)["sigma"]
+            est_k <- coef(gaussian.fit)["k"]
+            
+            fitted.peak <- maxpeak - 300 + floor(est_mu)
+            from <- fitted.peak - 3*floor(est_sigma)
+            to <- fitted.peak + 3*floor(est_sigma)
+            
             # Handle the cases where the peak is too close to eithr the start or the end
             if(from < 1) { from = 1 }
             if(to > n.points) { to = n.points}
@@ -424,9 +472,7 @@ FindPeaks <- function(output.file, gtf.file, bamfile, junctions.file,
               if(length(which(pos.gaps > 1) > 0)) {
                 isGapped <- TRUE
               }
-
             }
-
 
             if(isGapped) {
               exon.pos <- make_exons(data.no.juncs[from:to, "pos"])
@@ -438,7 +484,7 @@ FindPeaks <- function(output.file, gtf.file, bamfile, junctions.file,
                           peak.pos,
                           data.no.juncs[from, "pos"],
                           to.pos,
-                          v[1], v[2], v[3], "non-juncs", exon.pos, sep="\t")
+                          est_mu, est_sigma, est_k, "non-juncs", exon.pos, sep="\t")
             #print(line)
   	  locked <- flock::lock(lock)
             write(line,file=output.file,append=TRUE)
@@ -481,19 +527,25 @@ FindPeaks <- function(output.file, gtf.file, bamfile, junctions.file,
           if(maxval < maxpeakcutoff) { next }
           fit.data <- data.frame(x = seq(1,nrow(intron.data)),
                                  y = intron.data[,"coverage"])
-          nls.res <- NULL
-          tryCatch({
-            nls.res <- nls( y ~ k*exp(-1/2*(x-mu)^2/sigma^2),
-                            start=c(mu=maxpeak,sigma=100,k=maxval) , data = fit.data)
-          }, error = function(err) { })
-
-          if(!is.null(nls.res)) {
-            residuals <- sum(summary(nls.res)$residuals )
-            v <- summary(nls.res)$parameters[,"Estimate"]
-            #print(v)
-            fitted.peak <- floor(v[1])
-            from <- fitted.peak - 3*floor(v[2])
-            to <- fitted.peak + 3*floor(v[2])
+          #nls.res <- NULL
+          #tryCatch({
+          #  nls.res <- nls( y ~ k*exp(-1/2*(x-mu)^2/sigma^2),
+          #                  start=c(mu=maxpeak,sigma=100,k=maxval) , data = fit.data)
+          #}, error = function(err) { })
+          gaussian.fit <- fit_gaussian(fit.data, maxval, fit.method) 
+          
+          if(!is.null(gaussian.fit)) {
+           # residuals <- sum(summary(nls.res)$residuals )
+            #v <- summary(nls.res)$parameters[,"Estimate"]
+            est_mu <- coef(gaussian.fit)["mu"]
+            est_sigma <- coef(gaussian.fit)["sigma"]
+            est_k <- coef(gaussian.fit)["k"]
+            
+            fitted.peak <- maxpeak - 300 + floor(est_mu)
+            from <- fitted.peak - 3*floor(est_sigma)
+            to <- fitted.peak + 3*floor(est_sigma)
+            
+            # Make sure position is within the intron 
             if(from < 1) { from = 1 }
             this.n.points <- nrow(intron.data)
             if(to > this.n.points) { to = this.n.points}
@@ -514,7 +566,7 @@ FindPeaks <- function(output.file, gtf.file, bamfile, junctions.file,
                        peak.pos,
                        intron.data[from, "pos"],
                        to.pos,
-                       v[1], v[2], v[3], "junctions", "NA", sep="\t")
+                       est_mu, est_sigma, est_k, "junctions", "NA", sep="\t")
 
             #line=paste(gene.name, seq.name, maxpeak, v[1], v[2], v[3], "junctions", sep=",")
             #print(line)
