@@ -271,14 +271,15 @@ fit_gaussian <- function(fit.data, maxval, fit.method) {
     
     # Likelihood function for MLE 
     LL <- function(mu, sigma,k) { 
-      R = dnorm(y, k*exp(-1/2*(x-mu)^2/sigma^2), 10)
-      return(-sum(log(R)))
+      R = dnorm(y, k*exp(-1/2*(x-mu)^2/sigma^2), sqrt(y))
+      return(-sum(R, log=TRUE))
     }
     
     mle.fit = NULL 
     tryCatch({
        mle.fit = mle(LL, start = list(mu = 300, sigma=100, k =maxval))
     }, error = function(err) { })  
+
     return(mle.fit)
   } else {
     stop("Fit method need to be either NLS or MLE")
@@ -345,7 +346,7 @@ FindPeaks <- function(output.file, gtf.file, bamfile, junctions.file,
   message(paste(n.genes, "gene entries to process"))
 
   # Initiate the output file
-  write("Gene\tChr\tStrand\tMaxPosition\tFit.max.pos\tFit.start\tFit.end\tmu\tsigma\tk\texon/intron\texon.pos", file = output.file)
+  write("Gene\tChr\tStrand\tMaxPosition\tFit.max.pos\tFit.start\tFit.end\tmu\tsigma\tk\texon/intron\texon.pos\tLogLik", file = output.file)
 
   # Read in the junction information
   junctions <- read.table(junctions.file, sep = "\t",header = FALSE)
@@ -444,9 +445,9 @@ FindPeaks <- function(output.file, gtf.file, bamfile, junctions.file,
           if(!is.null(gaussian.fit)) {
             
             est_mu <- coef(gaussian.fit)["mu"]
-            est_sigma <- coef(gaussian.fit)["sigma"]
+            est_sigma <- abs(coef(gaussian.fit)["sigma"]) # this has to be positie in the Gaussian  
             est_k <- coef(gaussian.fit)["k"]
-            
+            fit.loglik <- logLik(gaussian.fit)[1] 
             fitted.peak <- maxpeak - 300 + floor(est_mu)
             from <- fitted.peak - 3*floor(est_sigma)
             to <- fitted.peak + 3*floor(est_sigma)
@@ -484,14 +485,15 @@ FindPeaks <- function(output.file, gtf.file, bamfile, junctions.file,
                           peak.pos,
                           data.no.juncs[from, "pos"],
                           to.pos,
-                          est_mu, est_sigma, est_k, "non-juncs", exon.pos, sep="\t")
+                          est_mu, est_sigma, est_k, "non-juncs", exon.pos, 
+			  fit.loglik, sep="\t")
             #print(line)
   	  locked <- flock::lock(lock)
             write(line,file=output.file,append=TRUE)
   	  flock::unlock(locked)
           } else {
             line <- paste(gene.name, seq.name, strand, data.no.juncs[maxpeak, "pos"],
-                          "NA", "NA", "NA", "NA", "NA", "NA", "non-juncs", "NA", sep="\t")
+                          "NA", "NA", "NA", "NA", "NA", "NA", "non-juncs", "NA", "NA", sep="\t")
   	  locked <- flock::lock(lock)
             write(line,file=output.file,append=TRUE)
   	  flock::unlock(locked)
@@ -538,9 +540,10 @@ FindPeaks <- function(output.file, gtf.file, bamfile, junctions.file,
            # residuals <- sum(summary(nls.res)$residuals )
             #v <- summary(nls.res)$parameters[,"Estimate"]
             est_mu <- coef(gaussian.fit)["mu"]
-            est_sigma <- coef(gaussian.fit)["sigma"]
+            est_sigma <- abs(coef(gaussian.fit)["sigma"]) 
             est_k <- coef(gaussian.fit)["k"]
-            
+            fit.loglik <- logLik(gaussian.fit)[1]
+	    
             fitted.peak <- maxpeak - 300 + floor(est_mu)
             from <- fitted.peak - 3*floor(est_sigma)
             to <- fitted.peak + 3*floor(est_sigma)
@@ -566,7 +569,7 @@ FindPeaks <- function(output.file, gtf.file, bamfile, junctions.file,
                        peak.pos,
                        intron.data[from, "pos"],
                        to.pos,
-                       est_mu, est_sigma, est_k, "junctions", "NA", sep="\t")
+                       est_mu, est_sigma, est_k, "junctions", "NA", fit.loglik, sep="\t")
 
             #line=paste(gene.name, seq.name, maxpeak, v[1], v[2], v[3], "junctions", sep=",")
             #print(line)
@@ -575,7 +578,7 @@ FindPeaks <- function(output.file, gtf.file, bamfile, junctions.file,
   	  flock::unlock(locked)
           } else {
             line=paste(gene.name, seq.name, strand, intron.data[maxpeak, "pos"],
-                       "NA", "NA", "NA", "NA", "NA", "NA", "junction", "NA", sep="\t")
+                       "NA", "NA", "NA", "NA", "NA", "NA", "junction", "NA", "NA", sep="\t")
   	  locked <- flock::lock(lock)
             write(line,file=output.file,append=TRUE)
   	  flock::unlock(locked)
