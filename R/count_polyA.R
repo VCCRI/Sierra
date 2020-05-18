@@ -271,8 +271,8 @@ fit_gaussian <- function(fit.data, maxval, fit.method) {
     
     # Likelihood function for MLE 
     LL <- function(mu, sigma,k) { 
-      R = dnorm(y, k*exp(-1/2*(x-mu)^2/sigma^2), sqrt(y))
-      return(-sum(R, log=TRUE))
+      R = dnorm(y, k*exp(-1/2*(x-mu)^2/sigma^2), 10, log = TRUE)
+      return(-sum(R))
     }
     
     mle.fit = NULL 
