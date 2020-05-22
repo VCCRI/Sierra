@@ -44,7 +44,7 @@
 #'
 #' @export
 CountPeaks <- function(peak.sites.file, gtf.file, bamfile, whitelist.file, output.dir, countUMI=TRUE,
-			ncores = 1) {
+			ncores = 1, chr.names = NULL, filter.chr = TRUE) {
 
   lock <- tempfile()
   whitelist.bc <- read.table(whitelist.file, stringsAsFactors = FALSE)
@@ -55,7 +55,7 @@ CountPeaks <- function(peak.sites.file, gtf.file, bamfile, whitelist.file, outpu
   n.columns <- n.bcs + 1
 
   # read in gene reference
-  genes.ref <- make_reference(gtf.file)
+  genes.ref <- make_reference(gtf_file = gtf.file, chr.names = chr.names, filter.chr = filter.chr)
   chr.names <- as.character(unique(genes.ref$chr))
   n.genes <- nrow(genes.ref)
 
@@ -212,37 +212,57 @@ make_exons <- function(x) {
 #' Takes a GTF file as input and creates a table of chromosome start-end
 #' positions for each gene. Works with GTF files downloaded from 10x Genomics website.
 #'
-make_reference <- function(gtf_file) {
+make_reference <- function(gtf_file, chr.names = NULL, filter.chr = TRUE) {
   ## Read in the gtf file
   gtf_gr <- rtracklayer::import(gtf_file)
   gtf_TxDb <- GenomicFeatures::makeTxDbFromGFF(gtf_file, format="gtf")
-
+  
   ## Build a table of gene start-end positions
   genes <- GenomicFeatures::genes(gtf_TxDb)
   genes.ref = as.data.frame(genes)
-
+  
   ## Build a unique map of Ensembl ID to gene symbol
   ensembl.symbol.map = data.frame(EnsemblID = gtf_gr@elementMetadata@listData$gene_id,
-                                  GeneName = gtf_gr@elementMetadata@listData$gene_name, stringsAsFactors = FALSE)
+                                  GeneName = gtf_gr@elementMetadata@listData$gene_name, 
+                                  stringsAsFactors = FALSE)
+  
   ensembl.symbol.map %>% dplyr::distinct(EnsemblID, .keep_all = TRUE) -> ensembl.symbol.map.unique
   rownames(ensembl.symbol.map.unique) = ensembl.symbol.map.unique$EnsemblID
-
+  
   ## Add gene symbol to the gene table
   ensembl.symbol.map.unique = ensembl.symbol.map.unique[rownames(genes.ref), ]
   genes.ref$Gene = ensembl.symbol.map.unique$GeneName
-
+  
   ## update column names in reference file
   colnames(genes.ref) = c("chr", "start", "end", "width", "strand", "EnsemblID", "Gene")
   genes.ref = genes.ref[, c("EnsemblID", "chr", "start", "end", "strand", "Gene")]
   genes.ref$strand = plyr::mapvalues(genes.ref$strand, from = c("-", "+"), to = c("-1", "1"))
-
-  ## Filter the chromosome names
-  chr.use1 = as.character(c(1:22, c("X", "Y", "MT")))
-  chr.use2 = paste0("chr", as.character(c(1:22, c("X", "Y", "MT"))))
-  genes.ref = subset(genes.ref, chr %in% c(chr.use1, chr.use2) )
-  genes.ref$chr <- droplevels(genes.ref$chr)
-
-  return(genes.ref)
+  
+  ## Filter the chromosome names 
+  if (filter.chr) {
+    if (!is.null(chr.names)) {
+      # Use provided chromosome names
+      chr.use <- chr.names
+    } else{ 
+      # Assume we're working with human or mouse
+      chr.use1 = as.character(c(1:22, c("X", "Y", "MT")))
+      chr.use2 = paste0("chr", as.character(c(1:22, c("X", "Y", "MT"))))
+      chr.use <- c(chr.use1, chr.use2)
+    }
+    
+    genes.ref.use = subset(genes.ref, chr %in% chr.use )
+    genes.ref.use$chr <- droplevels(genes.ref.use$chr)
+    
+    if (nrow(genes.ref.use) == 0) {
+      warning("No entries were left after filtering GTF for chromosome names. Reverting to original entries.")
+      genes.ref.use <- genes.ref
+    }
+  } else{
+    # Use GTF as is
+    genes.ref.use <- genes.ref
+  }
+  
+  return(genes.ref.use)
 }
 
 ###################################################################
@@ -286,7 +306,8 @@ make_reference <- function(gtf_file) {
 #'
 FindPeaks <- function(output.file, gtf.file, bamfile, junctions.file,
                        min.jcutoff=50, min.jcutoff.prop = 0.05, min.cov.cutoff = 500,
-                       min.cov.prop = 0.05, min.peak.cutoff=200, min.peak.prop = 0.05, ncores = 1) {
+                       min.cov.prop = 0.05, min.peak.cutoff=200, min.peak.prop = 0.05, ncores = 1,
+                       chr.names = NULL, filter.chr = TRUE) {
 
   lock <- tempfile()
   #genes.ref <- read.table(reference.file,
@@ -295,7 +316,7 @@ FindPeaks <- function(output.file, gtf.file, bamfile, junctions.file,
   #genes.ref <- subset(genes.ref, chr %in% chr.names)
 
   ## Read in the gtf file
-  genes.ref = make_reference(gtf.file)
+  genes.ref = make_reference(gtf_file = gtf.file, chr.names = chr.names, filter.chr = filter.chr)
   n.genes = nrow(genes.ref)
   message(paste(n.genes, "gene entries to process"))
 
