@@ -537,7 +537,7 @@ BaseComposition <- function(genome=NULL,  chrom=NULL, start=NULL, stop=NULL, str
     }
   }
   
-  if (! is.numeric(start)) | (! is.numeric(stop))
+  if ((! is.numeric(start)) | (! is.numeric(stop)))
   { mesg <- paste("Could not define/identify start stop coordinates from coord:", coord)
     warning(mesg)
     return(NULL)
