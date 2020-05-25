@@ -538,8 +538,8 @@ BaseComposition <- function(genome=NULL,  chrom=NULL, start=NULL, stop=NULL, str
   }
   
   if (! is.numeric(start)) | (! is.numeric(stop))
-  {
-    warning("Could not define/identify start stop coordinates. Cannot retrieve sequence")
+  { mesg <- paste("Could not define/identify start stop coordinates from coord:", coord)
+    warning(mesg)
     return(NULL)
   }
 
