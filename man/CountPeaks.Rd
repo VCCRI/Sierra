@@ -11,7 +11,9 @@ CountPeaks(
   whitelist.file,
   output.dir,
   countUMI = TRUE,
-  ncores = 1
+  ncores = 1,
+  chr.names = NULL,
+  filter.chr = TRUE
 )
 }
 \arguments{
@@ -28,6 +30,10 @@ CountPeaks(
 \item{countUMI}{whether to count UMIs (default: TRUE)}
 
 \item{ncores}{Number of cores for multithreading}
+
+\item{chr.names}{names of chromosomes}
+
+\item{filter.chr}{names of chromosomes to filter}
 }
 \value{
 NULL. Writes counts to file.

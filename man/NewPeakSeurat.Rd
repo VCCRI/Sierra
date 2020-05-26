@@ -48,8 +48,18 @@ a new peak-level Seurat object
 Creates a new peak-level Seurat object from the peak counts and annotation table
 }
 \examples{
+                             
+## Load example data for two peaks from the Cxcl12 gene
+extdata_path <- system.file("extdata",package = "Sierra")
+load(paste0(extdata_path, "/Cxcl12_example.RData"))
+load(paste0(extdata_path, "/TIP_cell_info.RData"))
 
-\dontrun{ 
-     peak.seurat = NewPeakSeurat(peak.data, genes.seurat, annot.info)
- }
+## Create an Seurat object holding the peak data
+peaks.seurat <- NewPeakSeurat(peak.data = peak.counts, 
+                        annot.info = peak.annotations, 
+                        cell.idents = tip.populations, 
+                        tsne.coords = tip.tsne.coordinates,
+                        min.cells = 0, min.peaks = 0)
+                             
+
 }

@@ -15,7 +15,9 @@ FindPeaks(
   min.cov.prop = 0.05,
   min.peak.cutoff = 200,
   min.peak.prop = 0.05,
-  ncores = 1
+  ncores = 1,
+  chr.names = NULL,
+  filter.chr = TRUE
 )
 }
 \arguments{
@@ -40,6 +42,10 @@ FindPeaks(
 \item{min.peak.prop}{min.peak.prop}
 
 \item{ncores}{number of cores to use}
+
+\item{chr.names}{names of chromosomes}
+
+\item{filter.chr}{names of chromosomes to filter}
 }
 \value{
 NULL. Writes counts to file.

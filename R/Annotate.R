@@ -400,22 +400,31 @@ annotate_gr_from_gtf <- function(gr, invert_strand = FALSE, gtf_gr = NULL,
       df$pA_motif <- unlist( lapply(motif_details, FUN= function(x) {
             pA_motif_position <- FALSE
             motif_pos <- unlist(x$pA_motif_pos)
-            if (!is.na(motif_pos) & length(motif_pos) > 0)
-              pA_motif_position <- (max(motif_pos) < pA_motif_max_position)
+            if (length(motif_pos) > 0)
+            {
+              if (!is.na(motif_pos) & length(motif_pos) > 0)
+                pA_motif_position <- (max(motif_pos) < pA_motif_max_position)
+            }
             return (pA_motif_position) } ))
   
       df$pA_stretch <- unlist( lapply(motif_details, FUN= function(x) {
           pA_stretch_position <- FALSE
           motif_pos <- unlist(x$pA_stretch_pos)
-          if (!is.na(motif_pos) & length(motif_pos) > 0)
-            pA_stretch_position <- (max(motif_pos) > AAA_motif_min_position)
+          if (length(motif_pos) > 0)
+          {
+            if (!is.na(motif_pos) & length(motif_pos) > 0)
+              pA_stretch_position <- (max(motif_pos) > AAA_motif_min_position)
+          }
           return (pA_stretch_position) } ))
   
       df$pT_stretch <- unlist( lapply(motif_details, FUN= function(x) {
           pT_stretch_position <- FALSE
           motif_pos <- unlist(x$pT_stretch_pos)
-          if (!is.na(motif_pos) & length(motif_pos) > 0)
-            pT_stretch_position <- (max(motif_pos) > AAA_motif_min_position)
+          if (length(motif_pos) > 0)
+          {
+            if (!is.na(motif_pos) & length(motif_pos) > 0)
+              pT_stretch_position <- (max(motif_pos) > AAA_motif_min_position)
+          }
           return (pT_stretch_position) } ))
     }
     else

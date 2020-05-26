@@ -114,6 +114,9 @@ DUTest <- function(peaks.object,
 #' @param ncores Number of cores for multithreading
 #' @return a data-frame of results.
 #' 
+#' 
+#' 
+#' 
 #' @importFrom magrittr "%>%"
 #' 
 #' @export
@@ -520,7 +523,7 @@ apply_DEXSeq_test_seurat <- function(apa.seurat.object, population.1, population
   ## set a seed to allow replication of results
   set.seed(seed.use)
   if (length(population.1) == 1) {
-    cells.1 <- names(Idents(apa.seurat.object))[which(Idents(apa.seurat.object) == population.1)]
+    cells.1 <- names(Seruat::Idents(apa.seurat.object))[which(Seruat::Idents(apa.seurat.object) == population.1)]
   } else{
       cells.1 <- population.1
     }
@@ -532,7 +535,7 @@ apply_DEXSeq_test_seurat <- function(apa.seurat.object, population.1, population
   profile.set1 = matrix(, nrow = length(peaks.use), ncol = length(cell.sets1))
   for (i in 1:length(cell.sets1)) {
     this.set <- cell.sets1[[i]]
-    sub.matrix <- GetAssayData(apa.seurat.object, slot = "counts", assay = "RNA")[peaks.use, this.set]
+    sub.matrix <- Seurat::GetAssayData(apa.seurat.object, slot = "counts", assay = "RNA")[peaks.use, this.set]
     if (length(this.set) > 1) {
       this.profile <- as.numeric(apply(sub.matrix, 1, function(x) sum(x)))
       profile.set1[, i] <- this.profile
@@ -548,7 +551,7 @@ apply_DEXSeq_test_seurat <- function(apa.seurat.object, population.1, population
     cells.2 <- setdiff(colnames(apa.seurat.object), cells.1)
   } else {
     if (length(population.2) == 1) {
-      cells.2 <- names(Idents(apa.seurat.object))[which(Idents(apa.seurat.object) == population.2)]
+      cells.2 <- names(Seurat::Idents(apa.seurat.object))[which(Seruat::Idents(apa.seurat.object) == population.2)]
     } else {
       cells.2 <- population.2
     }
@@ -560,7 +563,7 @@ apply_DEXSeq_test_seurat <- function(apa.seurat.object, population.1, population
   profile.set2 = matrix(, nrow = length(peaks.use), ncol = length(cell.sets2))
   for (i in 1:length(cell.sets2)) {
     this.set <- cell.sets2[[i]]
-    sub.matrix <- GetAssayData(apa.seurat.object, slot = "counts", assay = "RNA")[peaks.use, this.set]
+    sub.matrix <- Seurat::GetAssayData(apa.seurat.object, slot = "counts", assay = "RNA")[peaks.use, this.set]
     if (length(this.set) > 1) {
       this.profile <- as.numeric(apply(sub.matrix, 1, function(x) sum(x)))
       profile.set2[, i] <- this.profile
@@ -971,15 +974,15 @@ GetExpressedPeaks <- function(peaks.object, population.1, population.2=NULL, thr
 get_expressed_peaks_seurat <- function(peaks.seurat.object, population.1, population.2=NULL, threshold=0.05) {
 
   if (length(population.1) == 1){ # cluster identity used as input
-    foreground.set = names(Idents(peaks.seurat.object)[Idents(peaks.seurat.object)==population.1])
+    foreground.set = names(Seurat::Idents(peaks.seurat.object)[Seruat::Idents(peaks.seurat.object)==population.1])
   } else { # cell identity used as input
     foreground.set = population.1
   }
   if (is.null(population.2)) {
-    remainder.set = names(Idents(peaks.seurat.object)[Idents(peaks.seurat.object)!=population.1])
+    remainder.set = names(Seurat::Idents(peaks.seurat.object)[Seruat::Idents(peaks.seurat.object)!=population.1])
   } else {
     if (length(population.2) == 1) { # cluster identity used as input
-      remainder.set = names(Idents(peaks.seurat.object)[Idents(peaks.seurat.object)==population.2])
+      remainder.set = names(Seruat::Idents(peaks.seurat.object)[Seruat::Idents(peaks.seurat.object)==population.2])
     } else { # cell identity used as input
       remainder.set = population.2
     }
@@ -988,7 +991,7 @@ get_expressed_peaks_seurat <- function(peaks.seurat.object, population.1, popula
   peak.names = rownames(peaks.seurat.object)
 
   # Get the peaks/APA sites expressed in the foreground set based on proportion of non-zeros
-  this.data <- GetAssayData(peaks.seurat.object, slot = "data", assay="RNA")
+  this.data <- Seurat::GetAssayData(peaks.seurat.object, slot = "data", assay="RNA")
   nz.row.foreground = tabulate(this.data[, foreground.set]@i + 1, nbins = nrow(peaks.seurat.object))
   nz.prop.foreground = nz.row.foreground/length(foreground.set)
   peaks.foreground = peak.names[which(nz.prop.foreground > threshold)]
@@ -1059,7 +1062,7 @@ get_percent_expression <- function(peaks.object, this.cluster, remainder=FALSE, 
 
   if (class(peaks.object) == "Seurat") {
     if (length(this.cluster) == 1){ # cluster identity used as input
-      foreground.set = names(Idents(peaks.object)[Idents(peaks.object)==this.cluster])
+      foreground.set = names(Seruat::Idents(peaks.object)[Seruat::Idents(peaks.object)==this.cluster])
     } else { # cell identity used as input
       foreground.set = this.cluster
     }
@@ -1073,7 +1076,7 @@ get_percent_expression <- function(peaks.object, this.cluster, remainder=FALSE, 
     peak.names = rownames(peaks.object)
 
     # Get the peaks/APA sites expressed in the foreground set based on proportion of non-zeros
-    this.data <- GetAssayData(peaks.object, slot = "data", assay="RNA")
+    this.data <- Seurat::GetAssayData(peaks.object, slot = "data", assay="RNA")
     nz.row.cells = tabulate(this.data[, cell.set]@i + 1, nbins = length(peak.names))
     nz.prop.cells = nz.row.cells/length(cell.set)
     names(nz.prop.cells) = peak.names

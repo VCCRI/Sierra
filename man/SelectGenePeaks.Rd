@@ -24,7 +24,19 @@ a list of peak IDs
 Returns peaks associated with a select gene.
 }
 \examples{
-\dontrun{
-     peak.list = SelectGenePeaks(peaks.object, "PTPRC", feature.type = c("UTR3", "exon"))
-}
+
+
+#' extdata_path <- system.file("extdata",package = "Sierra")
+load(paste0(extdata_path, "/Cxcl12_example.RData"))
+load(paste0(extdata_path, "/TIP_cell_info.RData"))
+
+## Create an suerat object holding the peak data
+peaks.seurat <- NewPeakSeurat(peak.data = peak.counts, 
+                        annot.info = peak.annotations, 
+                        cell.idents = tip.populations, 
+                        tsne.coords = tip.tsne.coordinates,
+                        min.cells = 0, min.peaks = 0)
+
+peak.list <- SelectGenePeaks(peaks.object =  peaks.seurat ,gene = "Cxcl12")
+
 }

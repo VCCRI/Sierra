@@ -13,6 +13,8 @@
 #' @param output.dir name of directory to write output (will be created if it doesn't exist)
 #' @param countUMI whether to count UMIs (default: TRUE)
 #' @param ncores Number of cores for multithreading
+#' @param chr.names names of chromosomes
+#' @param filter.chr names of chromosomes to filter
 #' @return NULL. Writes counts to file.
 #' @examples
 #' 
@@ -282,6 +284,8 @@ make_reference <- function(gtf_file, chr.names = NULL, filter.chr = TRUE) {
 #' @param min.peak.cutoff min.peak.cutoff
 #' @param min.peak.prop min.peak.prop
 #' @param ncores number of cores to use
+#' @param chr.names names of chromosomes
+#' @param filter.chr names of chromosomes to filter
 #' @return NULL. Writes counts to file.
 #' @examples
 #' 

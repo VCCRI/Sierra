@@ -45,7 +45,17 @@ a new peak-level SCE object
 Creates a new peak-counts single-cell experiment object from the peak counts and annotation table
 }
 \examples{
-\dontrun{
-    peak.sce = NewPeakSCE(peak.data, genes.seurat, annot.info)
-}
+
+
+ ## Load example data for two peaks from the Cxcl12 gene
+extdata_path <- system.file("extdata",package = "Sierra")
+load(paste0(extdata_path, "/Cxcl12_example.RData"))
+load(paste0(extdata_path, "/TIP_cell_info.RData"))
+
+## Create an SCE object holding the peak data
+peaks.sce <- NewPeakSCE(peak.data = peak.counts, 
+                        annot.info = peak.annotations, 
+                        cell.idents = tip.populations, 
+                        tsne.coords = tip.tsne.coordinates,
+                        min.cells = 0, min.peaks = 0)
 }

@@ -27,7 +27,45 @@ a sparseMatrix
 Read in peak data saved in MEX format
 }
 \examples{
+
+
+library(Sierra)
+extdata_path <- system.file("extdata",package = "Sierra")
+reference.file <- paste0(extdata_path,"/Vignette_cellranger_genes_subset.gtf")
+junctions.file <- paste0(extdata_path,"/Vignette_example_TIP_sham_junctions.bed")
+bamfile <- paste0(extdata_path,"/Vignette_example_TIP_sham.bam")
+
+whitelist.bc.file <- paste0(extdata_path,"/example_TIP_sham_whitelist_barcodes.tsv")
+
+### Peak calling
+peak.output.file <- c("Vignette_example_TIP_sham_peaks.txt")
+
+FindPeaks(output.file = peak.output.file[1],   # output filename
+         gtf.file = reference.file,           # gene model as a GTF file
+bamfile = bamfile[1],                # BAM alignment filename.
+         junctions.file = junctions.file,     # BED filename of splice junctions exising in BAM file.
+         ncores = 1)                          # number of cores to use
+
+
+#### Peak merging
+peak.dataset.table = data.frame(Peak_file = peak.output.file,
+                               Identifier = c("TIP-example-Sham"),
+                               stringsAsFactors = FALSE)
+
+peak.merge.output.file = "TIP_merged_peaks.txt"
 \dontrun{
-        count.mat = ReadPeakCounts()
+MergePeakCoordinates(peak.dataset.table, output.file = peak.merge.output.file, ncores = 1)
+
+count.dir <- c("example_TIP_sham_counts")
+CountPeaks(peak.sites.file = peak.merge.output.file,  gtf.file = reference.file,
+          bamfile = bamfile[1], whitelist.file = whitelist.bc.file[1],
+          output.dir = count.dir,  countUMI = TRUE, ncores = 1)
+            
+
+ count.mat = ReadPeakCounts(count.dir)    # This will search directory and open required files
+ 
+ 
  }
+ 
+ 
 }

@@ -4,7 +4,7 @@
 \alias{make_reference}
 \title{Build gene start-end reference from a gtf file}
 \usage{
-make_reference(gtf_file)
+make_reference(gtf_file, chr.names = NULL, filter.chr = TRUE)
 }
 \arguments{
 \item{gtf_file}{gtf file

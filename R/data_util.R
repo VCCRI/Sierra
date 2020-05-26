@@ -48,6 +48,8 @@
 #'             
 #' 
 #'  count.mat = ReadPeakCounts(count.dir)    # This will search directory and open required files
+#'  
+#'  
 #'  }
 #'  
 #'  
@@ -92,9 +94,26 @@ ReadPeakCounts <- function(data.dir = NULL, mm.file = NULL, barcodes.file = NULL
 #' @return a new peak-level Seurat object
 #'
 #' @examples
-#' \dontrun{
 #'      peak.seurat <- PeakSeuratFromTransfer(peak.data, genes.seurat, annot.info)
-#' }
+#'      
+#' ## Load example data for two peaks from the Cxcl12 gene
+#' extdata_path <- system.file("extdata",package = "Sierra")
+#' load(paste0(extdata_path, "/Cxcl12_example.RData"))
+#' load(paste0(extdata_path, "/TIP_cell_info.RData"))
+#' 
+#' ## Create an seurat object holding the peak data
+#' peaks.seurat <- NewPeakSeurat(peak.data = peak.counts, 
+#'                         annot.info = peak.annotations, 
+#'                         cell.idents = tip.populations, 
+#'                         tsne.coords = tip.tsne.coordinates,
+#'                         min.cells = 0, min.peaks = 0)
+#'                         
+#' ##                         
+#' peaks.seurat.transfer <- PeakSeuratFromTransfer(peak.data = peak.counts, 
+#'                         genes.seurat = peaks.seurat, 
+#'                         annot.info = peak.annotations)
+#'      
+#'
 #' @export
 #'
 PeakSeuratFromTransfer <- function(peak.data, 
@@ -130,16 +149,16 @@ PeakSeuratFromTransfer <- function(peak.data,
 
   ## Add cluster identities to peak Seurat object
   cells.overlap <- intersect(colnames(peaks.seurat), colnames(genes.seurat))
-  clusters.overlap <- Idents(genes.seurat)[cells.overlap]
+  clusters.overlap <- Seurat::Idents(genes.seurat)[cells.overlap]
   clusters.overlap <- clusters.overlap[colnames(peaks.seurat)]
   peaks.seurat <- AddMetaData(object = peaks.seurat, metadata = clusters.overlap, col.name = "geneLvlID")
-  Idents(peaks.seurat) <- peaks.seurat@meta.data$geneLvlID
+  Seurat::Idents(peaks.seurat) <- peaks.seurat@meta.data$geneLvlID
 
   ## Add t-SNE coordinates to peak count object
   tryCatch({
-    tsne.embeddings <- Embeddings(genes.seurat, reduction = 'tsne')
+    tsne.embeddings <- Seurat::Embeddings(genes.seurat, reduction = 'tsne')
     tsne.embeddings <- tsne.embeddings[colnames(peaks.seurat), ]
-    new.embedding <- CreateDimReducObject(embeddings = tsne.embeddings, key = "tSNE_", assay = "RNA")
+    new.embedding <- Seurat::CreateDimReducObject(embeddings = tsne.embeddings, key = "tSNE_", assay = "RNA")
     peaks.seurat@reductions$tsne <- new.embedding
     print("t-SNE coordinates added")
   }, error = function(err) {
@@ -148,9 +167,9 @@ PeakSeuratFromTransfer <- function(peak.data,
 
   ## Add UMAP coordinates to peak count object
   tryCatch({
-    umap.embeddings <- Embeddings(genes.seurat, reduction = 'umap')
+    umap.embeddings <- Seurat::Embeddings(genes.seurat, reduction = 'umap')
     umap.embeddings <- umap.embeddings[colnames(peaks.seurat), ]
-    new.embedding <- CreateDimReducObject(embeddings = umap.embeddings, key = "UMAP_", assay = "RNA")
+    new.embedding <- Seurat::CreateDimReducObject(embeddings = umap.embeddings, key = "UMAP_", assay = "RNA")
     peaks.seurat@reductions$umap = new.embedding
     print("UMAP coordinates added")
   }, error = function(err) {
@@ -183,22 +202,19 @@ PeakSeuratFromTransfer <- function(peak.data,
 #' @return a new peak-level Seurat object
 #'
 #' @examples
-#' 
+#'                              
+#' ## Load example data for two peaks from the Cxcl12 gene
 #' extdata_path <- system.file("extdata",package = "Sierra")
-#' load(paste0(extdata_path,"/TIP_cell_info.RData"))
+#' load(paste0(extdata_path, "/Cxcl12_example.RData"))
+#' load(paste0(extdata_path, "/TIP_cell_info.RData"))
 #' 
-#' \dontrun{
-#' peak.annotations <- read.table("TIP_merged_peak_annotations.txt", header = TRUE,sep = "\t",
-#'                             row.names = 1, stringsAsFactors = FALSE)
-#'                             
-#' 
-#' 
+#' ## Create an Seurat object holding the peak data
 #' peaks.seurat <- NewPeakSeurat(peak.data = peak.counts, 
-#'                              annot.info = peak.annotations, 
-#'                              cell.idents = tip.populations,
-#'                              tsne.coords = tip.tsne.coordinates,
-#'                              min.cells = 0, min.peaks = 0)
-#' }
+#'                         annot.info = peak.annotations, 
+#'                         cell.idents = tip.populations, 
+#'                         tsne.coords = tip.tsne.coordinates,
+#'                         min.cells = 0, min.peaks = 0)
+#'                              
 #' 
 #' @export
 #'
@@ -243,13 +259,13 @@ NewPeakSeurat <- function(peak.data, annot.info, project.name = "PolyA", cell.id
   print(paste("Creating Seurat object with", nrow(peak.data), "peaks and", ncol(peak.data), "cells"))
 
   ## Create a Seurat object for polyA counts
-  peaks.seurat <- CreateSeuratObject(peak.data, min.cells = min.cells, min.features = min.peaks, project = project.name)
+  peaks.seurat <- Seurat::CreateSeuratObject(peak.data, min.cells = min.cells, min.features = min.peaks, project = project.name)
 
   ## Add cell annotation information if provided
   if (!is.null(cell.idents)) {
     cell.data <- data.frame(CellIdent = cell.idents)
     peaks.seurat <- Seurat::AddMetaData(peaks.seurat, cell.data, "CellIdent")
-    Idents(peaks.seurat) <- peaks.seurat$CellIdent
+    Seurat::Idents(peaks.seurat) <- peaks.seurat$CellIdent
   }
 
   ## Add peak annotations to the Seurat object
@@ -310,13 +326,13 @@ NewPeakSeurat <- function(peak.data, annot.info, project.name = "PolyA", cell.id
   peaks.seurat@tools <- feature.mat.input
 
   ## Normalise and calculate highly-variable genes
-  peaks.seurat <- NormalizeData(object = peaks.seurat, normalization.method = "LogNormalize",
+  peaks.seurat <- Seurat::NormalizeData(object = peaks.seurat, normalization.method = "LogNormalize",
                               scale.factor = norm.scale.factor)
 
   ## Add t-SNE coordinates to peak count object
   if (!is.null(tsne.coords)) {
     tsne.coords <- tsne.coords[colnames(peaks.seurat), ]
-    new.embedding <- CreateDimReducObject(embeddings = tsne.coords, key = "tSNE_", assay = "RNA")
+    new.embedding <- Seurat::CreateDimReducObject(embeddings = tsne.coords, key = "tSNE_", assay = "RNA")
     peaks.seurat@reductions$tsne <- new.embedding
     if (verbose) print("t-SNE coordinates added")
   } else {
@@ -326,7 +342,7 @@ NewPeakSeurat <- function(peak.data, annot.info, project.name = "PolyA", cell.id
   ## Add UMAP coordinates to peak count object
   if (!is.null(umap.coords)) {
     umap.coords <- umap.coords[colnames(peaks.seurat), ]
-    new.embedding <- CreateDimReducObject(embeddings = umap.coords, key = "UMAP_", assay = "RNA")
+    new.embedding <- Seurat::CreateDimReducObject(embeddings = umap.coords, key = "UMAP_", assay = "RNA")
     peaks.seurat@reductions$umap = new.embedding
     if (verbose) print("UMAP coordinates added")
   } else {
@@ -358,9 +374,19 @@ NewPeakSeurat <- function(peak.data, annot.info, project.name = "PolyA", cell.id
 #' @return a new peak-level SCE object
 #'
 #' @examples
-#' \dontrun{
-#'     peak.sce = NewPeakSCE(peak.data, genes.seurat, annot.info)
-#' }
+#' 
+#' 
+#'  ## Load example data for two peaks from the Cxcl12 gene
+#' extdata_path <- system.file("extdata",package = "Sierra")
+#' load(paste0(extdata_path, "/Cxcl12_example.RData"))
+#' load(paste0(extdata_path, "/TIP_cell_info.RData"))
+#' 
+#' ## Create an SCE object holding the peak data
+#' peaks.sce <- NewPeakSCE(peak.data = peak.counts, 
+#'                         annot.info = peak.annotations, 
+#'                         cell.idents = tip.populations, 
+#'                         tsne.coords = tip.tsne.coordinates,
+#'                         min.cells = 0, min.peaks = 0)
 #' @export
 #'
 #' @import SingleCellExperiment
@@ -523,9 +549,21 @@ NewPeakSCE <- function(peak.data, annot.info, cell.idents = NULL,
 #' @param feature.type type of genomic features to use
 #' @return a list of peak IDs
 #' @examples
-#' \dontrun{
-#'      peak.list = SelectGenePeaks(peaks.object, "PTPRC", feature.type = c("UTR3", "exon"))
-#' }
+#' 
+#' 
+#' #' extdata_path <- system.file("extdata",package = "Sierra")
+#' load(paste0(extdata_path, "/Cxcl12_example.RData"))
+#' load(paste0(extdata_path, "/TIP_cell_info.RData"))
+#' 
+#' ## Create an suerat object holding the peak data
+#' peaks.seurat <- NewPeakSeurat(peak.data = peak.counts, 
+#'                         annot.info = peak.annotations, 
+#'                         cell.idents = tip.populations, 
+#'                         tsne.coords = tip.tsne.coordinates,
+#'                         min.cells = 0, min.peaks = 0)
+#' 
+#' peak.list <- SelectGenePeaks(peaks.object =  peaks.seurat ,gene = "Cxcl12")
+#' 
 #' @export
 #'
 SelectGenePeaks <- function(peaks.object, gene, feature.type = c("UTR3", "UTR5", "exon", "intron")) {
