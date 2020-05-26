@@ -100,10 +100,10 @@ get_relative_expression_seurat <- function(peaks.seurat.object, peak.set = NULL,
 
   cell.names <- colnames(peaks.seurat.object)
 
-  population.names <- Suerat::Idents(peaks.seurat.object)
+  population.names <- Seurat::Idents(peaks.seurat.object)
 
   ## Calculate population-level gene-mean and relative peak expression values
-  population.names <- names(table(Suerat::Idents(peaks.seurat.object)))
+  population.names <- names(table(Seurat::Idents(peaks.seurat.object)))
   population.relative.usage <- c()
   gene.population.means <- c()
   for (cl in population.names) {
@@ -131,7 +131,7 @@ get_relative_expression_seurat <- function(peaks.seurat.object, peak.set = NULL,
   relative.expression.data <- c()
   population.names <- names(table(Seruat::Idents(peaks.seurat.object)))
   for (cl in population.names) {
-    cell.set <- colnames(peaks.seurat.object)[which(Suerat::Idents(peaks.seurat.object) == cl)]
+    cell.set <- colnames(peaks.seurat.object)[which(Seurat::Idents(peaks.seurat.object) == cl)]
     expression.set <- expression.data[, cell.set]
     this.mean <- gene.population.means[cl]
     rel.values <- population.relative.usage[, cl]
@@ -267,7 +267,7 @@ do_arrow_plot <- function(peaks.seurat.object, gene_name, peaks.use = NULL, popu
   if (!is.null(peaks.use)) peak.data = subset(peak.data, rownames(peak.data) %in% peaks.use)
   n.peaks = nrow(peak.data)
 
-  if (is.null(population.ids)) population.ids = names(table(Suerat::Idents(peaks.seurat.object)))
+  if (is.null(population.ids)) population.ids = names(table(Seurat::Idents(peaks.seurat.object)))
 
   ave.expression = Seurat::AverageExpression(peaks.seurat.object, features = rownames(peak.data), verbose = FALSE)
   ave.expression = t(as.matrix(ave.expression$RNA))
@@ -539,9 +539,9 @@ PlotRelativeExpressionBox <- function(peaks.object, peaks.to.plot, do.plot=FALSE
   if (class(peaks.object) == "Seurat") {
     peaks.object.tsne1 <- peaks.object@reductions$tsne@cell.embeddings[, 1]
     peaks.object.tsne2 <- peaks.object@reductions$tsne@cell.embeddings[, 2]
-    cell.idents <- Suerat::Idents(peaks.object)
+    cell.idents <- Seurat::Idents(peaks.object)
     if (is.null(col.set)){
-      col.set = scales::hue_pal()(length(table(Suerat::Idents(peaks.object))))
+      col.set = scales::hue_pal()(length(table(Seurat::Idents(peaks.object))))
     }
   } else if (class(peaks.object) == "SingleCellExperiment") {
     peaks.object.tsne1 <- peaks.object@reducedDims$tsne[, 1]

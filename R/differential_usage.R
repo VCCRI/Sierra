@@ -523,7 +523,7 @@ apply_DEXSeq_test_seurat <- function(apa.seurat.object, population.1, population
   ## set a seed to allow replication of results
   set.seed(seed.use)
   if (length(population.1) == 1) {
-    cells.1 <- names(Seruat::Idents(apa.seurat.object))[which(Seruat::Idents(apa.seurat.object) == population.1)]
+    cells.1 <- names(Seurat::Idents(apa.seurat.object))[which(Seurat::Idents(apa.seurat.object) == population.1)]
   } else{
       cells.1 <- population.1
     }
@@ -551,7 +551,7 @@ apply_DEXSeq_test_seurat <- function(apa.seurat.object, population.1, population
     cells.2 <- setdiff(colnames(apa.seurat.object), cells.1)
   } else {
     if (length(population.2) == 1) {
-      cells.2 <- names(Seurat::Idents(apa.seurat.object))[which(Seruat::Idents(apa.seurat.object) == population.2)]
+      cells.2 <- names(Seurat::Idents(apa.seurat.object))[which(Seurat::Idents(apa.seurat.object) == population.2)]
     } else {
       cells.2 <- population.2
     }
@@ -974,15 +974,15 @@ GetExpressedPeaks <- function(peaks.object, population.1, population.2=NULL, thr
 get_expressed_peaks_seurat <- function(peaks.seurat.object, population.1, population.2=NULL, threshold=0.05) {
 
   if (length(population.1) == 1){ # cluster identity used as input
-    foreground.set = names(Seurat::Idents(peaks.seurat.object)[Seruat::Idents(peaks.seurat.object)==population.1])
+    foreground.set = names(Seurat::Idents(peaks.seurat.object)[Seurat::Idents(peaks.seurat.object)==population.1])
   } else { # cell identity used as input
     foreground.set = population.1
   }
   if (is.null(population.2)) {
-    remainder.set = names(Seurat::Idents(peaks.seurat.object)[Seruat::Idents(peaks.seurat.object)!=population.1])
+    remainder.set = names(Seurat::Idents(peaks.seurat.object)[Seurat::Idents(peaks.seurat.object)!=population.1])
   } else {
     if (length(population.2) == 1) { # cluster identity used as input
-      remainder.set = names(Seruat::Idents(peaks.seurat.object)[Seruat::Idents(peaks.seurat.object)==population.2])
+      remainder.set = names(Seurat::Idents(peaks.seurat.object)[Seurat::Idents(peaks.seurat.object)==population.2])
     } else { # cell identity used as input
       remainder.set = population.2
     }
@@ -1062,7 +1062,7 @@ get_percent_expression <- function(peaks.object, this.cluster, remainder=FALSE, 
 
   if (class(peaks.object) == "Seurat") {
     if (length(this.cluster) == 1){ # cluster identity used as input
-      foreground.set = names(Seruat::Idents(peaks.object)[Seruat::Idents(peaks.object)==this.cluster])
+      foreground.set = names(Seurat::Idents(peaks.object)[Seurat::Idents(peaks.object)==this.cluster])
     } else { # cell identity used as input
       foreground.set = this.cluster
     }
