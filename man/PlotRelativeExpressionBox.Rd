@@ -12,7 +12,8 @@ PlotRelativeExpressionBox(
   return.plot = TRUE,
   pt.size = 0.5,
   col.set = NULL,
-  txt.size = 14
+  txt.size = 14,
+  p.count = 1
 )
 }
 \arguments{

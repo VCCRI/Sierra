@@ -11,7 +11,10 @@ PlotRelativeExpressionUMAP(
   figure.title = NULL,
   return.plot = TRUE,
   pt.size = 0.5,
-  txt.size = 14
+  txt.size = 14,
+  legend.position = "right",
+  use.facet = TRUE,
+  p.count = 1
 )
 }
 \arguments{
@@ -28,6 +31,12 @@ PlotRelativeExpressionUMAP(
 \item{pt.size}{size of the points on the t-SNE plot. Default 0.5}
 
 \item{txt.size}{size of text. Default 14}
+
+\item{legend.position}{position of the legend (right, left, bottom or top)}
+
+\item{use.facet}{Whether to plot peaks using ggplot facets. If set to FALSE will use cowplot to plot each peak}
+
+\item{p.count}{Pseudo count}
 }
 \value{
 a ggplot2 object

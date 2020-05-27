@@ -14,7 +14,8 @@ PlotRelativeExpressionViolin(
   col.set = NULL,
   txt.size = 14,
   add.jitter = TRUE,
-  jitter.pt.size = 0.25
+  jitter.pt.size = 0.25,
+  p.count = 1
 )
 }
 \arguments{

@@ -8,7 +8,8 @@ get_relative_expression_sce(
   peaks.sce.object,
   peak.set = NULL,
   gene.name = NULL,
-  feature.type = c("UTR3", "exon")
+  feature.type = c("UTR3", "exon"),
+  p.count = 1
 )
 }
 \arguments{
