@@ -35,18 +35,23 @@
 #'
 #' @export
 #'
-GetRelativeExpression <- function(peaks.object, peak.set = NULL, gene.name = NULL,
-                                          feature.type = c("UTR3", "exon")) {
+GetRelativeExpression <- function(peaks.object, 
+                                  peak.set = NULL, 
+                                  gene.name = NULL,
+                                  feature.type = c("UTR3", "exon"),
+                                  p.count = 1) {
 
   if (class(peaks.object) == "Seurat") {
     relative.expression.data <- get_relative_expression_seurat(peaks.seurat.object = peaks.object,
                                                                peak.set = peak.set, gene.name = gene.name,
-                                                               feature.type = feature.type)
+                                                               feature.type = feature.type,
+                                                               p.count = p.count)
     return(relative.expression.data)
   } else if (class(peaks.object) == "SingleCellExperiment") {
     relative.expression.data <- get_relative_expression_sce(peaks.sce.object = peaks.object,
-                                                               peak.set = peak.set, gene.name = gene.name,
-                                                               feature.type = feature.type)
+                                                            peak.set = peak.set, gene.name = gene.name,
+                                                            feature.type = feature.type,
+                                                            p.count = p.count)
     return(relative.expression.data)
   }
 
@@ -72,8 +77,11 @@ GetRelativeExpression <- function(peaks.object, peak.set = NULL, gene.name = NUL
 #' \dontrun{
 #' get_relative_expression_seurat(peaks.seurat.object, gene.name = "Cxcl12")
 #' }
-get_relative_expression_seurat <- function(peaks.seurat.object, peak.set = NULL, gene.name = NULL,
-                                    feature.type = c("UTR3", "exon")) {
+get_relative_expression_seurat <- function(peaks.seurat.object, 
+                                           peak.set = NULL, 
+                                           gene.name = NULL,
+                                           feature.type = c("UTR3", "exon"),
+                                           p.count = 1) {
 
   ## make sure either a gene or peak set has been provided
   if (is.null(gene.name) & is.null(peak.set)) {
@@ -129,13 +137,13 @@ get_relative_expression_seurat <- function(peaks.seurat.object, peak.set = NULL,
 
   ### Divide peak expression for each cell by cell-type expression average
   relative.expression.data <- c()
-  population.names <- names(table(Seruat::Idents(peaks.seurat.object)))
+  population.names <- names(table(Seurat::Idents(peaks.seurat.object)))
   for (cl in population.names) {
     cell.set <- colnames(peaks.seurat.object)[which(Seurat::Idents(peaks.seurat.object) == cl)]
     expression.set <- expression.data[, cell.set]
     this.mean <- gene.population.means[cl]
     rel.values <- population.relative.usage[, cl]
-    relative.exp.values <- ( (exp(expression.set) - 1) / (this.mean + 1) ) * rel.values
+    relative.exp.values <- ( (exp(expression.set) - 1) / (this.mean + p.count) ) * rel.values
     relative.expression.data <- cbind(relative.expression.data, relative.exp.values)
   }
   relative.expression.data <- relative.expression.data[, colnames(peaks.seurat.object)]
@@ -165,8 +173,11 @@ get_relative_expression_seurat <- function(peaks.seurat.object, peak.set = NULL,
 #' \dontrun{
 #' get_relative_expression(peaks.seurat, gene.name = "Cxcl12")
 #' }
-get_relative_expression_sce <- function(peaks.sce.object, peak.set = NULL, gene.name = NULL,
-                                    feature.type = c("UTR3", "exon")) {
+get_relative_expression_sce <- function(peaks.sce.object, 
+                                        peak.set = NULL, 
+                                        gene.name = NULL,
+                                        feature.type = c("UTR3", "exon"),
+                                        p.count = 1) {
 
   ## make sure either a gene or peak set has been provided
   if (is.null(gene.name) & is.null(peak.set)) {
@@ -226,7 +237,7 @@ get_relative_expression_sce <- function(peaks.sce.object, peak.set = NULL, gene.
     expression.set <- expression.data[, cell.set]
     this.mean <- gene.population.means[cl]
     rel.values <- population.relative.usage[, cl]
-    relative.exp.values <- ( (exp(expression.set) - 1) / (this.mean + 1) ) * rel.values
+    relative.exp.values <- ( (exp(expression.set) - 1) / (this.mean + p.count) ) * rel.values
     relative.expression.data <- cbind(relative.expression.data, relative.exp.values)
   }
   relative.expression.data <- relative.expression.data[, colnames(peaks.sce.object)]
@@ -313,9 +324,12 @@ do_arrow_plot <- function(peaks.seurat.object, gene_name, peaks.use = NULL, popu
 #' @param peaks.to.plot Set of peaks to plot
 #' @param do.plot Whether to plot to output (TRUE by default)
 #' @param figure.title Optional figure title
-#' @param return.plot boolean of whether to return plot. Default is TRUE.
-#' @param pt.size size of the points on the t-SNE plot. Default 0.5
-#' @param txt.size size of text. Default 14
+#' @param return.plot Boolean of whether to return plot. Default is TRUE.
+#' @param pt.size Size of the points on the t-SNE plot. Default 0.5
+#' @param txt.size Size of text. Default 14
+#' @param legend.position position of the legend (right, left, bottom or top)
+#' @param use.facet Whether to plot peaks using ggplot facets. If set to FALSE will use cowplot to plot each peak 
+#' @param p.count Pseudo count  
 #'
 #' @return a ggplot2 object
 #'
@@ -341,15 +355,24 @@ do_arrow_plot <- function(peaks.seurat.object, gene_name, peaks.use = NULL, popu
 #'
 #' @export
 #'
-PlotRelativeExpressionTSNE <- function(peaks.object, peaks.to.plot, do.plot=FALSE, figure.title=NULL,
-                                     return.plot = TRUE, pt.size = 0.5, txt.size = 14) {
+PlotRelativeExpressionTSNE <- function(peaks.object, 
+                                       peaks.to.plot, 
+                                       do.plot=FALSE, 
+                                       figure.title=NULL,
+                                       return.plot = TRUE, 
+                                       pt.size = 0.5, 
+                                       txt.size = 14,
+                                       legend.position = "right",
+                                       use.facet = TRUE,
+                                       p.count = 1) {
 
   ## Check multiple peaks have been provided
   if (length(peaks.to.plot) < 2) {
     stop("Please provide at least two peaks for plotting relative expression")
   }
 
-  relative.exp.data <- GetRelativeExpression(peaks.object, peak.set = peaks.to.plot)
+  relative.exp.data <- GetRelativeExpression(peaks.object, 
+                                             peak.set = peaks.to.plot, p.count = p.count)
 
   ggData <- data.frame(Expression = as.vector(t(as.matrix(relative.exp.data))),
                        Peak = unlist(lapply(peaks.to.plot, function(x) rep(x, ncol(relative.exp.data)))))
@@ -372,19 +395,45 @@ PlotRelativeExpressionTSNE <- function(peaks.object, peaks.to.plot, do.plot=FALS
   ggData$Cell_ID = rep(colnames(peaks.object), length(peaks.to.plot))
 
   ggData$Peak <- factor(ggData$Peak, levels = peaks.to.plot)
-  pl <- ggplot(ggData, aes(tSNE_1, tSNE_2, color=Expression)) + geom_point(size=pt.size) + xlab("t-SNE 1") + ylab("t-SNE 2") +
-    scale_color_gradient2(low="#d9d9d9", mid="red", high="brown", midpoint=min(ggData$Expression) +
-                            (max(ggData$Expression)-min(ggData$Expression))/2, name="") +
-    theme_classic(base_size = txt.size) + theme(strip.background = element_blank()) +
-    theme(strip.text.x = element_text(size = txt.size)) + facet_wrap(~ Peak)
-
-  if (!is.null(figure.title)) {
-    pl <- pl + ggtitle(figure.title)
-  }
-
-  if (do.plot) {
-    plot(pl)
-  }
+  if (use.facet) {
+    pl <- ggplot(ggData, aes(tSNE_1, tSNE_2, color=Expression)) + geom_point(size=pt.size) + 
+      xlab("t-SNE 1") + ylab("t-SNE 2") +
+      scale_color_gradient2(low="#d9d9d9", mid="red", high="brown", midpoint=min(ggData$Expression) +
+                              (max(ggData$Expression)-min(ggData$Expression))/2, name="") +
+      theme_classic(base_size = txt.size) + 
+      theme(strip.background = element_blank(), legend.position = legend.position) +
+      theme(strip.text.x = element_text(size = txt.size)) + facet_wrap(~ Peak)
+    
+    if (!is.null(figure.title)) {
+      pl <- pl + ggtitle(figure.title)
+    }
+    
+    if (do.plot) {
+      plot(pl)
+    }
+  } else {
+    plot.list <- list()
+    for (i in seq(1:length(peaks.to.plot))) {
+      
+      plot.list[[i]] <- local({
+        this.peak <- peaks.to.plot[i]
+        ggDataSubset <- subset(ggData, Peak == this.peak)
+        
+        this.plot <- ggplot(ggDataSubset, aes(tSNE_1, tSNE_2, color=Expression)) + geom_point(size=pt.size) + 
+          xlab("t-SNE 1") + ylab("t-SNE 2") +
+          scale_color_gradient2(low="#d9d9d9", mid="red", high="brown", midpoint=min(ggDataSubset$Expression) +
+                                  (max(ggDataSubset$Expression)-min(ggDataSubset$Expression))/2, name="") +
+          theme_classic(base_size = txt.size) + 
+          theme(strip.background = element_blank(), legend.position = legend.position) +
+          theme(strip.text.x = element_text(size = txt.size)) + ggtitle(this.peak)
+        return(this.plot)
+      })
+    }
+    pl <- cowplot::plot_grid(plotlist = plot.list)
+    
+    if (do.plot)
+      plot(pl)
+  } 
 
   if (return.plot) {
     return(pl)
@@ -406,6 +455,9 @@ PlotRelativeExpressionTSNE <- function(peaks.object, peaks.to.plot, do.plot=FALS
 #' @param return.plot Boolean of whether to return plot (default TRUE)
 #' @param pt.size size of the points on the t-SNE plot. Default 0.5
 #' @param txt.size size of text. Default 14
+#' @param legend.position position of the legend (right, left, bottom or top)
+#' @param use.facet Whether to plot peaks using ggplot facets. If set to FALSE will use cowplot to plot each peak 
+#' @param p.count Pseudo count  
 #'
 #' @return a ggplot2 object
 #'
@@ -432,15 +484,24 @@ PlotRelativeExpressionTSNE <- function(peaks.object, peaks.to.plot, do.plot=FALS
 #'
 #' @export
 #'
-PlotRelativeExpressionUMAP <- function(peaks.object, peaks.to.plot, do.plot=FALSE, figure.title=NULL,
-                                     return.plot = TRUE, pt.size = 0.5, txt.size = 14) {
+PlotRelativeExpressionUMAP <- function(peaks.object, 
+                                       peaks.to.plot, 
+                                       do.plot=FALSE, 
+                                       figure.title=NULL,
+                                       return.plot = TRUE, 
+                                       pt.size = 0.5, 
+                                       txt.size = 14,
+                                       legend.position = "right",
+                                       use.facet = TRUE,
+                                       p.count = 1) {
 
   ## Check multiple peaks have been provided
   if (length(peaks.to.plot) < 2) {
     stop("Please provide at least two peaks for plotting relative expression")
   }
 
-  relative.exp.data <- GetRelativeExpression(peaks.object, peak.set = peaks.to.plot)
+  relative.exp.data <- GetRelativeExpression(peaks.object, 
+                                             peak.set = peaks.to.plot, p.count = p.count)
 
   ggData <- data.frame(Expression = as.vector(t(as.matrix(relative.exp.data))),
                        Peak = unlist(lapply(peaks.to.plot, function(x) rep(x, ncol(relative.exp.data)))))
@@ -463,18 +524,46 @@ PlotRelativeExpressionUMAP <- function(peaks.object, peaks.to.plot, do.plot=FALS
   ggData$Cell_ID = rep(colnames(peaks.object), length(peaks.to.plot))
 
   ggData$Peak <- factor(ggData$Peak, levels = peaks.to.plot)
-  pl <- ggplot(ggData, aes(UMAP_1, UMAP_2, color=Expression)) + geom_point(size=pt.size) + xlab("UMAP 1") + ylab("UMAP 2") +
-    scale_color_gradient2(low="#d9d9d9", mid="red", high="brown", midpoint=min(ggData$Expression) +
-                            (max(ggData$Expression)-min(ggData$Expression))/2, name="") +
-    theme_classic(base_size = txt.size) + theme(strip.background = element_blank()) +
-    theme(strip.text.x = element_text(size = txt.size)) + facet_wrap(~ Peak)
+  
+  if (use.facet) {
+    pl <- ggplot(ggData, aes(UMAP_1, UMAP_2, color=Expression)) + geom_point(size=pt.size) + xlab("UMAP 1") + ylab("UMAP 2") +
+      scale_color_gradient2(low="#d9d9d9", mid="red", high="brown", midpoint=min(ggData$Expression) +
+                              (max(ggData$Expression)-min(ggData$Expression))/2, name="") +
+      theme_classic(base_size = txt.size) + 
+      theme(strip.background = element_blank()) +
+      theme(strip.text.x = element_text(size = txt.size)) + facet_wrap(~ Peak)
+    
+    if (!is.null(figure.title)) {
+      pl <- pl + ggtitle(figure.title)
+    }
+    
+    if (do.plot) {
+      plot(pl)
+    }
+  } else {
+    plot.list <- list()
+    for (i in seq(1:length(peaks.to.plot))) {
+      
+      plot.list[[i]] <- local({
+        this.peak <- peaks.to.plot[i]
+        ggDataSubset <- subset(ggData, Peak == this.peak)
+        
+        this.plot <- ggplot(ggDataSubset, aes(UMAP_1, UMAP_2, color=Expression)) + geom_point(size=pt.size) + 
+          xlab("UMAP 1") + ylab("UMAP 2") +
+          scale_color_gradient2(low="#d9d9d9", mid="red", high="brown", midpoint=min(ggDataSubset$Expression) +
+                                  (max(ggDataSubset$Expression)-min(ggDataSubset$Expression))/2, name="") +
+          theme_classic(base_size = txt.size) + 
+          theme(strip.background = element_blank(), legend.position = legend.position) +
+          theme(strip.text.x = element_text(size = txt.size)) + ggtitle(this.peak)
+        return(this.plot)
+      })
 
-  if (!is.null(figure.title)) {
-    pl <- pl + ggtitle(figure.title)
-  }
-
-  if (do.plot) {
-    plot(pl)
+    }
+    pl <- cowplot::plot_grid(plotlist = plot.list)
+    
+    if (do.plot) {
+      plot(pl)
+    }
   }
 
   if (return.plot) {
@@ -522,15 +611,23 @@ PlotRelativeExpressionUMAP <- function(peaks.object, peaks.to.plot, do.plot=FALS
 #'
 #' @export
 #'
-PlotRelativeExpressionBox <- function(peaks.object, peaks.to.plot, do.plot=FALSE, figure.title=NULL,
-                                      return.plot = TRUE, pt.size = 0.5, col.set = NULL, txt.size = 14) {
+PlotRelativeExpressionBox <- function(peaks.object, 
+                                      peaks.to.plot, 
+                                      do.plot=FALSE, 
+                                      figure.title=NULL,
+                                      return.plot = TRUE, 
+                                      pt.size = 0.5, 
+                                      col.set = NULL, 
+                                      txt.size = 14,
+                                      p.count = 1) {
 
   ## Check multiple peaks have been provided
   if (length(peaks.to.plot) < 2) {
     stop("Please provide at least two peaks for plotting relative expression")
   }
 
-  relative.exp.data <- GetRelativeExpression(peaks.object, peak.set = peaks.to.plot)
+  relative.exp.data <- GetRelativeExpression(peaks.object, 
+                                             peak.set = peaks.to.plot, p.count = p.count)
 
   ggData <- data.frame(Expression = as.vector(t(as.matrix(relative.exp.data))),
                        Peak = unlist(lapply(peaks.to.plot, function(x) rep(x, ncol(relative.exp.data)))))
@@ -627,16 +724,25 @@ PlotRelativeExpressionBox <- function(peaks.object, peaks.to.plot, do.plot=FALSE
 #'
 #' @export
 #'
-PlotRelativeExpressionViolin <- function(peaks.object, peaks.to.plot, do.plot=FALSE, figure.title=NULL,
-                                      return.plot = TRUE, pt.size = 0.5, col.set = NULL, txt.size = 14,
-                                      add.jitter = TRUE, jitter.pt.size = 0.25) {
+PlotRelativeExpressionViolin <- function(peaks.object, 
+                                         peaks.to.plot, 
+                                         do.plot=FALSE, 
+                                         figure.title=NULL,
+                                         return.plot = TRUE, 
+                                         pt.size = 0.5, 
+                                         col.set = NULL, 
+                                         txt.size = 14,
+                                         add.jitter = TRUE, 
+                                         jitter.pt.size = 0.25,
+                                         p.count = 1) {
 
   ## Check multiple peaks have been provided
   if (length(peaks.to.plot) < 2) {
     stop("Please provide at least two peaks for plotting relative expression")
   }
 
-  relative.exp.data <- GetRelativeExpression(peaks.object, peak.set = peaks.to.plot)
+  relative.exp.data <- GetRelativeExpression(peaks.object, 
+                                             peak.set = peaks.to.plot, p.count = p.count)
 
   ggData <- data.frame(Expression = as.vector(t(as.matrix(relative.exp.data))),
                        Peak = unlist(lapply(peaks.to.plot, function(x) rep(x, ncol(relative.exp.data)))))
