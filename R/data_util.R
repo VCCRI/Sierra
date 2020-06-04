@@ -94,7 +94,6 @@ ReadPeakCounts <- function(data.dir = NULL, mm.file = NULL, barcodes.file = NULL
 #' @return a new peak-level Seurat object
 #'
 #' @examples
-#'      peak.seurat <- PeakSeuratFromTransfer(peak.data, genes.seurat, annot.info)
 #'      
 #' ## Load example data for two peaks from the Cxcl12 gene
 #' extdata_path <- system.file("extdata",package = "Sierra")

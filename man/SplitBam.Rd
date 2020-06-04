@@ -12,7 +12,8 @@ SplitBam(
   gtf_gr = NULL,
   geneSymbol = NULL,
   gi_ext = 50,
-  rle_output = FALSE
+  rle_output = FALSE,
+  exportFastqHeader = FALSE
 )
 }
 \arguments{
@@ -31,6 +32,8 @@ SplitBam(
 \item{gi_ext}{The number of nucleotides to extend the genomic interval in extracting reads from (default 50).}
 
 \item{rle_output}{If TRUE will generate and return rle_list object}
+
+\item{exportFastqHeader}{If TRUE will generate a txt output file that has same prefix as bam file containing fastq header IDs}
 }
 \value{
 a rleList of coverage for each cell type
