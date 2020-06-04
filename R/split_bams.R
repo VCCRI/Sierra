@@ -14,6 +14,7 @@
 #' @param geneSymbol Gene symbol. Used to identify the genomic coordinates to extract reads from.
 #' @param gi_ext The number of nucleotides to extend the genomic interval in extracting reads from (default 50).
 #' @param rle_output If TRUE will generate and return rle_list object
+#' @param exportFastqHeader If TRUE will generate a txt output file that has same prefix as bam file containing fastq header IDs
 #'
 #' @return a rleList of coverage for each cell type
 #'
@@ -49,7 +50,7 @@
 #' 
 SplitBam <- function(bam, cellbc.df, outdir=NULL, yieldSize = 1000000,
                      gtf_gr = NULL, geneSymbol=NULL, gi_ext = 50,
-                     rle_output=FALSE) {
+                     rle_output=FALSE, exportFastqHeader=FALSE) {
  # require(GenomicAlignments)
 #  require(rtracklayer)
 
@@ -72,7 +73,8 @@ SplitBam <- function(bam, cellbc.df, outdir=NULL, yieldSize = 1000000,
     chrom <- as.character(GenomicRanges::seqnames(gtf_gr[idx]))[1]  # should I check that all returned chromosomes are the same?
     gene_strand <- as.character(strand(gtf_gr[idx]))[1]
     toExtract_gr <- GenomicRanges::GRanges(seqnames=chrom, ranges=IRanges::IRanges(start-gi_ext , width=end-start+gi_ext), strand=gene_strand)
-    param <- Rsamtools::ScanBamParam(tag=c("CB", "UB"),which = toExtract_gr)
+    # param <- Rsamtools::ScanBamParam(tag=c("CB", "UB"),which = toExtract_gr)
+    param <- Rsamtools::ScanBamParam(tag=c("CB", "UB"),which = toExtract_gr, what=c('qname', 'flag', 'rname', 'strand', 'pos'))
     gene.provided <- geneSymbol
   }
   else
@@ -120,6 +122,10 @@ SplitBam <- function(bam, cellbc.df, outdir=NULL, yieldSize = 1000000,
 
        # as(aln.per.type, "GAlignments")
         rtracklayer::export(aln.per.type, Rsamtools::BamFile(outfile))
+        if (exportFastqHeader)
+        {   outfile.readID <- paste0(outdir, eachtype, ".", geneSymbol,".txt")
+            write((as.data.frame(aln.per.type)$qname), file=outfile.readID)
+        }
       }
       if(rle_output)
       {
