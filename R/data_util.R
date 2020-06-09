@@ -290,6 +290,8 @@ NewPeakSeurat <- function(peak.data, annot.info, project.name = "PolyA", cell.id
   } else {
     warning("Motif information not found in annotation data - some Sierra functions will be unavailable.")
   }
+  
+  feature.mat$Junctions <- annot.info$Junctions
 
   ## Add additional peak IDs for input to DEXSeq
   print("Preparing feature table for DEXSeq")
@@ -492,6 +494,8 @@ NewPeakSCE <- function(peak.data, annot.info, cell.idents = NULL,
   } else {
     warning("Motif information not found in annotation data - some Sierra functions will be unavailable.")
   }
+  
+  feature.mat$Junctions <- annot.info$Junctions
 
   ## Add additional peak IDs for input to DEXSeq
   if (verbose) print("Preparing feature table for DEXSeq")

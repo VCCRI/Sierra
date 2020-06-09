@@ -98,6 +98,9 @@ AnnotatePeaksFromGTF <- function(peak.sites.file,
                                    max_mismatch = max_mismatch
   )
   rownames(annot.df) <- as.character(all.peaks)
+  
+  ## As a final step add the junctions to the output
+  annot.df$Junctions <- peak.table$exon.intron
 
   write.table(annot.df, file = output.file, quote = FALSE, sep = "\t")
 }
