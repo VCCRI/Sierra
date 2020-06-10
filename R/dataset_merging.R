@@ -576,7 +576,7 @@ MergePeakCoordinates <- function(peak.dataset.table, output.file, sim.thresh = 0
     peak.dataset.list = c(peak.dataset.list, list(this.peak.list))
 
     ## table mapping peak ID to junction status
-    junction.table = peak.table[, c("polyA_ID", "exon.intron")]
+    junction.table = peak.table[, c("polyA_ID", "exon.intron", "exon.pos")]
     junction.table %>% dplyr::distinct(polyA_ID, .keep_all = TRUE) -> junction.table
     rownames(junction.table) <- junction.table$polyA_ID
     peak.junctions.list = c(peak.junctions.list, list(junction.table))
@@ -712,6 +712,9 @@ MergePeakCoordinates <- function(peak.dataset.table, output.file, sim.thresh = 0
 
   junction.status <- rep("Unknown", nrow(output.table))
   output.table$'exon.intron' <- junction.status
+  
+  exon.positions <- rep("NA", nrow(output.table))
+  output.table$'exon.pos' <- exon.positions
 
   for (dataset.name in peak.dataset.table$Identifier) {
     dataset.index <- which(output.table$DataOrigin == dataset.name)
@@ -719,10 +722,12 @@ MergePeakCoordinates <- function(peak.dataset.table, output.file, sim.thresh = 0
     this.junction.table <- peak.junctions.list[[dataset.name]]
     original.peaks.overlap <- intersect(original.peaks, rownames(this.junction.table))
     this.junction.labels <- this.junction.table[original.peaks.overlap, "exon.intron"]
+    this.exon.positions <- this.junction.table[original.peaks.overlap, "exon.pos"]
 
     ## add the junction labels to the output table
     peak.overlap.index <- which(output.table$OriginalPeak %in% original.peaks.overlap)
     output.table[peak.overlap.index, "exon.intron"] <- this.junction.labels
+    output.table[peak.overlap.index, "exon.pos"] <- this.exon.positions
   }
 
   write.table(output.table, file = output.file, sep="\t", quote = FALSE, row.names = FALSE)
