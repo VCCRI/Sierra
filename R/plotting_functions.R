@@ -11,6 +11,7 @@
 #' @param peak.set set of peaks
 #' @param gene.name gene name for retrieving a set of peaks
 #' @param feature.type features to consider. 3'UTR and exon by default.
+#' @param p.count Pseudo count 
 #'
 #' @return a matrix of relative expression
 #'
@@ -70,6 +71,7 @@ GetRelativeExpression <- function(peaks.object,
 #' @param peak.set set of peaks
 #' @param gene.name gene name for retrieving a set of peaks
 #' @param feature.type features to consider. 3'UTR and exon by default.
+#' @param p.count Pseudo count 
 #'
 #' @return a matrix of relative expression
 #'
@@ -166,6 +168,7 @@ get_relative_expression_seurat <- function(peaks.seurat.object,
 #' @param peak.set set of peaks
 #' @param gene.name gene name for retrieving a set of peaks
 #' @param feature.type features to consider. 3'UTR and exon by default.
+#' @param p.count Pseudo-count 
 #'
 #' @return a matrix of relative expression
 #'
@@ -329,7 +332,7 @@ do_arrow_plot <- function(peaks.seurat.object, gene_name, peaks.use = NULL, popu
 #' @param txt.size Size of text. Default 14
 #' @param legend.position position of the legend (right, left, bottom or top)
 #' @param use.facet Whether to plot peaks using ggplot facets. If set to FALSE will use cowplot to plot each peak 
-#' @param p.count Pseudo count  
+#' @param p.count Pseudo-count  
 #'
 #' @return a ggplot2 object
 #'

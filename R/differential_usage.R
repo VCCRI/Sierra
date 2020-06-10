@@ -17,6 +17,7 @@
 #' @param num.splits the number of pseudo-bulk profiles to create per identity class (default: 6)
 #' @param seed.use seed to set the randomised assignment of cells to pseudo-bulk profiles
 #' @param feature.type genomic feature types to run analysis on (default: UTR3, exon)
+#' @param include.annotations whether to include junction, polyA motif and stretch annotations in output (default: FALSE)
 #' @param filter.pA.stretch whether to filter out peaks annotated as proximal to an A-rich region (default: FALSE)
 #' @param verbose whether to print outputs (TRUE by default)
 #' @param do.MAPlot make an MA plot of results (FALSE by default)
@@ -53,6 +54,7 @@ DUTest <- function(peaks.object,
                    num.splits = 6, 
                    seed.use = 1,
                    feature.type = c("UTR3", "exon"), 
+                   include.annotations = FALSE,
                    filter.pA.stretch = FALSE,
                    verbose = TRUE, 
                    do.MAPlot = FALSE,
@@ -61,24 +63,38 @@ DUTest <- function(peaks.object,
 
   if (class(peaks.object) == "Seurat") {
     res.table <- apply_DEXSeq_test_seurat(apa.seurat.object = peaks.object,
-                                          population.1 = population.1, population.2 = population.2,
-                                          exp.thresh = exp.thresh, fc.thresh = fc.thresh,
-                                          adj.pval.thresh = adj.pval.thresh, num.splits = num.splits,
-                                          seed.use = seed.use, feature.type = feature.type,
+                                          population.1 = population.1, 
+                                          population.2 = population.2,
+                                          exp.thresh = exp.thresh, 
+                                          fc.thresh = fc.thresh,
+                                          adj.pval.thresh = adj.pval.thresh, 
+                                          num.splits = num.splits,
+                                          seed.use = seed.use, 
+                                          feature.type = feature.type,
+                                          include.annotations = include.annotations,
                                           filter.pA.stretch = filter.pA.stretch,
-                                          verbose = verbose, do.MAPlot = do.MAPlot,
-                                          return.dexseq.res = return.dexseq.res, ncores = ncores)
+                                          verbose = verbose, 
+                                          do.MAPlot = do.MAPlot,
+                                          return.dexseq.res = return.dexseq.res, 
+                                          ncores = ncores)
     return(res.table)
 
   } else if (class(peaks.object) == "SingleCellExperiment") {
     res.table <- apply_DEXSeq_test_sce(peaks.sce.object = peaks.object,
-                                       population.1 = population.1, population.2 = population.2,
-                                       exp.thresh = exp.thresh, fc.thresh = fc.thresh,
-                                       adj.pval.thresh = adj.pval.thresh, num.splits = num.splits,
-                                       seed.use = seed.use, feature.type = feature.type,
+                                       population.1 = population.1, 
+                                       population.2 = population.2,
+                                       exp.thresh = exp.thresh, 
+                                       fc.thresh = fc.thresh,
+                                       adj.pval.thresh = adj.pval.thresh,
+                                       num.splits = num.splits,
+                                       seed.use = seed.use, 
+                                       feature.type = feature.type,
+                                       include.annotations = include.annotations,
                                        filter.pA.stretch = filter.pA.stretch,
-                                       verbose = verbose, do.MAPlot = do.MAPlot,
-                                       return.dexseq.res = return.dexseq.res, ncores = ncores)
+                                       verbose = verbose, 
+                                       do.MAPlot = do.MAPlot,
+                                       return.dexseq.res = return.dexseq.res, 
+                                       ncores = ncores)
   } else{
     stop("Invalid data object provided.")
   }
@@ -458,6 +474,7 @@ DetectAEU <- function(peaks.object, gtf_gr, gtf_TxDb, population.1, population.2
 #' @param num.splits the number of pseudo-bulk profiles to create per identity class (default: 6)
 #' @param seed.use seed
 #' @param feature.type genomic feature types to run analysis on (default: all)
+#' @param include.annotations whether to include junction, polyA motif and stretch annotations in output (default: FALSE)
 #' @param filter.pA.stretch whether to filter out peaks annotated as proximal to an A-rich region (default: FALSE)
 #' @param verbose whether to print outputs (TRUE by default)
 #' @param do.MAPlot make an MA plot of results (FALSE by default)
@@ -470,11 +487,21 @@ DetectAEU <- function(peaks.object, gtf_gr, gtf_TxDb, population.1, population.2
 #'    apply_DEXSeq_test(apa.seurat.object, population.1 = "1", population.2 = "2")
 #'  }
 #'
-apply_DEXSeq_test_seurat <- function(apa.seurat.object, population.1, population.2 = NULL, exp.thresh = 0.1,
-                              fc.thresh=0.25, adj.pval.thresh = 0.05, num.splits = 6, seed.use = 1,
-                              feature.type = c("UTR3", "UTR5", "exon", "intron"),
-                              filter.pA.stretch = FALSE, verbose = TRUE, do.MAPlot = FALSE,
-                              return.dexseq.res = FALSE, ncores = 1) {
+apply_DEXSeq_test_seurat <- function(apa.seurat.object, 
+                                     population.1, 
+                                     population.2 = NULL, 
+                                     exp.thresh = 0.1,
+                                     fc.thresh=0.25, 
+                                     adj.pval.thresh = 0.05, 
+                                     num.splits = 6, 
+                                     seed.use = 1,
+                                     feature.type = c("UTR3", "UTR5", "exon", "intron"),
+                                     include.annotations = FALSE,
+                                     filter.pA.stretch = FALSE, 
+                                     verbose = TRUE, 
+                                     do.MAPlot = FALSE,
+                                     return.dexseq.res = FALSE, 
+                                     ncores = 1) {
 
   if (!'DEXSeq' %in% rownames(x = installed.packages())) {
     stop("Please install DEXSeq before using this function
@@ -517,7 +544,7 @@ apply_DEXSeq_test_seurat <- function(apa.seurat.object, population.1, population
   multi.gene.names <- names(multi.genes)
 
   peaks.use <- high.expressed.peaks[which(gene.names %in% multi.gene.names)]
-  if (verbose) print(paste(length(peaks.use), "Individual peak sites to test"))
+  if (verbose) print(paste(length(peaks.use), "individual peak sites to test"))
 
   ## make pseudo-bulk profiles out of cells
   ## set a seed to allow replication of results
@@ -642,11 +669,22 @@ apply_DEXSeq_test_seurat <- function(apa.seurat.object, population.1, population
   ## Add Genomic feature type
   feature.type <- Tool(apa.seurat.object, "Sierra")[rownames(dxrSig_subset), c("FeaturesCollapsed")]
   dxrSig_subset$feature_type = feature.type
-
-  dxrSig_subset <- dxrSig_subset[, c("groupID", "feature_type", "population1_pct", "population2_pct",
-                                     "pvalue", "padj", "log2fold_target_comparison")]
-  colnames(dxrSig_subset) <- c("gene_name", "genomic_feature(s)", "population1_pct",
-                               "population2_pct", "pvalue", "padj",  "Log2_fold_change")
+  
+  if (include.annotations) {
+    junction.annot <- Tool(apa.seurat.object, "Sierra")[rownames(dxrSig_subset), c("Junctions", "pA_motif", "pA_stretch")]
+    dxrSig_subset <- cbind(dxrSig_subset, junction.annot)
+    
+    dxrSig_subset <- dxrSig_subset[, c("groupID", "feature_type", "Junctions",  "pA_motif", "pA_stretch",
+                                       "population1_pct", "population2_pct",
+                                       "pvalue", "padj", "log2fold_target_comparison")]
+    colnames(dxrSig_subset) <- c("gene_name", "genomic_feature(s)", "Junctions",  "pA_motif", "pA_stretch",
+                                 "population1_pct", "population2_pct", "pvalue", "padj",  "Log2_fold_change")
+  } else {
+    dxrSig_subset <- dxrSig_subset[, c("groupID", "feature_type", "population1_pct", "population2_pct",
+                                       "pvalue", "padj", "log2fold_target_comparison")]
+    colnames(dxrSig_subset) <- c("gene_name", "genomic_feature(s)", "population1_pct",
+                                 "population2_pct", "pvalue", "padj",  "Log2_fold_change") 
+  }
 
   dxrSig_subset <- dxrSig_subset[order(dxrSig_subset$padj, decreasing = FALSE), ]
 
@@ -671,6 +709,7 @@ apply_DEXSeq_test_seurat <- function(apa.seurat.object, population.1, population
 #' @param num.splits the number of pseudo-bulk profiles to create per identity class (default: 6)
 #' @param seed.use seed use
 #' @param feature.type genomic feature types to run analysis on (degault: all)
+#' @param include.annotations whether to include junction, polyA motif and stretch annotations in output (default: FALSE)
 #' @param filter.pA.stretch whether to filter out peaks annotated as proximal to an A-rich region (default: FALSE)
 #' @param verbose whether to print outputs (TRUE by default)
 #' @param do.MAPlot make an MA plot of results (FALSE by default)
@@ -683,11 +722,21 @@ apply_DEXSeq_test_seurat <- function(apa.seurat.object, population.1, population
 #' apply_DEXSeq_test_sce(apa.seurat.object, population.1 = "1", population.2 = "2")
 #' }
 #'
-apply_DEXSeq_test_sce <- function(peaks.sce.object, population.1, population.2 = NULL, exp.thresh = 0.1,
-                                     fc.thresh=0.25, adj.pval.thresh = 0.05, num.splits = 6, seed.use = 1,
-                                     feature.type = c("UTR3", "UTR5", "exon", "intron"),
-                                     filter.pA.stretch = FALSE, verbose = TRUE,
-                                     do.MAPlot = FALSE, return.dexseq.res = FALSE, ncores = 1) {
+apply_DEXSeq_test_sce <- function(peaks.sce.object, 
+                                  population.1, 
+                                  population.2 = NULL, 
+                                  exp.thresh = 0.1,
+                                  fc.thresh=0.25, 
+                                  adj.pval.thresh = 0.05, 
+                                  num.splits = 6, 
+                                  seed.use = 1,
+                                  feature.type = c("UTR3", "UTR5", "exon", "intron"),
+                                  include.annotations = FALSE,
+                                  filter.pA.stretch = FALSE, 
+                                  verbose = TRUE,
+                                  do.MAPlot = FALSE, 
+                                  return.dexseq.res = FALSE, 
+                                  ncores = 1) {
 
   if (!'DEXSeq' %in% rownames(x = installed.packages())) {
     stop("Please install DEXSeq before using this function
@@ -729,7 +778,7 @@ apply_DEXSeq_test_sce <- function(peaks.sce.object, population.1, population.2 =
   multi.gene.names <- names(multi.genes)
 
   peaks.use <- high.expressed.peaks[which(gene.names %in% multi.gene.names)]
-  if (verbose) print(paste(length(peaks.use), "Individual peak sites to test"))
+  if (verbose) print(paste(length(peaks.use), "individual peak sites to test"))
 
   ## make pseudo-bulk profiles out of cells
   ## set a seed to allow replication of results
@@ -855,10 +904,21 @@ apply_DEXSeq_test_sce <- function(peaks.sce.object, population.1, population.2 =
   feature.type <- peaks.sce.object@metadata$Sierra[rownames(dxrSig_subset), c("FeaturesCollapsed")]
   dxrSig_subset$feature_type = feature.type
 
-  dxrSig_subset <- dxrSig_subset[, c("groupID", "feature_type", "population1_pct", "population2_pct",
-                                     "pvalue", "padj", "log2fold_target_comparison")]
-  colnames(dxrSig_subset) <- c("gene_name", "genomic_feature(s)", "population1_pct",
-                               "population2_pct", "pvalue", "padj",  "Log2_fold_change")
+  if (include.annotations) {
+    junction.annot <- Tool(apa.seurat.object, "Sierra")[rownames(dxrSig_subset), c("Junctions", "pA_motif", "pA_stretch")]
+    dxrSig_subset <- cbind(dxrSig_subset, junction.annot)
+    
+    dxrSig_subset <- dxrSig_subset[, c("groupID", "feature_type", "Junctions",  "pA_motif", "pA_stretch",
+                                       "population1_pct", "population2_pct",
+                                       "pvalue", "padj", "log2fold_target_comparison")]
+    colnames(dxrSig_subset) <- c("gene_name", "genomic_feature(s)", "Junctions",  "pA_motif", "pA_stretch",
+                                 "population1_pct", "population2_pct", "pvalue", "padj",  "Log2_fold_change")
+  } else {
+    dxrSig_subset <- dxrSig_subset[, c("groupID", "feature_type", "population1_pct", "population2_pct",
+                                       "pvalue", "padj", "log2fold_target_comparison")]
+    colnames(dxrSig_subset) <- c("gene_name", "genomic_feature(s)", "population1_pct",
+                                 "population2_pct", "pvalue", "padj",  "Log2_fold_change") 
+  }
 
   dxrSig_subset <- dxrSig_subset[order(dxrSig_subset$padj, decreasing = FALSE), ]
 

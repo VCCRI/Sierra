@@ -150,7 +150,7 @@ PeakSeuratFromTransfer <- function(peak.data,
   cells.overlap <- intersect(colnames(peaks.seurat), colnames(genes.seurat))
   clusters.overlap <- Seurat::Idents(genes.seurat)[cells.overlap]
   clusters.overlap <- clusters.overlap[colnames(peaks.seurat)]
-  peaks.seurat <- AddMetaData(object = peaks.seurat, metadata = clusters.overlap, col.name = "geneLvlID")
+  peaks.seurat <- Seurat::AddMetaData(object = peaks.seurat, metadata = clusters.overlap, col.name = "geneLvlID")
   Seurat::Idents(peaks.seurat) <- peaks.seurat@meta.data$geneLvlID
 
   ## Add t-SNE coordinates to peak count object

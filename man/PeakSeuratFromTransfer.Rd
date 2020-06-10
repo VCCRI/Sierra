@@ -40,7 +40,6 @@ Creates a new peak Seurat object, importing information on clustering and dimens
 such as t-SNE and UMAP coordinates, from a Seurat object that has been processed at the gene level.
 }
 \examples{
-     peak.seurat <- PeakSeuratFromTransfer(peak.data, genes.seurat, annot.info)
      
 ## Load example data for two peaks from the Cxcl12 gene
 extdata_path <- system.file("extdata",package = "Sierra")

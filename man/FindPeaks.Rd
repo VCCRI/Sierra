@@ -2,7 +2,7 @@
 % Please edit documentation in R/count_polyA.R
 \name{FindPeaks}
 \alias{FindPeaks}
-\title{Do peak calling on a scRNA-seq BAM file}
+\title{Perform splice-aware peak calling on a BAM file produced from a scRNA-seq experiment}
 \usage{
 FindPeaks(
   output.file,
@@ -33,13 +33,13 @@ FindPeaks(
 
 \item{min.jcutoff.prop}{minimum proportion of junction reads out of all junction reads for that gene (default: 0.05)}
 
-\item{min.cov.cutoff}{min.cov.cutoff}
+\item{min.cov.cutoff}{minimum number of reads to consider a peak (default: 500)}
 
-\item{min.cov.prop}{min.cov.prop}
+\item{min.cov.prop}{minimum proportion of reads to consider a peak (default: 0.05)}
 
-\item{min.peak.cutoff}{min.peak.cutoff}
+\item{min.peak.cutoff}{minimum peak height (default: 200)}
 
-\item{min.peak.prop}{min.peak.prop}
+\item{min.peak.prop}{minimum ratio of current peak height relative to maximum peak height for this gene (default: 0.05)}
 
 \item{ncores}{number of cores to use}
 
@@ -51,7 +51,14 @@ FindPeaks(
 NULL. Writes counts to file.
 }
 \description{
-Do peak calling on a scRNA-seq BAM file...
+Takes as input a BAM file produced from barcoded scRNA-seq experiment, the reference (GTF) file used during alignment and
+a BED file of junctions produced by regtools. For each gene in the reference file, the peak calling process first splits 
+the read coverage into 'across junction' and 'within junction' subsets. Within each subset, the site of maximum coverage 
+is identified and a peak called, by fitting a Gaussian to the read coverage, from a 600bp window around this region.
+After calling a peak, the local read coverage is removed and the next site of maximum coverage is identified. This process 
+runs iteratively until at least one of two stopping criteria are reached. The first criteria is defined as the maximum 
+read coverage a minimum cutoff (min.cov.cutoff) and proportion (min.cov.prop). The second critera is the size of the peak,
+including a absolute threshold (min.peak.cutoff) and a relative threshold (min.peak.prop).
 }
 \examples{
 

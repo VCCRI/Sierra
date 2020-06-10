@@ -14,6 +14,7 @@ DUTest(
   num.splits = 6,
   seed.use = 1,
   feature.type = c("UTR3", "exon"),
+  include.annotations = FALSE,
   filter.pA.stretch = FALSE,
   verbose = TRUE,
   do.MAPlot = FALSE,
@@ -39,6 +40,8 @@ DUTest(
 \item{seed.use}{seed to set the randomised assignment of cells to pseudo-bulk profiles}
 
 \item{feature.type}{genomic feature types to run analysis on (default: UTR3, exon)}
+
+\item{include.annotations}{whether to include junction, polyA motif and stretch annotations in output (default: FALSE)}
 
 \item{filter.pA.stretch}{whether to filter out peaks annotated as proximal to an A-rich region (default: FALSE)}
 

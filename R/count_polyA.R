@@ -210,6 +210,8 @@ make_exons <- function(x) {
 #' Build gene start-end reference from a gtf file
 #'
 #' @param gtf_file  gtf file
+#' @param chr.names a list of valid chromosome names to use
+#' @param whether to filter chromosomes in the GTF file
 #'
 #' Takes a GTF file as input and creates a table of chromosome start-end
 #' positions for each gene. Works with GTF files downloaded from 10x Genomics website.
@@ -221,24 +223,27 @@ make_reference <- function(gtf_file, chr.names = NULL, filter.chr = TRUE) {
   
   ## Build a table of gene start-end positions
   genes <- GenomicFeatures::genes(gtf_TxDb)
-  genes.ref = as.data.frame(genes)
+  genes.ref <- as.data.frame(genes)
+  rownames(genes.ref) <- genes.ref$gene_id
   
   ## Build a unique map of Ensembl ID to gene symbol
-  ensembl.symbol.map = data.frame(EnsemblID = gtf_gr@elementMetadata@listData$gene_id,
+  ensembl.symbol.map <- data.frame(EnsemblID = gtf_gr@elementMetadata@listData$gene_id,
                                   GeneName = gtf_gr@elementMetadata@listData$gene_name, 
                                   stringsAsFactors = FALSE)
   
   ensembl.symbol.map %>% dplyr::distinct(EnsemblID, .keep_all = TRUE) -> ensembl.symbol.map.unique
-  rownames(ensembl.symbol.map.unique) = ensembl.symbol.map.unique$EnsemblID
+  rownames(ensembl.symbol.map.unique) <- ensembl.symbol.map.unique$EnsemblID
   
   ## Add gene symbol to the gene table
-  ensembl.symbol.map.unique = ensembl.symbol.map.unique[rownames(genes.ref), ]
-  genes.ref$Gene = ensembl.symbol.map.unique$GeneName
+  overlapping.gene.ids <- intersect(rownames(genes.ref), ensembl.symbol.map.unique$EnsemblID)
+  
+  ensembl.symbol.map.unique <- ensembl.symbol.map.unique[overlapping.gene.ids, ]
+  genes.ref$Gene <- ensembl.symbol.map.unique$GeneName
   
   ## update column names in reference file
-  colnames(genes.ref) = c("chr", "start", "end", "width", "strand", "EnsemblID", "Gene")
-  genes.ref = genes.ref[, c("EnsemblID", "chr", "start", "end", "strand", "Gene")]
-  genes.ref$strand = plyr::mapvalues(genes.ref$strand, from = c("-", "+"), to = c("-1", "1"))
+  colnames(genes.ref) <- c("chr", "start", "end", "width", "strand", "EnsemblID", "Gene")
+  genes.ref <- genes.ref[, c("EnsemblID", "chr", "start", "end", "strand", "Gene")]
+  genes.ref$strand <- plyr::mapvalues(genes.ref$strand, from = c("-", "+"), to = c("-1", "1"))
   
   ## Filter the chromosome names 
   if (filter.chr) {
@@ -247,12 +252,12 @@ make_reference <- function(gtf_file, chr.names = NULL, filter.chr = TRUE) {
       chr.use <- chr.names
     } else{ 
       # Assume we're working with human or mouse
-      chr.use1 = as.character(c(1:22, c("X", "Y", "MT")))
-      chr.use2 = paste0("chr", as.character(c(1:22, c("X", "Y", "MT"))))
+      chr.use1 <- as.character(c(1:22, c("X", "Y", "MT")))
+      chr.use2 <- paste0("chr", as.character(c(1:22, c("X", "Y", "MT"))))
       chr.use <- c(chr.use1, chr.use2)
     }
     
-    genes.ref.use = subset(genes.ref, chr %in% chr.use )
+    genes.ref.use <- subset(genes.ref, chr %in% chr.use )
     genes.ref.use$chr <- droplevels(genes.ref.use$chr)
     
     if (nrow(genes.ref.use) == 0) {
@@ -269,9 +274,16 @@ make_reference <- function(gtf_file, chr.names = NULL, filter.chr = TRUE) {
 
 ###################################################################
 #'
-#' Do peak calling on a scRNA-seq BAM file
+#' Perform splice-aware peak calling on a BAM file produced from a scRNA-seq experiment
 #'
-#' Do peak calling on a scRNA-seq BAM file...
+#' Takes as input a BAM file produced from barcoded scRNA-seq experiment, the reference (GTF) file used during alignment and
+#' a BED file of junctions produced by regtools. For each gene in the reference file, the peak calling process first splits 
+#' the read coverage into 'across junction' and 'within junction' subsets. Within each subset, the site of maximum coverage 
+#' is identified and a peak called, by fitting a Gaussian to the read coverage, from a 600bp window around this region.
+#' After calling a peak, the local read coverage is removed and the next site of maximum coverage is identified. This process 
+#' runs iteratively until at least one of two stopping criteria are reached. The first criteria is defined as the maximum 
+#' read coverage a minimum cutoff (min.cov.cutoff) and proportion (min.cov.prop). The second critera is the size of the peak,
+#' including a absolute threshold (min.peak.cutoff) and a relative threshold (min.peak.prop).
 #'
 #' @param output.file a file containing polyA sites
 #' @param gtf.file reference (GTF) file
@@ -279,10 +291,10 @@ make_reference <- function(gtf_file, chr.names = NULL, filter.chr = TRUE) {
 #' @param junctions.file file of splice junctions (e.g. produced by regtools)
 #' @param min.jcutoff minimum number of spliced reads across a junction for it to be considered (default: 50). 
 #' @param min.jcutoff.prop minimum proportion of junction reads out of all junction reads for that gene (default: 0.05)
-#' @param min.cov.cutoff min.cov.cutoff
-#' @param min.cov.prop min.cov.prop
-#' @param min.peak.cutoff min.peak.cutoff
-#' @param min.peak.prop min.peak.prop
+#' @param min.cov.cutoff minimum number of reads to consider a peak (default: 500)
+#' @param min.cov.prop minimum proportion of reads to consider a peak (default: 0.05) 
+#' @param min.peak.cutoff minimum peak height (default: 200)
+#' @param min.peak.prop minimum ratio of current peak height relative to maximum peak height for this gene (default: 0.05)
 #' @param ncores number of cores to use
 #' @param chr.names names of chromosomes
 #' @param filter.chr names of chromosomes to filter
@@ -455,22 +467,28 @@ FindPeaks <- function(output.file, gtf.file, bamfile, junctions.file,
 
             if(isGapped) {
               exon.pos <- make_exons(data.no.juncs[from:to, "pos"])
+              line <- paste(gene.name, seq.name, strand, data.no.juncs[maxpeak, "pos"],
+                            peak.pos,
+                            data.no.juncs[from, "pos"],
+                            to.pos,
+                            v[1], v[2], v[3], "across-junctions", exon.pos, sep="\t")
             } else {
               exon.pos <- "NA"
+              line <- paste(gene.name, seq.name, strand, data.no.juncs[maxpeak, "pos"],
+                            peak.pos,
+                            data.no.juncs[from, "pos"],
+                            to.pos,
+                            v[1], v[2], v[3], "no-junctions", exon.pos, sep="\t")
             }
 
-            line <- paste(gene.name, seq.name, strand, data.no.juncs[maxpeak, "pos"],
-                          peak.pos,
-                          data.no.juncs[from, "pos"],
-                          to.pos,
-                          v[1], v[2], v[3], "non-juncs", exon.pos, sep="\t")
+            
             #print(line)
   	  locked <- flock::lock(lock)
             write(line,file=output.file,append=TRUE)
   	  flock::unlock(locked)
           } else {
             line <- paste(gene.name, seq.name, strand, data.no.juncs[maxpeak, "pos"],
-                          "NA", "NA", "NA", "NA", "NA", "NA", "non-juncs", "NA", sep="\t")
+                          "NA", "NA", "NA", "NA", "NA", "NA", "no-junctions", "NA", sep="\t")
   	  locked <- flock::lock(lock)
             write(line,file=output.file,append=TRUE)
   	  flock::unlock(locked)
@@ -539,7 +557,7 @@ FindPeaks <- function(output.file, gtf.file, bamfile, junctions.file,
                        peak.pos,
                        intron.data[from, "pos"],
                        to.pos,
-                       v[1], v[2], v[3], "junctions", "NA", sep="\t")
+                       v[1], v[2], v[3], "no-junctions", "NA", sep="\t")
 
             #line=paste(gene.name, seq.name, maxpeak, v[1], v[2], v[3], "junctions", sep=",")
             #print(line)
@@ -548,7 +566,7 @@ FindPeaks <- function(output.file, gtf.file, bamfile, junctions.file,
   	  flock::unlock(locked)
           } else {
             line=paste(gene.name, seq.name, strand, intron.data[maxpeak, "pos"],
-                       "NA", "NA", "NA", "NA", "NA", "NA", "junction", "NA", sep="\t")
+                       "NA", "NA", "NA", "NA", "NA", "NA", "no-junctions", "NA", sep="\t")
   	  locked <- flock::lock(lock)
             write(line,file=output.file,append=TRUE)
   	  flock::unlock(locked)

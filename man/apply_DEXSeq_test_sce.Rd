@@ -14,6 +14,7 @@ apply_DEXSeq_test_sce(
   num.splits = 6,
   seed.use = 1,
   feature.type = c("UTR3", "UTR5", "exon", "intron"),
+  include.annotations = FALSE,
   filter.pA.stretch = FALSE,
   verbose = TRUE,
   do.MAPlot = FALSE,
@@ -39,6 +40,8 @@ apply_DEXSeq_test_sce(
 \item{seed.use}{seed use}
 
 \item{feature.type}{genomic feature types to run analysis on (degault: all)}
+
+\item{include.annotations}{whether to include junction, polyA motif and stretch annotations in output (default: FALSE)}
 
 \item{filter.pA.stretch}{whether to filter out peaks annotated as proximal to an A-rich region (default: FALSE)}
 
