@@ -202,7 +202,8 @@ CountPeaks(peak.sites.file = "TIP_merged_peaks.txt",
 
 ### Aggregate multiple count data-sets
 
-If you have multiple BAM files the count matrices can be aggregated together using ``AggregatePeakCounts``. This function will append an experiment-specific label to the cell barcodes, by default a number according to the number of experiments, though here we define the labels (using the exp.labels variable) according to experimental condition. It's important to note that downstream if you want to combine Sierra peak counting with prior clustering the barcode labels will need to match what you currently have. If you have processed your data using the CellRanger aggr function, by inputting you data-files to ``AggregatePeakCounts`` in the same order, and leaving exp.labels blank, the barcodes should match.
+If you have multiple BAM files the count matrices can be aggregated together using ``AggregatePeakCounts``. This function will append an experiment-specific label to the cell barcodes, by default a number according to the number of experiments, though here we define the labels (using the exp.labels variable) according to experimental condition. It's important to note for downstream analysis that if you want to combine Sierra peak counting with prior clustering the barcode labels will need to match what you currently have. If you have processed your data using the CellRanger aggr function, by inputting you data-files to ``AggregatePeakCounts`` in the same order, and leaving exp.labels blank, the barcodes should match. If you prefer to manually modifiy the barcodes prior to running ``AggregatePeakCounts`` you can turn off this function by setting update.labels = FALSE. See ``?AggregatePeakCounts`` for more details.
+
 ```
 # As previously defined
 peak.merge.output.file <- "TIP_merged_peaks.txt"

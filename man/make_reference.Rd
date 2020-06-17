@@ -7,7 +7,11 @@
 make_reference(gtf_file, chr.names = NULL, filter.chr = TRUE)
 }
 \arguments{
-\item{gtf_file}{gtf file
+\item{gtf_file}{gtf file}
+
+\item{chr.names}{a list of valid chromosome names to use}
+
+\item{whether}{to filter chromosomes in the GTF file
 
 Takes a GTF file as input and creates a table of chromosome start-end
 positions for each gene. Works with GTF files downloaded from 10x Genomics website.}

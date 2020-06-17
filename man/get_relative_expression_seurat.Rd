@@ -20,6 +20,8 @@ get_relative_expression_seurat(
 \item{gene.name}{gene name for retrieving a set of peaks}
 
 \item{feature.type}{features to consider. 3'UTR and exon by default.}
+
+\item{p.count}{Pseudo count}
 }
 \value{
 a matrix of relative expression

@@ -4,7 +4,14 @@
 \alias{AggregatePeakCounts}
 \title{Aggregate multiple peak count outputs together}
 \usage{
-AggregatePeakCounts(peak.sites.file, count.dirs, output.dir, exp.labels = NULL)
+AggregatePeakCounts(
+  peak.sites.file,
+  count.dirs,
+  output.dir,
+  update.labels = TRUE,
+  exp.sep = "-",
+  exp.labels = NULL
+)
 }
 \arguments{
 \item{peak.sites.file}{a file containing peak site coordinates}
@@ -13,13 +20,23 @@ AggregatePeakCounts(peak.sites.file, count.dirs, output.dir, exp.labels = NULL)
 
 \item{output.dir}{output directory for aggregate count matrix}
 
+\item{update.labels}{whether to append an experiment label to the cell barcode (default: TRUE)}
+
+\item{exp.sep}{a character separating the cell barcode from experiment label (default: '-')}
+
 \item{exp.labels}{optional labels to append to cell barcodes corresponding to count.dirs}
 }
 \value{
 NULL. Writes counts to file.
 }
 \description{
-Aggregate multiple peak count outputs together
+Aggregate the output from multiple runs of CountPeaks together. By default, this function will
+update the cell barcodes in a format consistent with the CellRanger aggr program. That is, for
+n experiments to aggregate, cell barcodes will be appended with '-1', '-2',...,'-n'. For downstream 
+analysis, if using the TransferFromSeurat function, it is important to ensure that these match what is
+in the gene count matrix. The name of the expected separator character can be updated with the 'exp.sep'
+parameter and preferred labels can be specified with the 'exp.labels' parameter. The barcode updates can 
+be turned off by setting update.labels = FALSE if manual setting is preferred.
 }
 \examples{
 

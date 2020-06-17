@@ -36,7 +36,7 @@ PlotRelativeExpressionTSNE(
 
 \item{use.facet}{Whether to plot peaks using ggplot facets. If set to FALSE will use cowplot to plot each peak}
 
-\item{p.count}{Pseudo count}
+\item{p.count}{Pseudo-count}
 }
 \value{
 a ggplot2 object

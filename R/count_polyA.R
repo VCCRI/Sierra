@@ -629,11 +629,19 @@ FindPeaks <- function(output.file, gtf.file, bamfile, junctions.file,
 #'
 #' Aggregate multiple peak count outputs together
 #'
-#' Aggregate multiple peak count outputs together
+#' Aggregate the output from multiple runs of CountPeaks together. By default, this function will
+#' update the cell barcodes in a format consistent with the CellRanger aggr program. That is, for
+#' n experiments to aggregate, cell barcodes will be appended with '-1', '-2',...,'-n'. For downstream 
+#' analysis, if using the PeakSeuratFromTransfer function, it is important to ensure that these match what is
+#' in the gene count matrix. The name of the expected separator character can be updated with the 'exp.sep'
+#' parameter and preferred labels can be specified with the 'exp.labels' parameter. The barcode updates can 
+#' be turned off by setting update.labels = FALSE if manual setting is preferred.   
 #'
 #' @param peak.sites.file a file containing peak site coordinates
 #' @param count.dirs a list of output directories from CountPeaks
 #' @param output.dir output directory for aggregate count matrix
+#' @param update.labels whether to append an experiment label to the cell barcode (default: TRUE)
+#' @param exp.sep a character separating the cell barcode from experiment label (default: '-')
 #' @param exp.labels optional labels to append to cell barcodes corresponding to count.dirs
 #' @return NULL. Writes counts to file.
 #' @examples
@@ -687,7 +695,12 @@ FindPeaks <- function(output.file, gtf.file, bamfile, junctions.file,
 #'  
 #' @export
 #'
-AggregatePeakCounts <- function(peak.sites.file, count.dirs, output.dir, exp.labels = NULL) {
+AggregatePeakCounts <- function(peak.sites.file, 
+                                count.dirs, 
+                                output.dir, 
+                                update.labels = TRUE,
+                                exp.sep = "-", 
+                                exp.labels = NULL) {
 
   if (!is.null(exp.labels)) {
     if (length(exp.labels) != length(count.dirs)) {
@@ -718,16 +731,19 @@ AggregatePeakCounts <- function(peak.sites.file, count.dirs, output.dir, exp.lab
     this.dir <- count.dirs[i]
     this.data <- ReadPeakCounts(this.dir)
 
-    ## update cell barcode names
-    cell.names = colnames(this.data)
-    barcodes = sub("(.*)-\\d", "\\1", cell.names)
-    if (is.null(exp.labels)) {
-      cell.names.update = paste0(barcodes, "-", i)
-    } else{
-      cell.names.update = paste0(barcodes, "-", exp.labels[i])
+    
+    if (update.labels) { ## update cell barcode names
+      cell.names = colnames(this.data)
+      pattern <- paste0("(.*)", exp.sep, ".*")
+      barcodes = sub(pattern, "\\1", cell.names)
+      if (is.null(exp.labels)) {
+        cell.names.update = paste0(barcodes, exp.sep, i)
+      } else{
+        cell.names.update = paste0(barcodes, exp.sep, exp.labels[i])
+      }
+      colnames(this.data) = cell.names.update
     }
-    colnames(this.data) = cell.names.update
-
+    
     this.data <- this.data[peaks.use, ]
     aggregate.counts <- cbind(aggregate.counts, this.data)
   }
