@@ -255,13 +255,13 @@ make_reference <- function(gtf_file) {
 #' Takes a GTF file as input and creates a table of chromosome start-end
 #' positions for each gene. Works with GTF files downloaded from 10x Genomics website.
 #'
-fit_gaussian <- function(fit.data, maxval, fit.method) {
+fit_gaussian <- function(fit.data, maxval, fit.method, mu = 300) {
 
   if(fit.method == "NLS") { 
     nls.res <- NULL
     tryCatch({
       nls.res <- nls( y ~ k*exp(-1/2*(x-mu)^2/sigma^2),
-                      start=c(mu=300,sigma=100,k=maxval) , data = fit.data)
+                      start=c(mu=mu,sigma=100,k=maxval) , data = fit.data)
     }, error = function(err) { })
     return(nls.res)
   } else if(fit.method == "MLE") { 
@@ -534,7 +534,7 @@ FindPeaks <- function(output.file, gtf.file, bamfile, junctions.file,
           #  nls.res <- nls( y ~ k*exp(-1/2*(x-mu)^2/sigma^2),
           #                  start=c(mu=maxpeak,sigma=100,k=maxval) , data = fit.data)
           #}, error = function(err) { })
-          gaussian.fit <- fit_gaussian(fit.data, maxval, fit.method) 
+          gaussian.fit <- fit_gaussian(fit.data, maxval, fit.method, mu=maxpeak) 
           
           if(!is.null(gaussian.fit)) {
            # residuals <- sum(summary(nls.res)$residuals )
