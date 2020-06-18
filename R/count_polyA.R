@@ -277,7 +277,7 @@ fit_gaussian <- function(fit.data, maxval, fit.method, mu = 300) {
     
     mle.fit = NULL 
     tryCatch({
-       mle.fit = mle(LL, start = list(mu = 300, sigma=100, k =maxval))
+       mle.fit = mle(LL, start = list(mu = mu, sigma=100, k =maxval))
     }, error = function(err) { })  
 
     return(mle.fit)
@@ -544,7 +544,7 @@ FindPeaks <- function(output.file, gtf.file, bamfile, junctions.file,
             est_k <- coef(gaussian.fit)["k"]
             fit.loglik <- logLik(gaussian.fit)[1]
 	    
-            fitted.peak <- maxpeak - 300 + floor(est_mu)
+            fitted.peak <- floor(est_mu)
             from <- fitted.peak - 3*floor(est_sigma)
             to <- fitted.peak + 3*floor(est_sigma)
             
