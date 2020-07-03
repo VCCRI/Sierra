@@ -26,7 +26,7 @@ Returns peaks associated with a select gene.
 \examples{
 
 
-#' extdata_path <- system.file("extdata",package = "Sierra")
+extdata_path <- system.file("extdata",package = "Sierra")
 load(paste0(extdata_path, "/Cxcl12_example.RData"))
 load(paste0(extdata_path, "/TIP_cell_info.RData"))
 

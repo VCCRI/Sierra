@@ -20,6 +20,7 @@
 #' @param polystretch_length : the length of A or T to search for (default 13)
 #' @param max_mismatch number of allowed mismatches for motif matching (default 1)
 #' @param append.chr.peaks : When TRUE (default) appends the character "chr" on chromosome entry in peaks file. 
+#' @param check.chr if TRUE (default) and append.chr.peaks is also TRUE, check whether "chr" characters have already been added. 
 #'
 #' @return NULL. writes output to file
 #'
@@ -53,7 +54,8 @@ AnnotatePeaksFromGTF <- function(peak.sites.file,
                                  AAA_motif_min_position = 10,
                                  polystretch_length=13,
                                  max_mismatch=1,
-                                 append.chr.peaks = TRUE) {
+                                 append.chr.peaks = TRUE,
+                                 check.chr = TRUE) {
 
   ## Import the GTF reference
   gtf_gr <- rtracklayer::import(gtf.file)
@@ -77,13 +79,46 @@ AnnotatePeaksFromGTF <- function(peak.sites.file,
   
   peaks.use.chr.update <- peaks.use
   # Append "chr" to peaks to match 
-  if (append.chr.peaks)
-  { chrs.all <- paste0("chr", chrs.all)
+  if (append.chr.peaks == TRUE) { 
+    
+    if (check.chr == TRUE) {
+      ## Check if 'chr' characters are already preceding chromosome names
+      chr.counts <- sum(startsWith(unique(chrs.all), "chr") == TRUE)
+      if (chr.counts > 0) {
+        print(paste("\'chr\' character(s) already preceding chromosome name for",
+                      chr.counts, "chromosomes. Will skip adding \'chr\' characters",
+                      "for this chromosome set. Set check.chr=FALSE if the addition",
+                      "of \'chr\' characters is required."))
+      } else {
+        ## If not add the chr prefix
+        chrs.all <- paste0("chr", chrs.all)
+      }
+    } else {
+      chrs.all <- paste0("chr", chrs.all)
+    }
     peaks.use.chr.update <- paste0(chrs.all, sub(".*(:.*-.*:.*)", "\\1", peaks.use))
+    
+  }
+  
+  ## If genome object provided, check what chromosome names are matching
+  if (!is.null(genome) & isS4(genome)) {  
+    
+    chr.set <- unique(chrs.all)
+    available.chr <- BSgenome::seqnames(genome)
+    peaks.diff <- setdiff(chr.set, available.chr)
+    peaks.overlap <- intersect(chr.set, available.chr)
+    if (length(peaks.diff) > 0) {
+      print(paste("The following chromosome names are present in the peak file, but not in the genome file, and will not be annotated:", 
+                    paste(peaks.diff, collapse = ", ")))
+    }
+    peaks.keep.idx <- which(chrs.all %in% peaks.overlap)
+    peaks.use.chr.update <- peaks.use.chr.update[peaks.keep.idx]
+    all.peaks <- all.peaks[peaks.keep.idx]
   }
 
   gr <- GenomicRanges::GRanges(peaks.use.chr.update)
 
+  ## Everything should be in order - run annotation
   annot.df <- annotate_gr_from_gtf(gr = gr,
                                    gtf_gr = gtf_gr,
                                    gtf_TxDb = gtf_TxDb,
@@ -100,7 +135,7 @@ AnnotatePeaksFromGTF <- function(peak.sites.file,
   rownames(annot.df) <- as.character(all.peaks)
   
   ## As a final step add the junctions to the output
-  annot.df$Junctions <- peak.table$exon.intron
+  annot.df$Junctions <- peak.table[peaks.keep.idx, "exon.intron"]
 
   write.table(annot.df, file = output.file, quote = FALSE, sep = "\t")
 }
@@ -383,8 +418,10 @@ annotate_gr_from_gtf <- function(gr, invert_strand = FALSE, gtf_gr = NULL,
   { cat("\nAnalysing genomic motifs surrounding peaks (this can take some time)\n")
     if (isS4(genome))
     {
-      ## Check if 'chr' character appended to chromosome number
-      if (grepl("chr.", as.character(gr@seqnames)[1]) == FALSE) 
+      ## Check if 'chr' character is/should be appended to chromosome number
+      available.chr <- BSgenome::seqnames(genome)
+      chr.counts <- sum(startsWith(available.chr, "chr") == TRUE)
+      if (grepl("chr.", as.character(gr@seqnames)[1]) == FALSE & chr.counts > 0) 
       {  gr <- paste("chr",as.character(gr),sep='') }
 
       # Set up progress bar so user can "watch" progress

@@ -33,7 +33,7 @@ NULL. Writes counts to file.
 Aggregate the output from multiple runs of CountPeaks together. By default, this function will
 update the cell barcodes in a format consistent with the CellRanger aggr program. That is, for
 n experiments to aggregate, cell barcodes will be appended with '-1', '-2',...,'-n'. For downstream 
-analysis, if using the TransferFromSeurat function, it is important to ensure that these match what is
+analysis, if using the PeakSeuratFromTransfer function, it is important to ensure that these match what is
 in the gene count matrix. The name of the expected separator character can be updated with the 'exp.sep'
 parameter and preferred labels can be specified with the 'exp.labels' parameter. The barcode updates can 
 be turned off by setting update.labels = FALSE if manual setting is preferred.

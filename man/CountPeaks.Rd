@@ -13,7 +13,7 @@ CountPeaks(
   countUMI = TRUE,
   ncores = 1,
   chr.names = NULL,
-  filter.chr = TRUE
+  filter.chr = FALSE
 )
 }
 \arguments{

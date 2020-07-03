@@ -46,7 +46,7 @@
 #'
 #' @export
 CountPeaks <- function(peak.sites.file, gtf.file, bamfile, whitelist.file, output.dir, countUMI=TRUE,
-			ncores = 1, chr.names = NULL, filter.chr = TRUE) {
+			ncores = 1, chr.names = NULL, filter.chr = FALSE) {
 
   lock <- tempfile()
   whitelist.bc <- read.table(whitelist.file, stringsAsFactors = FALSE)
@@ -216,7 +216,7 @@ make_exons <- function(x) {
 #' Takes a GTF file as input and creates a table of chromosome start-end
 #' positions for each gene. Works with GTF files downloaded from 10x Genomics website.
 #'
-make_reference <- function(gtf_file, chr.names = NULL, filter.chr = TRUE) {
+make_reference <- function(gtf_file, chr.names = NULL, filter.chr = FALSE) {
   ## Read in the gtf file
   gtf_gr <- rtracklayer::import(gtf_file)
   gtf_TxDb <- GenomicFeatures::makeTxDbFromGFF(gtf_file, format="gtf")
@@ -323,7 +323,7 @@ make_reference <- function(gtf_file, chr.names = NULL, filter.chr = TRUE) {
 FindPeaks <- function(output.file, gtf.file, bamfile, junctions.file,
                        min.jcutoff=50, min.jcutoff.prop = 0.05, min.cov.cutoff = 500,
                        min.cov.prop = 0.05, min.peak.cutoff=200, min.peak.prop = 0.05, ncores = 1,
-                       chr.names = NULL, filter.chr = TRUE) {
+                       chr.names = NULL, filter.chr = FALSE) {
 
   lock <- tempfile()
   #genes.ref <- read.table(reference.file,

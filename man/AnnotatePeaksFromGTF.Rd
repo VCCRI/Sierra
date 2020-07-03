@@ -17,7 +17,8 @@ AnnotatePeaksFromGTF(
   AAA_motif_min_position = 10,
   polystretch_length = 13,
   max_mismatch = 1,
-  append.chr.peaks = TRUE
+  append.chr.peaks = TRUE,
+  check.chr = TRUE
 )
 }
 \arguments{
@@ -46,6 +47,8 @@ AnnotatePeaksFromGTF(
 \item{max_mismatch}{number of allowed mismatches for motif matching (default 1)}
 
 \item{append.chr.peaks}{: When TRUE (default) appends the character "chr" on chromosome entry in peaks file.}
+
+\item{check.chr}{if TRUE (default) and append.chr.peaks is also TRUE, check whether "chr" characters have already been added.}
 }
 \value{
 NULL. writes output to file

@@ -17,7 +17,7 @@ FindPeaks(
   min.peak.prop = 0.05,
   ncores = 1,
   chr.names = NULL,
-  filter.chr = TRUE
+  filter.chr = FALSE
 )
 }
 \arguments{

@@ -554,7 +554,7 @@ NewPeakSCE <- function(peak.data, annot.info, cell.idents = NULL,
 #' @examples
 #' 
 #' 
-#' #' extdata_path <- system.file("extdata",package = "Sierra")
+#' extdata_path <- system.file("extdata",package = "Sierra")
 #' load(paste0(extdata_path, "/Cxcl12_example.RData"))
 #' load(paste0(extdata_path, "/TIP_cell_info.RData"))
 #' 
@@ -572,7 +572,7 @@ NewPeakSCE <- function(peak.data, annot.info, cell.idents = NULL,
 SelectGenePeaks <- function(peaks.object, gene, feature.type = c("UTR3", "UTR5", "exon", "intron")) {
 
   if (class(peaks.object) == "Seurat") {
-    annot.subset <- subset(Tool(peaks.object, "Sierra"), Gene_name == gene)
+    annot.subset <- subset(Seurat::Tool(peaks.object, "Sierra"), Gene_name == gene)
     peaks.to.use <- apply(annot.subset, 1, function(x) {
       ifelse(sum(x[feature.type] == "YES") >= 1, TRUE, FALSE)
     })
