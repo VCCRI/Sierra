@@ -135,8 +135,10 @@ AnnotatePeaksFromGTF <- function(peak.sites.file,
   rownames(annot.df) <- as.character(all.peaks)
   
   ## As a final step add the junctions to the output
-  annot.df$Junctions <- peak.table[peaks.keep.idx, "exon.intron"]
-
+  if (!is.null(genome) & isS4(genome)) { 
+    annot.df$Junctions <- peak.table[peaks.keep.idx, "exon.intron"]
+  } else {annot.df$Junctions <- peak.table[, "exon.intron"]}
+  
   write.table(annot.df, file = output.file, quote = FALSE, sep = "\t")
 }
 

@@ -1,7 +1,7 @@
 Package: Sierra
 Type: Package
 Title: PolyA counting and differential transcript usage analysis for scRNA-seq data
-Version: 0.99.19
+Version: 0.99.20
 Authors@R: c(person("Ralph", "Patrick", role = c("aut", "ctb"), email = "r.patrick@victorchang.edu.au"),
              person("David", "Humphreys", role = c("aut", "cre"), email = "d.humphreys@victorchang.edu.au"),
              person("Kitty", "Lo", role = c("aut", "ctb"), email = "kitty.lo@gmail.com"))
