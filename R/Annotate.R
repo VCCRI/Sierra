@@ -549,10 +549,10 @@ BaseComposition <- function(genome=NULL,  chrom=NULL, start=NULL, stop=NULL, str
   }
   
   if (! is.null(coord))
-  {
+  { coord <- as.character(coord)
     if (! is.null(genome) & (! is.null(chrom) | ! is.null(start) |
           ! is.null(stop) | ! is.null(strand)))
-      warning("Multiple coodinates passed, will be using what was passed to coord")
+      warning("Multiple coodinates passed, will be using only what was passed to object \"coord\"")
     # "Cd47:16:49896378-49911102:1"
     # "Cd47:16:49914609-49915010:1"
     # "Tmem126a:7:90451180-90451380:-1"
