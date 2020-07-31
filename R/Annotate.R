@@ -560,24 +560,31 @@ BaseComposition <- function(genome=NULL,  chrom=NULL, start=NULL, stop=NULL, str
 
     if (length(gregexpr(":",coord)[[1]]) == 3) # coord should look like this "Cd47:16:49896378-49911102:1"
     {
-      coord_detail <- strsplit(coord, split = ":")
-      if (grepl("chr.", coord_detail[[1]][2]) == FALSE) {
-        chrom <- paste("chr",coord_detail[[1]][2],sep='')
-      }
-      strand <- coord_detail[[1]][4]
-
-      if (strand == 1)
-      { strand <- '+'   }
-      else if (strand == -1)
-      { strand <- '-'   }
-
-      coord_detail <- strsplit(coord_detail[[1]][3],"-")
-      start <- as.numeric(coord_detail[[1]][1])
-      stop <- as.numeric(coord_detail[[1]][2])
+      tryCatch({
+        coord_detail <- strsplit(coord, split = ":")
+        if (grepl("chr.", coord_detail[[1]][2]) == FALSE) {
+          chrom <- paste("chr",coord_detail[[1]][2],sep='')
+        }
+        strand <- coord_detail[[1]][4]
+        
+        if (strand == 1)
+        { strand <- '+'   }
+        else if (strand == -1)
+        { strand <- '-'   }
+        
+        coord_detail <- strsplit(coord_detail[[1]][3],"-")
+        start <- as.numeric(coord_detail[[1]][1])
+        stop <- as.numeric(coord_detail[[1]][2])
+        }, error = function(err) {
+        stop(paste0("Problem detected with coordinate: ", coord, 
+                    ". Coordinate should be of the form \'Cd47:16:49896378-49911102:1\'"))
+      })
+      
     }
 
     if (length(gregexpr(":",coord)[[1]]) == 2) # coord should look like this "chr16:49896378-49911102:+"
     {
+      tryCatch({
       coord_detail <- strsplit(coord, split = ":")
       chrom <- coord_detail[[1]][1]
       strand <- coord_detail[[1]][3]
@@ -585,6 +592,10 @@ BaseComposition <- function(genome=NULL,  chrom=NULL, start=NULL, stop=NULL, str
       coord_detail <- strsplit(coord_detail[[1]][2],"-")
       start <- as.numeric(coord_detail[[1]][1])
       stop <- as.numeric(coord_detail[[1]][2])
+      }, error = function(err) {
+        stop(paste0("Problem detected with coordinate: ", coord, 
+                    ". Coordinate should be of the form \'chr16:49896378-49911102:+\'"))
+      })
     }
   }
   

@@ -2,7 +2,7 @@
 % Please edit documentation in R/count_polyA.R
 \name{CountPeaks}
 \alias{CountPeaks}
-\title{count polyA sites in cells}
+\title{Generate a peak x cell UMI count matrix}
 \usage{
 CountPeaks(
   peak.sites.file,
@@ -23,7 +23,7 @@ CountPeaks(
 
 \item{bamfile}{scRNA-seq BAM file}
 
-\item{whitelist.file}{white list file}
+\item{whitelist.file}{file of cell barcodes to count}
 
 \item{output.dir}{name of directory to write output (will be created if it doesn't exist)}
 
@@ -39,7 +39,9 @@ CountPeaks(
 NULL. Writes counts to file.
 }
 \description{
-Generates a count matrix
+Generates a UMI count matrix where rows are the peaks and columns are the cells. Counts cells 
+that are identified through a provided 'white list' of cell barcodes. If alignment done using CellRanger,
+this will be the barcodes.tsv file contained in the 'filtered_gene_matrices_mex' folder for example.
 }
 \examples{
 
