@@ -547,6 +547,8 @@ BaseComposition <- function(genome=NULL,  chrom=NULL, start=NULL, stop=NULL, str
   { warning("genome is not a BSgenome S4 object. Cannot continue.")
     return(NULL)
   }
+  chromLengths <- GenomeInfoDb::seqlengths(genome)
+  
   
   if (! is.null(coord))
   { coord <- as.character(coord)
@@ -562,7 +564,8 @@ BaseComposition <- function(genome=NULL,  chrom=NULL, start=NULL, stop=NULL, str
     {
       tryCatch({
         coord_detail <- strsplit(coord, split = ":")
-        if (grepl("chr.", coord_detail[[1]][2]) == FALSE) {
+        chrom <- coord_detail[[1]][2] 
+        if (grepl("chr.", coord_detail[[1]][2]) == FALSE) {  # Check formatting. Must lead with "chr"
           chrom <- paste("chr",coord_detail[[1]][2],sep='')
         }
         strand <- coord_detail[[1]][4]
@@ -619,21 +622,44 @@ BaseComposition <- function(genome=NULL,  chrom=NULL, start=NULL, stop=NULL, str
   seq_start_position <- stop + offset
   seq_end_position <- stop + length + offset
   
-  if(chrom == "chrMT")
-  {
-    chrom <- 'chrM'
+  if (chrom == "chrMT")     
+  {  chrom <- 'chrM'  }
+  
+  # Check sequence lengths
+  seqAnalysis <- TRUE
+  
+  chromLength <- tryCatch({ chromLengths[chrom] })
+  if (is.na(chromLength))
+  {   stoppaste0("No chromosome entry in genome for ",chrom)  }
+  if (seq_end_position > chromLength)
+  {   seq_end_position <- chromLength 
+      paste0(chrom,":",start,"-",stop,":",strand)
+      warning(paste0("Peak position is at end of chromosome. ",
+                     "Sequence analysis cannot be performed for entry",
+                     chrom,":",start,"-",stop,":",strand))
+      seqAnalysis <- FALSE
   }
 
   sequ <- BSgenome::getSeq(genome, chrom, seq_start_position, seq_end_position)   # Always get +ve strand
   sequ_upstream <- {}
 
-  if (strand == '-')  # sequ is actually upstream if we are thinking abour -ve strand
+  if (strand == '-')  # sequ is actually upstream if we are thinking about -ve strand
   {   sequ_upstream <- sequ   }
 
   # Now extract upstream sequence
   seq_start_position <- start - length -offset
   seq_end_position <- start - offset
-
+  
+  if (seq_start_position <= 0)
+  {  seq_start_position <- 1
+    seq_end_position <- 10
+     
+     warning(paste0("Peak position at end of chromosome. ",
+              "Sequence analysis cannot be performed for entry:",
+              chrom,":",start,"-",stop,":",strand))
+     seqAnalysis <- FALSE
+  }
+  
   sequ_tmp <- BSgenome::getSeq(genome, chrom, seq_start_position, seq_end_position)   # Always get +ve strand
 
   if (strand == '-')
@@ -651,6 +677,12 @@ BaseComposition <- function(genome=NULL,  chrom=NULL, start=NULL, stop=NULL, str
   pA_motif  <-  Biostrings::matchPattern(pattern = "AATAAA", subject = sequ)
   pA_stretch <- Biostrings::matchPattern(pattern=A_pattern, subject=sequ, max.mismatch=1)
   pT_stretch <- Biostrings::matchPattern(pattern=T_pattern, subject=sequ_upstream, max.mismatch=1)
+  if (! seqAnalysis )  # remove any data if seqAnalysis flag set to FALSE as this indicates incorrect analysis.
+  {
+    pA_motif[1:length(pA_motif)] <- {}
+    pA_stretch[1:length(pA_stretch)] <- {}
+    pT_stretch[1:length(pT_stretch)] <- {}
+  }
 
   return(list(pA_motif_pos = start(pA_motif)[1], pA_stretch_pos = start(pA_stretch)[1],
               pT_stretch_pos = start(pT_stretch)[1],
