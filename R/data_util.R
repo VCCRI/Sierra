@@ -230,13 +230,27 @@ NewPeakSeurat <- function(peak.data, annot.info, project.name = "PolyA", cell.id
     ## Check that gene names according to the peak calling match gene
     ## names according to feature annotation - remove any discrepancies
     peak.gene.names = sub("(.*).*:.*:.*-.*:.*", "\\1", rownames(annot.info))
+    annot.info$peak_assigned_gene <- peak.gene.names
     annot.info$gene_coverage = annot.info$gene_id
     
-    assigned.genes = strsplit(annot.info$gene_id[1], split = ',')[[1]]
+    #assigned.genes = strsplit(annot.info$gene_id[1], split = ',')[[1]]
+    #annot.info <- subset(annot.info, seqnames =="M")
     gene.checks = apply(annot.info, 1, function(x) {
-      peak.gene = x["gene_id"]
-      gene.cov = strsplit(x["gene_coverage"], split = ',')[[1]]
-      sum.diff = sum(gene.cov != peak.gene)
+      peak.gene = as.character(x["peak_assigned_gene"])
+      
+      gene.cov <- as.character(x["gene_coverage"])
+      
+      if (gene.cov != "") {
+        gene.cov = strsplit(as.character(x["gene_coverage"]), split = ',')[[1]]
+        if (length(gene.cov) > 1) {
+          sum.diff <- sum(gene.cov != peak.gene)
+        } else {
+          sum.diff <- ifelse(gene.cov == peak.gene, 0, 1)
+        }
+      } else {
+        sum.diff <- 0
+      }
+      #print(x)
       if (sum.diff > 0) {
         return(FALSE)
       } else {
@@ -405,13 +419,27 @@ NewPeakSCE <- function(peak.data, annot.info, cell.idents = NULL,
     ## Check that gene names according to the peak calling match gene
     ## names according to feature annotation - remove any discrepancies
     peak.gene.names = sub("(.*).*:.*:.*-.*:.*", "\\1", rownames(annot.info))
+    annot.info$peak_assigned_gene <- peak.gene.names
     annot.info$gene_coverage = annot.info$gene_id
     
-    assigned.genes = strsplit(annot.info$gene_id[1], split = ',')[[1]]
+    #assigned.genes = strsplit(annot.info$gene_id[1], split = ',')[[1]]
+    #annot.info <- subset(annot.info, seqnames =="M")
     gene.checks = apply(annot.info, 1, function(x) {
-      peak.gene = x["gene_id"]
-      gene.cov = strsplit(x["gene_coverage"], split = ',')[[1]]
-      sum.diff = sum(gene.cov != peak.gene)
+      peak.gene = as.character(x["peak_assigned_gene"])
+      
+      gene.cov <- as.character(x["gene_coverage"])
+      
+      if (gene.cov != "") {
+        gene.cov = strsplit(as.character(x["gene_coverage"]), split = ',')[[1]]
+        if (length(gene.cov) > 1) {
+          sum.diff <- sum(gene.cov != peak.gene)
+        } else {
+          sum.diff <- ifelse(gene.cov == peak.gene, 0, 1)
+        }
+      } else {
+        sum.diff <- 0
+      }
+      #print(x)
       if (sum.diff > 0) {
         return(FALSE)
       } else {

@@ -177,11 +177,14 @@ DetectUTRLengthShift <- function(peaks.object,
   
   ## format differentially used peaks from GRanges
   all.peaks = rownames(res.table)
+  res.table$peak_ID <- all.peaks
   strand = sub(".*:.*:.*-.*:(.*)", "\\1", all.peaks)
   strand = plyr::mapvalues(x = strand, from = c("1", "-1"), to = c("+", "-"))
   peak.remainder = sub(".*:(.*:.*-.*):.*", "\\1", all.peaks)
   peaks.use = paste0(peak.remainder, ":", strand)
   res.table$granges_peaks <- peaks.use
+  res.table %>% dplyr::distinct(granges_peaks, .keep_all = TRUE) -> res.table
+  rownames(res.table) <- res.table$peak_ID
   du.peaks.gr <- GenomicRanges::GRanges(peaks.use)
   
   ## format expressed peaks using GRanges
