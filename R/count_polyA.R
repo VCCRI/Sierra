@@ -17,6 +17,8 @@
 #' @param ncores Number of cores for multithreading
 #' @param chr.names names of chromosomes
 #' @param filter.chr names of chromosomes to filter
+#' @param CBtag cell barcode tag identifier present in BAM file. Default 'CB'.
+#' @param UMItag UMI barcode tag identifier present in BAM file. Default 'UB'.
 #' @return NULL. Writes counts to file.
 #' @examples
 #' 
@@ -48,7 +50,8 @@
 #'
 #' @export
 CountPeaks <- function(peak.sites.file, gtf.file, bamfile, whitelist.file, output.dir, countUMI=TRUE,
-			ncores = 1, chr.names = NULL, filter.chr = FALSE) {
+			ncores = 1, chr.names = NULL, filter.chr = FALSE, CBtag='CB', UMItag='UB') 
+{
 
   lock <- tempfile()
   whitelist.bc <- read.table(whitelist.file, stringsAsFactors = FALSE)
@@ -81,14 +84,17 @@ CountPeaks <- function(peak.sites.file, gtf.file, bamfile, whitelist.file, outpu
   } else {
     doParallel::registerDoParallel(cores=ncores)
   }
-
   #print(chr.names)
-  mat.to.write <- foreach::foreach(each.chr = chr.names, .combine = 'rbind') %dopar% {
+  mat.to.write <- foreach::foreach(each.chr = chr.names, .combine = 'rbind', .packages=c("magrittr")) %dopar% {
+#  mat.to.write <- foreach::foreach(each.chr = chr.names, .combine = 'rbind', .packages=c("magrittr")) %do% {
       mat.per.chr <- c()
       message("Processing chr: ", each.chr)
+      
+
       for(strand in c(1, -1) ) {
       message(" and strand ", strand)
       isMinusStrand <- if(strand==1) FALSE else TRUE
+     
       peak.sites.chr <- dplyr::filter(peak.sites, Chr == each.chr & Strand == strand) %>%
                            dplyr::select(Gene, Chr, Fit.start, Fit.end, Strand)
 
@@ -104,30 +110,40 @@ CountPeaks <- function(peak.sites.file, gtf.file, bamfile, whitelist.file, outpu
       isMinusStrand <- if(strand==1) FALSE else TRUE
       which <- GenomicRanges::GRanges(seqnames = each.chr, ranges = IRanges::IRanges(1, max(peak.sites.chr$Fit.end) ))
 
-      param <- Rsamtools::ScanBamParam(tag=c("CB", "UB"),
+#      param <- Rsamtools::ScanBamParam(tag=c("CB", "UB"),     # CBtag='CB', UMItag='UB')
+      param <- Rsamtools::ScanBamParam(tag=c(CBtag, UMItag),
                             which = which,
                             flag=Rsamtools::scanBamFlag(isMinusStrand=isMinusStrand))
 
       aln <- GenomicAlignments::readGAlignments(bamfile, param=param)
 
-      nobarcodes <- which(is.na(GenomicRanges::mcols(aln)$CB))
-      noUMI <- which(is.na(GenomicRanges::mcols(aln)$UB))
-      to.remove <- union(nobarcodes, noUMI)
+#      nobarcodes <- which(is.na(GenomicRanges::mcols(aln)$CB))
+#      noUMI <- which(is.na(GenomicRanges::mcols(aln)$UB))
+      
+      nobarcodes <- which(unlist(is.na(GenomicRanges::mcols(aln)[CBtag])))
+      noUMI <- which(unlist(is.na(GenomicRanges::mcols(aln)[UMItag])))
+      
+      
+      to.remove <- dplyr::union(nobarcodes, noUMI)
       if (length(to.remove) > 0) {
         aln <- aln[-to.remove]
       }
-      whitelist.pos <- which(GenomicRanges::mcols(aln)$CB %in% whitelist.bc)
+#      whitelist.pos <- which(GenomicRanges::mcols(aln)$CB %in% whitelist.bc)
+      whitelist.pos <- which(unlist(GenomicRanges::mcols(aln)[CBtag]) %in% whitelist.bc)
       aln <- aln[whitelist.pos]
 
       # For de-duplicating UMIs, let's just remove a random read
       # when there is a duplicate
       if(countUMI) {
-         GenomicRanges::mcols(aln)$CB_UB <- paste0(GenomicRanges::mcols(aln)$CB, "_", GenomicRanges::mcols(aln)$UB)
+ #        GenomicRanges::mcols(aln)$CB_UB <- paste0(GenomicRanges::mcols(aln)$CB, "_", GenomicRanges::mcols(aln)$UB)
+        GenomicRanges::mcols(aln)$CB_UB <- paste0(unlist(GenomicRanges::mcols(aln)[CBtag]), 
+                                                  "_", unlist(GenomicRanges::mcols(aln)[UMItag]))
          uniqUMIs <- which(!duplicated(GenomicRanges::mcols(aln)$CB_UB))
          aln <- aln[uniqUMIs]
       }
 
-      aln <- GenomicRanges::split(aln, GenomicRanges::mcols(aln)$CB)
+#      aln <- GenomicRanges::split(aln, GenomicRanges::mcols(aln)$CB)
+      aln <- GenomicRanges::split(aln, unlist(GenomicRanges::mcols(aln)[CBtag]))
 
       polyA.GR <- GenomicRanges::GRanges(seqnames = peak.sites.chr$Chr,
                           IRanges::IRanges(start = peak.sites.chr$Fit.start,
@@ -169,7 +185,7 @@ CountPeaks <- function(peak.sites.file, gtf.file, bamfile, whitelist.file, outpu
   if (!dir.exists(output.dir)){
     dir.create(output.dir)
   }
-  writeMM(mat.to.write, file = paste0(output.dir, "/matrix.mtx"))
+  Matrix::writeMM(mat.to.write, file = paste0(output.dir, "/matrix.mtx"))
   write.table(whitelist.bc, file = paste0(output.dir, "/barcodes.tsv"), quote = FALSE, row.names = FALSE, col.names = FALSE)
   write.table(rownames(mat.to.write), file = paste0(output.dir, "/sitenames.tsv"), quote = FALSE, row.names = FALSE, col.names = FALSE)
 
@@ -237,7 +253,7 @@ make_reference <- function(gtf_file, chr.names = NULL, filter.chr = FALSE) {
   rownames(ensembl.symbol.map.unique) <- ensembl.symbol.map.unique$EnsemblID
   
   ## Add gene symbol to the gene table
-  overlapping.gene.ids <- intersect(rownames(genes.ref), ensembl.symbol.map.unique$EnsemblID)
+  overlapping.gene.ids <- dplyr::intersect(rownames(genes.ref), ensembl.symbol.map.unique$EnsemblID)
   
   ensembl.symbol.map.unique <- ensembl.symbol.map.unique[overlapping.gene.ids, ]
   genes.ref$Gene <- ensembl.symbol.map.unique$GeneName
@@ -594,11 +610,11 @@ FindPeaks <- function(output.file, gtf.file, bamfile, junctions.file,
   ## Filter the polyA sites
   n.total.sites <- nrow(peak.sites)
   to.filter <- which(peak.sites$Fit.max.pos == "Negative")
-  to.filter <- union(to.filter, which(peak.sites$Fit.start == "Negative"))
-  to.filter <- union(to.filter, which(peak.sites$Fit.end == "Negative"))
-  to.filter <- union(to.filter, which(is.na(peak.sites$Fit.start)))
-  to.filter <- union(to.filter, which(is.na(peak.sites$Fit.end)))
-  to.filter <- union(to.filter,  which(is.na(peak.sites$Fit.max.pos)))
+  to.filter <- dplyr::union(to.filter, which(peak.sites$Fit.start == "Negative"))
+  to.filter <- dplyr::union(to.filter, which(peak.sites$Fit.end == "Negative"))
+  to.filter <- dplyr::union(to.filter, which(is.na(peak.sites$Fit.start)))
+  to.filter <- dplyr::union(to.filter, which(is.na(peak.sites$Fit.end)))
+  to.filter <- dplyr::union(to.filter,  which(is.na(peak.sites$Fit.max.pos)))
 
   if (length(to.filter) > 0)
     peak.sites <- peak.sites[-to.filter,]
@@ -719,10 +735,10 @@ AggregatePeakCounts <- function(peak.sites.file,
     this.dir <- count.dirs[i]
     sites.file <- paste0(this.dir, "/sitenames.tsv")
     this.peak.set <- readLines(sites.file)
-    peaks.use <- intersect(peaks.use, this.peak.set)
+    peaks.use <- dplyr::intersect(peaks.use, this.peak.set)
     
     ## Check if peak IDs from the sites file are different to the count file
-    if (length(setdiff(all.peaks, this.peak.set)) > 0 | length(setdiff(this.peak.set, all.peaks)) > 0) {
+    if (length(dplyr::etdiff(all.peaks, this.peak.set)) > 0 | length(dplyr::setdiff(this.peak.set, all.peaks)) > 0) {
       warning(paste0("Some peaks in file ", this.dir, " do not match input peak coordinate file."))
     }
   }
