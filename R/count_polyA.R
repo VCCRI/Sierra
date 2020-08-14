@@ -738,7 +738,7 @@ AggregatePeakCounts <- function(peak.sites.file,
     peaks.use <- dplyr::intersect(peaks.use, this.peak.set)
     
     ## Check if peak IDs from the sites file are different to the count file
-    if (length(dplyr::etdiff(all.peaks, this.peak.set)) > 0 | length(dplyr::setdiff(this.peak.set, all.peaks)) > 0) {
+    if (length(dplyr::setdiff(all.peaks, this.peak.set)) > 0 | length(dplyr::setdiff(this.peak.set, all.peaks)) > 0) {
       warning(paste0("Some peaks in file ", this.dir, " do not match input peak coordinate file."))
     }
   }
