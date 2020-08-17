@@ -41,6 +41,10 @@
 #' load(paste(extdata_path,"TIP_vignette_gene_Seurat.RData",sep="/"))
 #' cellbc.df <- data.frame(celltype=genes.seurat@active.ident, 
 #'                        cellbc= names(genes.seurat@active.ident))
+#'   
+#' # Modify cellbc.df so that the barcodes match what is in the BAM file                     
+#' cellbc.df$cellbc <- sub("(.*)-.*", "\\1", cellbc.df$cellbc)
+#' cellbc.df$cellbc <- paste0(cellbc.df$cellbc, "-1")
 #'                        
 #'                        
 #' bam.file <- paste0(extdata_path,"/Vignette_example_TIP_mi.bam")
