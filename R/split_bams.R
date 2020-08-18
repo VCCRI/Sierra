@@ -22,6 +22,8 @@
 #'
 #' @examples
 #' library('Sierra')
+#' 
+#' # Example 1 split the entire BAM file for each cell type
 #' \dontrun{
 #' extdata_path <- system.file("extdata",package = "scpolya")
 #' load(paste(extdata_path,"TIP_vignette_gene_Seurat.RData",sep="/"))
@@ -86,7 +88,8 @@ SplitBam <- function(bam, cellbc.df, outdir=NULL, yieldSize = 1000000,
   else if (! is.null(genomicRegion))
   {
     tryCatch({
-      param <- Rsamtools::ScanBamParam(tag=bamTags, which = toExtract_gr, what=c('qname', 'flag', 'rname', 'strand', 'pos'))
+      param <- Rsamtools::ScanBamParam(tag=bamTags, which = genomicRegion, what=c('qname', 'flag', 'rname', 'strand', 'pos'))
+      geneSymbol <- gsub(pattern = ":",replacement = "_",x = as.character(genomicRegion))
     }, error = function(err) {
       stop(paste0("Problem detected with provided genomic region. Please ensure genomicRegion is a Granges object"))
       })
