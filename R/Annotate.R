@@ -684,8 +684,9 @@ BaseComposition <- function(genome=NULL,  chrom=NULL, start=NULL, stop=NULL, str
     pT_stretch[1:length(pT_stretch)] <- {}
   }
 
-  return(list(pA_motif_pos = start(pA_motif)[1], pA_stretch_pos = start(pA_stretch)[1],
-              pT_stretch_pos = start(pT_stretch)[1],
+  return(list(pA_motif_pos = Biostrings::start(pA_motif)[1], 
+              pA_stretch_pos = Biostrings::start(pA_stretch)[1],
+              pT_stretch_pos = Biostrings::start(pT_stretch)[1],
               sequence = list(upstream=sequ_upstream, downstream=sequ) ))
 }
 
