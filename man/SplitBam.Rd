@@ -13,7 +13,9 @@ SplitBam(
   geneSymbol = NULL,
   gi_ext = 50,
   rle_output = FALSE,
-  exportFastqHeader = FALSE
+  exportFastqHeader = FALSE,
+  genomicRegion = NULL,
+  bamTags = c("CB", "UB")
 )
 }
 \arguments{
@@ -34,6 +36,10 @@ SplitBam(
 \item{rle_output}{If TRUE will generate and return rle_list object}
 
 \item{exportFastqHeader}{If TRUE will generate a txt output file that has same prefix as bam file containing fastq header IDs}
+
+\item{genomicRegion}{Granges object of genomic region to extract. Only used if geneSymbol not defined.}
+
+\item{bamTags}{BAM field tag identifiers to extract. Default is c("CB", "UB").}
 }
 \value{
 a rleList of coverage for each cell type
@@ -45,6 +51,8 @@ Bam file needs to have the barcode stored in the "CB" field.
 }
 \examples{
 library('Sierra')
+
+# Example 1 split the entire BAM file for each cell type
 \dontrun{
 extdata_path <- system.file("extdata",package = "scpolya")
 load(paste(extdata_path,"TIP_vignette_gene_Seurat.RData",sep="/"))
@@ -64,6 +72,10 @@ gtf.gr <- rtracklayer::import(gtf.file)
 load(paste(extdata_path,"TIP_vignette_gene_Seurat.RData",sep="/"))
 cellbc.df <- data.frame(celltype=genes.seurat@active.ident, 
                        cellbc= names(genes.seurat@active.ident))
+  
+# Modify cellbc.df so that the barcodes match what is in the BAM file                     
+cellbc.df$cellbc <- sub("(.*)-.*", "\\\\1", cellbc.df$cellbc)
+cellbc.df$cellbc <- paste0(cellbc.df$cellbc, "-1")
                        
                        
 bam.file <- paste0(extdata_path,"/Vignette_example_TIP_mi.bam")
