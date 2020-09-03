@@ -675,8 +675,8 @@ BaseComposition <- function(genome=NULL,  chrom=NULL, start=NULL, stop=NULL, str
   A_pattern <- paste(rep("A",AT_length),collapse='')
   T_pattern <- paste(rep("T",AT_length),collapse='')
   pA_motif  <-  Biostrings::matchPattern(pattern = "AATAAA", subject = sequ)
-  pA_stretch <- Biostrings::matchPattern(pattern=A_pattern, subject=sequ, max.mismatch=1)
-  pT_stretch <- Biostrings::matchPattern(pattern=T_pattern, subject=sequ_upstream, max.mismatch=1)
+  pA_stretch <- Biostrings::matchPattern(pattern=A_pattern, subject=sequ, max.mismatch=mismatch)
+  pT_stretch <- Biostrings::matchPattern(pattern=T_pattern, subject=sequ_upstream, max.mismatch=mismatch)
   if (! seqAnalysis )  # remove any data if seqAnalysis flag set to FALSE as this indicates incorrect analysis.
   {
     pA_motif[1:length(pA_motif)] <- {}
@@ -684,8 +684,9 @@ BaseComposition <- function(genome=NULL,  chrom=NULL, start=NULL, stop=NULL, str
     pT_stretch[1:length(pT_stretch)] <- {}
   }
 
-  return(list(pA_motif_pos = start(pA_motif)[1], pA_stretch_pos = start(pA_stretch)[1],
-              pT_stretch_pos = start(pT_stretch)[1],
+  return(list(pA_motif_pos = Biostrings::start(pA_motif)[1], 
+              pA_stretch_pos = Biostrings::start(pA_stretch)[1],
+              pT_stretch_pos = Biostrings::start(pT_stretch)[1],
               sequence = list(upstream=sequ_upstream, downstream=sequ) ))
 }
 

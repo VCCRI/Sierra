@@ -13,7 +13,9 @@ CountPeaks(
   countUMI = TRUE,
   ncores = 1,
   chr.names = NULL,
-  filter.chr = FALSE
+  filter.chr = FALSE,
+  CBtag = "CB",
+  UMItag = "UB"
 )
 }
 \arguments{
@@ -34,6 +36,10 @@ CountPeaks(
 \item{chr.names}{names of chromosomes}
 
 \item{filter.chr}{names of chromosomes to filter}
+
+\item{CBtag}{cell barcode tag identifier present in BAM file. Default 'CB'.}
+
+\item{UMItag}{UMI barcode tag identifier present in BAM file. Default 'UB'.}
 }
 \value{
 NULL. Writes counts to file.
