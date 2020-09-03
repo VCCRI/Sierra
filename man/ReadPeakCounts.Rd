@@ -24,7 +24,7 @@ ReadPeakCounts(
 a sparseMatrix
 }
 \description{
-Read in peak data saved in MEX format
+Read in peak data saved in MEX format. Files can be in a gzipped (.gz) format.
 }
 \examples{
 

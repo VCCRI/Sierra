@@ -4,7 +4,7 @@
 #'
 #' Read in peak data saved in MEX format
 #'
-#' Read in peak data saved in MEX format
+#' Read in peak data saved in MEX format. Files can be in a gzipped (.gz) format. 
 #'
 #' @param data.dir directory where output from CountPeaks is stored
 #' @param mm.file count matrix in MEX format
@@ -55,18 +55,68 @@
 #'  
 #' @export
 #'
-ReadPeakCounts <- function(data.dir = NULL, mm.file = NULL, barcodes.file = NULL, sites.file = NULL) {
+ReadPeakCounts <- function(data.dir = NULL, 
+                           mm.file = NULL, 
+                           barcodes.file = NULL, 
+                           sites.file = NULL) {
 
-  if (!is.null(data.dir)) {
-    mm.file <- paste0(data.dir, "/matrix.mtx")
-    barcodes.file <- paste0(data.dir, "/barcodes.tsv")
-    sites.file <- paste0(data.dir, "/sitenames.tsv")
+  if (is.null(data.dir) & is.null(mm.file) & is.null(barcodes.file) & is.null(sites.file)) {
+    stop("Please provide either a directory or file names.")
   }
-
-  count.mat <- Matrix::readMM(mm.file)
-
-  barcodes <- readLines(barcodes.file)
-  peaks <- readLines(sites.file)
+  
+  if (!is.null(data.dir)) {
+    
+    ## First check if files are compressed
+    file.list <- list.files(data.dir)
+    if (sum(endsWith(file.list, ".gz")) == 3) {
+      gzipped = TRUE
+    } else{
+      gzipped = FALSE
+    }
+    
+    if (gzipped) {
+      mm.file <- paste0(data.dir, "/matrix.mtx.gz")
+      barcodes.file <- paste0(data.dir, "/barcodes.tsv.gz")
+      sites.file <- paste0(data.dir, "/sitenames.tsv.gz")
+    } else {
+      mm.file <- paste0(data.dir, "/matrix.mtx")
+      barcodes.file <- paste0(data.dir, "/barcodes.tsv")
+      sites.file <- paste0(data.dir, "/sitenames.tsv")
+    }
+    
+  } else{
+    
+    if (is.null(mm.file) | is.null(barcodes.file) | is.null(sites.file)) {
+      stop("No directory provided, but an input file appears to be missing. Please check.")
+    }
+    
+    ## Individual files proivded - check if compressed
+    file.list <- c(mmfile, barcodes.file, sites.file)
+    
+    if (sum(endsWith(file.list, ".gz")) == 3) {
+      gzipped = TRUE
+    } else{
+      gzipped = FALSE
+    }
+  }
+  
+  if (gzipped) {
+    count.mat <- Matrix::readMM(gzfile(mm.file))
+    
+    barcodes.con <- gzfile(barcodes.file)
+    barcodes <- readLines(barcodes.con)
+    close(barcodes.con)
+    
+    peaks.con <- gzfile(sites.file)
+    peaks <- readLines(peaks.con)
+    close(barcodes.con)
+  } else {
+    count.mat <- Matrix::readMM(mm.file)
+    
+    barcodes <- readLines(barcodes.file)
+    peaks <- readLines(sites.file)
+  }
+  
 
   colnames(count.mat) <- barcodes
   rownames(count.mat) <- peaks

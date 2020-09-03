@@ -49,8 +49,17 @@
 #' @import utils
 #'
 #' @export
-CountPeaks <- function(peak.sites.file, gtf.file, bamfile, whitelist.file, output.dir, countUMI=TRUE,
-			ncores = 1, chr.names = NULL, filter.chr = FALSE, CBtag='CB', UMItag='UB') 
+CountPeaks <- function(peak.sites.file, 
+                       gtf.file, 
+                       bamfile, 
+                       whitelist.file, 
+                       output.dir, 
+                       countUMI=TRUE,
+			                 ncores = 1, 
+			                 chr.names = NULL, 
+			                 filter.chr = FALSE, 
+			                 CBtag='CB', 
+			                 UMItag='UB') 
 {
 
   lock <- tempfile()
@@ -188,6 +197,11 @@ CountPeaks <- function(peak.sites.file, gtf.file, bamfile, whitelist.file, outpu
   Matrix::writeMM(mat.to.write, file = paste0(output.dir, "/matrix.mtx"))
   write.table(whitelist.bc, file = paste0(output.dir, "/barcodes.tsv"), quote = FALSE, row.names = FALSE, col.names = FALSE)
   write.table(rownames(mat.to.write), file = paste0(output.dir, "/sitenames.tsv"), quote = FALSE, row.names = FALSE, col.names = FALSE)
+  
+  ## Compress the output files
+  R.utils::gzip(paste0(output.dir, "/matrix.mtx"), overwrite = TRUE)
+  R.utils::gzip(paste0(output.dir, "/barcodes.tsv"), overwrite = TRUE)
+  R.utils::gzip(paste0(output.dir, "/sitenames.tsv"), overwrite = TRUE)
 
 } # End function
 
@@ -290,13 +304,60 @@ make_reference <- function(gtf_file, chr.names = NULL, filter.chr = FALSE) {
   return(genes.ref.use)
 }
 
+
+###################################################################
+#'
+#' Fit Gaussian curve to the coverage 
+#' 
+#' Given read coverage data, fit a Guassian curve using either 
+#' NLS or MLE fits. 
+#'
+#' @param fit.data read coverage to fit
+#' @param maxval maximum read coverage
+#' @param fit.method Either NLS or MLE 
+#' @param mu initialised value for the centre of the peak (default: 300)
+#'
+#'
+fit_gaussian <- function(fit.data, maxval, fit.method, mu = 300) {
+  
+  if(fit.method == "NLS") { 
+    nls.res <- NULL
+    tryCatch({
+      nls.res <- nls( y ~ k*exp(-1/2*(x-mu)^2/sigma^2),
+                      start=c(mu=mu,sigma=100,k=maxval) , data = fit.data)
+    }, error = function(err) { })
+    return(nls.res)
+  } else if(fit.method == "MLE") { 
+    
+    x = fit.data$x 
+    y = fit.data$y 
+    
+    # Likelihood function for MLE 
+    LL <- function(mu, sigma,k) { 
+      R = dnorm(y, k*exp(-1/2*(x-mu)^2/sigma^2), 10, log = TRUE)
+      return(-sum(R))
+    }
+    
+    mle.fit = NULL 
+    tryCatch({
+      mle.fit = mle(LL, start = list(mu = mu, sigma=100, k =maxval))
+    }, error = function(err) { })  
+    
+    return(mle.fit)
+  } else {
+    stop("Fit method need to be either NLS or MLE")
+  } 
+  
+} 
+
+
 ###################################################################
 #'
 #' Perform splice-aware peak calling on a BAM file produced from a scRNA-seq experiment
 #'
 #' Takes as input a BAM file produced from barcoded scRNA-seq experiment, the reference (GTF) file used during alignment and
 #' a BED file of junctions produced by regtools. For each gene in the reference file, the peak calling process first splits 
-#' the read coverage into 'across junction' and 'within junction' subsets. Within each subset, the site of maximum coverage 
+#' the read coverage into 'across junction' and 'no junction' subsets. Within each subset, the site of maximum coverage 
 #' is identified and a peak called, by fitting a Gaussian to the read coverage, from a 600bp window around this region.
 #' After calling a peak, the local read coverage is removed and the next site of maximum coverage is identified. This process 
 #' runs iteratively until at least one of two stopping criteria are reached. The first criteria is defined as the maximum 
@@ -338,10 +399,22 @@ make_reference <- function(gtf_file, chr.names = NULL, filter.chr = FALSE) {
 #'
 #' @export
 #'
-FindPeaks <- function(output.file, gtf.file, bamfile, junctions.file,
-                       min.jcutoff=50, min.jcutoff.prop = 0.05, min.cov.cutoff = 500,
-                       min.cov.prop = 0.05, min.peak.cutoff=200, min.peak.prop = 0.05, ncores = 1,
-                       chr.names = NULL, filter.chr = FALSE) {
+FindPeaks <- function(output.file, 
+                      gtf.file, 
+                      bamfile, 
+                      junctions.file,
+                      min.jcutoff=50, 
+                      min.jcutoff.prop = 0.05, 
+                      min.cov.cutoff = 500,
+                      min.cov.prop = 0.05, 
+                      min.peak.cutoff=200, 
+                      min.peak.prop = 0.05, 
+                      ncores = 1,
+                      chr.names = NULL, 
+                      filter.chr = FALSE, 
+                      fit.method = "NLS") {
+  
+  if(!fit.method %in% c("NLS", "MLE") ) { stop("fit.method needs to be either NLS or MLE. ")}
 
   lock <- tempfile()
   #genes.ref <- read.table(reference.file,
@@ -355,8 +428,9 @@ FindPeaks <- function(output.file, gtf.file, bamfile, junctions.file,
   message(paste(n.genes, "gene entries to process"))
 
   # Initiate the output file
-  write("Gene\tChr\tStrand\tMaxPosition\tFit.max.pos\tFit.start\tFit.end\tmu\tsigma\tk\texon/intron\texon.pos", file = output.file)
-
+  write("Gene\tChr\tStrand\tMaxPosition\tFit.max.pos\tFit.start\tFit.end\tmu\tsigma\tk\texon/intron\texon.pos\tLogLik", 
+        file = output.file)
+  
   # Read in the junction information
   junctions <- read.table(junctions.file, sep = "\t",header = FALSE)
   junctions <- cbind(junctions,
@@ -407,7 +481,8 @@ FindPeaks <- function(output.file, gtf.file, bamfile, junctions.file,
       #this.junctions.GR <- IRanges::subset(this.junctions.GR, counts > j.cutoff)
       n.junctions <- length(this.junctions.GR)
       data.no.juncs <- data
-
+      
+      ## Filter 
       ## This is pretty slow way to do this filtering,
       ## can definitely improve computationally!
       if(n.junctions > 0) {
@@ -419,7 +494,7 @@ FindPeaks <- function(output.file, gtf.file, bamfile, junctions.file,
         }
       }
 
-      ## Find peaks
+      ## Find peaks 
 
       totalcov <- sum(data$coverage)
       cutoff <- max(min.cov.cutoff,min.cov.prop*totalcov)
@@ -445,18 +520,22 @@ FindPeaks <- function(output.file, gtf.file, bamfile, junctions.file,
           #message("max peak: ", data.no.juncs[maxpeak, "pos"])
 
           fit.data <- data.frame(x = seq(1,end-start+1), y = data.no.juncs[start:end,"coverage"])
-          nls.res <- NULL
-          tryCatch({
-            nls.res <- nls( y ~ k*exp(-1/2*(x-mu)^2/sigma^2),
-                            start=c(mu=300,sigma=100,k=maxval) , data = fit.data)
-          }, error = function(err) { })
-
-          if(!is.null(nls.res)) {
-            residuals <- sum(summary(nls.res)$residuals )
-            v <- summary(nls.res)$parameters[,"Estimate"]
-            fitted.peak <- maxpeak - 300 + floor(v[1])
-            from <- fitted.peak - 3*floor(v[2])
-            to <- fitted.peak + 3*floor(v[2])
+          
+          #nls.res <- NULL
+          #tryCatch({
+          #  nls.res <- nls( y ~ k*exp(-1/2*(x-mu)^2/sigma^2),
+          #                  start=c(mu=300,sigma=100,k=maxval) , data = fit.data)
+          #}, error = function(err) { })
+          gaussian.fit <- fit_gaussian(fit.data, maxval, fit.method)
+          if(!is.null(gaussian.fit)) {
+            
+            est_mu <- coef(gaussian.fit)["mu"]
+            est_sigma <- abs(coef(gaussian.fit)["sigma"]) # this has to be positie in the Gaussian  
+            est_k <- coef(gaussian.fit)["k"]
+            fit.loglik <- logLik(gaussian.fit)[1] 
+            fitted.peak <- maxpeak - 300 + floor(est_mu)
+            from <- fitted.peak - 3*floor(est_sigma)
+            to <- fitted.peak + 3*floor(est_sigma)
 
             # Handle the cases where the peak is too close to eithr the start or the end
             if(from < 1) { from = 1 }
@@ -489,14 +568,16 @@ FindPeaks <- function(output.file, gtf.file, bamfile, junctions.file,
                             peak.pos,
                             data.no.juncs[from, "pos"],
                             to.pos,
-                            v[1], v[2], v[3], "across-junctions", exon.pos, sep="\t")
+                            est_mu, est_sigma, est_k, 
+                            "across-junctions", exon.pos, fit.loglik, sep="\t")
             } else {
               exon.pos <- "NA"
               line <- paste(gene.name, seq.name, strand, data.no.juncs[maxpeak, "pos"],
                             peak.pos,
                             data.no.juncs[from, "pos"],
                             to.pos,
-                            v[1], v[2], v[3], "no-junctions", exon.pos, sep="\t")
+                            est_mu, est_sigma, est_k, 
+                            "no-junctions", exon.pos, fit.loglik, sep="\t")
             }
 
             
@@ -506,7 +587,7 @@ FindPeaks <- function(output.file, gtf.file, bamfile, junctions.file,
   	  flock::unlock(locked)
           } else {
             line <- paste(gene.name, seq.name, strand, data.no.juncs[maxpeak, "pos"],
-                          "NA", "NA", "NA", "NA", "NA", "NA", "no-junctions", "NA", sep="\t")
+                          "NA", "NA", "NA", "NA", "NA", "NA", "no-junctions", "NA", "NA", sep="\t")
   	  locked <- flock::lock(lock)
             write(line,file=output.file,append=TRUE)
   	  flock::unlock(locked)
@@ -542,19 +623,26 @@ FindPeaks <- function(output.file, gtf.file, bamfile, junctions.file,
           if(maxval < maxpeakcutoff) { next }
           fit.data <- data.frame(x = seq(1,nrow(intron.data)),
                                  y = intron.data[,"coverage"])
-          nls.res <- NULL
-          tryCatch({
-            nls.res <- nls( y ~ k*exp(-1/2*(x-mu)^2/sigma^2),
-                            start=c(mu=maxpeak,sigma=100,k=maxval) , data = fit.data)
-          }, error = function(err) { })
-
-          if(!is.null(nls.res)) {
-            residuals <- sum(summary(nls.res)$residuals )
-            v <- summary(nls.res)$parameters[,"Estimate"]
-            #print(v)
-            fitted.peak <- floor(v[1])
-            from <- fitted.peak - 3*floor(v[2])
-            to <- fitted.peak + 3*floor(v[2])
+          #nls.res <- NULL
+          #tryCatch({
+          #  nls.res <- nls( y ~ k*exp(-1/2*(x-mu)^2/sigma^2),
+          #                  start=c(mu=maxpeak,sigma=100,k=maxval) , data = fit.data)
+          #}, error = function(err) { })
+          gaussian.fit <- fit_gaussian(fit.data, maxval, fit.method, mu=maxpeak) 
+          
+          if(!is.null(gaussian.fit)) {
+            # residuals <- sum(summary(nls.res)$residuals )
+            #v <- summary(nls.res)$parameters[,"Estimate"]
+            est_mu <- coef(gaussian.fit)["mu"]
+            est_sigma <- abs(coef(gaussian.fit)["sigma"]) 
+            est_k <- coef(gaussian.fit)["k"]
+            fit.loglik <- logLik(gaussian.fit)[1]
+            
+            fitted.peak <- floor(est_mu)
+            from <- fitted.peak - 3*floor(est_sigma)
+            to <- fitted.peak + 3*floor(est_sigma)
+            
+            # Make sure position is within the intron 
             if(from < 1) { from = 1 }
             this.n.points <- nrow(intron.data)
             if(to > this.n.points) { to = this.n.points}
@@ -575,7 +663,8 @@ FindPeaks <- function(output.file, gtf.file, bamfile, junctions.file,
                        peak.pos,
                        intron.data[from, "pos"],
                        to.pos,
-                       v[1], v[2], v[3], "no-junctions", "NA", sep="\t")
+                       est_mu, est_sigma, est_k, 
+                       "no-junctions", "NA", fit.loglik, sep="\t")
 
             #line=paste(gene.name, seq.name, maxpeak, v[1], v[2], v[3], "junctions", sep=",")
             #print(line)
@@ -584,7 +673,7 @@ FindPeaks <- function(output.file, gtf.file, bamfile, junctions.file,
   	  flock::unlock(locked)
           } else {
             line=paste(gene.name, seq.name, strand, intron.data[maxpeak, "pos"],
-                       "NA", "NA", "NA", "NA", "NA", "NA", "no-junctions", "NA", sep="\t")
+                       "NA", "NA", "NA", "NA", "NA", "NA", "no-junctions", "NA", "NA", sep="\t")
   	  locked <- flock::lock(lock)
             write(line,file=output.file,append=TRUE)
   	  flock::unlock(locked)
@@ -733,8 +822,28 @@ AggregatePeakCounts <- function(peak.sites.file,
   ## Get intersection of the peak IDs from each of the input files
   for (i in 1:length(count.dirs)) {
     this.dir <- count.dirs[i]
-    sites.file <- paste0(this.dir, "/sitenames.tsv")
-    this.peak.set <- readLines(sites.file)
+    
+    ## First check if files are compressed
+    file.list <- list.files(this.dir)
+    if (sum(endsWith(file.list, ".gz")) == 3) {
+      gzipped = TRUE
+    } else{
+      gzipped = FALSE
+    }
+    
+    if (gzipped) {
+      sites.file <- paste0(this.dir, "/sitenames.tsv.gz")
+      #peaks.con <- gzfile(sites.file)
+      #this.peak.set <- readLines(peaks.con)
+      
+      peaks.con <- gzfile(sites.file)
+      this.peak.set <- readLines(peaks.con)
+      close(peaks.con)
+    } else {
+      sites.file <- paste0(this.dir, "/sitenames.tsv")
+      this.peak.set <- readLines(sites.file)
+    }
+    
     peaks.use <- dplyr::intersect(peaks.use, this.peak.set)
     
     ## Check if peak IDs from the sites file are different to the count file
@@ -773,6 +882,11 @@ AggregatePeakCounts <- function(peak.sites.file,
   Matrix::writeMM(aggregate.counts, file = paste0(output.dir, "/matrix.mtx"))
   writeLines(colnames(aggregate.counts), paste0(output.dir, "/barcodes.tsv"))
   writeLines(rownames(aggregate.counts), paste0(output.dir, "/sitenames.tsv"))
+  
+  ## Compress the output files
+  R.utils::gzip(paste0(output.dir, "/matrix.mtx"), overwrite = TRUE)
+  R.utils::gzip(paste0(output.dir, "/barcodes.tsv"), overwrite = TRUE)
+  R.utils::gzip(paste0(output.dir, "/sitenames.tsv"), overwrite = TRUE)
 
 }
 

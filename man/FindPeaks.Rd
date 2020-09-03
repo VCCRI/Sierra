@@ -17,7 +17,8 @@ FindPeaks(
   min.peak.prop = 0.05,
   ncores = 1,
   chr.names = NULL,
-  filter.chr = FALSE
+  filter.chr = FALSE,
+  fit.method = "NLS"
 )
 }
 \arguments{
@@ -53,7 +54,7 @@ NULL. Writes counts to file.
 \description{
 Takes as input a BAM file produced from barcoded scRNA-seq experiment, the reference (GTF) file used during alignment and
 a BED file of junctions produced by regtools. For each gene in the reference file, the peak calling process first splits 
-the read coverage into 'across junction' and 'within junction' subsets. Within each subset, the site of maximum coverage 
+the read coverage into 'across junction' and 'no junction' subsets. Within each subset, the site of maximum coverage 
 is identified and a peak called, by fitting a Gaussian to the read coverage, from a 600bp window around this region.
 After calling a peak, the local read coverage is removed and the next site of maximum coverage is identified. This process 
 runs iteratively until at least one of two stopping criteria are reached. The first criteria is defined as the maximum 
