@@ -538,7 +538,12 @@ apply_DEXSeq_test_seurat <- function(apa.seurat.object,
     }
   }
 
-  gene.names <- Tool(apa.seurat.object, "Sierra")[high.expressed.peaks, "Gene_name"]
+  annotations.highly.expressed <- Tool(apa.seurat.object, "Sierra")[high.expressed.peaks, ]
+  
+  ## Make sure that gene annotations are not empty
+  annotations.highly.expressed <- subset(annotations.highly.expressed, Gene_name != "")
+  high.expressed.peaks <- rownames(annotations.highly.expressed)
+  gene.names <- annotations.highly.expressed[, "Gene_name"]
 
   ## Identifiy genes with more than one transcript detected as expressed
   gene.table <- table(gene.names)
@@ -772,7 +777,12 @@ apply_DEXSeq_test_sce <- function(peaks.sce.object,
     }
   }
 
-  gene.names <- peaks.sce.object@metadata$Sierra[high.expressed.peaks, "Gene_name"]
+  annotations.highly.expressed <- Tool(apa.seurat.object, "Sierra")[high.expressed.peaks, ]
+  
+  ## Make sure that gene annotations are not empty
+  annotations.highly.expressed <- subset(annotations.highly.expressed, Gene_name != "")
+  high.expressed.peaks <- rownames(annotations.highly.expressed)
+  gene.names <- annotations.highly.expressed[, "Gene_name"]
 
   ## Identifiy genes with more than one transcript detected as expressed
   gene.table <- table(gene.names)
