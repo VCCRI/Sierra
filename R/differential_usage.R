@@ -95,6 +95,8 @@ DUTest <- function(peaks.object,
                                        do.MAPlot = do.MAPlot,
                                        return.dexseq.res = return.dexseq.res, 
                                        ncores = ncores)
+    return(res.table)
+    
   } else{
     stop("Invalid data object provided.")
   }
@@ -777,7 +779,7 @@ apply_DEXSeq_test_sce <- function(peaks.sce.object,
     }
   }
 
-  annotations.highly.expressed <- Tool(apa.seurat.object, "Sierra")[high.expressed.peaks, ]
+  annotations.highly.expressed <- peaks.sce.object@metadata$Sierra[high.expressed.peaks, ]
   
   ## Make sure that gene annotations are not empty
   annotations.highly.expressed <- subset(annotations.highly.expressed, Gene_name != "")
@@ -918,7 +920,7 @@ apply_DEXSeq_test_sce <- function(peaks.sce.object,
   dxrSig_subset$feature_type = feature.type
 
   if (include.annotations) {
-    junction.annot <- Tool(apa.seurat.object, "Sierra")[rownames(dxrSig_subset), c("Junctions", "pA_motif", "pA_stretch")]
+    junction.annot <- peaks.sce.object@metadata$Sierra[rownames(dxrSig_subset), c("Junctions", "pA_motif", "pA_stretch")]
     dxrSig_subset <- cbind(dxrSig_subset, junction.annot)
     
     dxrSig_subset <- dxrSig_subset[, c("groupID", "feature_type", "Junctions",  "pA_motif", "pA_stretch",
