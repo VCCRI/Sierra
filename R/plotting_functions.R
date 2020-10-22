@@ -199,7 +199,7 @@ get_relative_expression_sce <- function(peaks.sce.object,
   }
 
   ## access expression data for this set of peaks
-  expression.data <- peaks.sce.object@assays$data$lnorm_counts[peak.set, ]
+  expression.data <- SingleCellExperiment::logcounts(peaks.sce.object)[peak.set, ]
 
   if (length(peak.set) == 1) {
     return(expression.data)
@@ -385,8 +385,8 @@ PlotRelativeExpressionTSNE <- function(peaks.object,
     peaks.object.tsne1 <- peaks.object@reductions$tsne@cell.embeddings[, 1]
     peaks.object.tsne2 <- peaks.object@reductions$tsne@cell.embeddings[, 2]
   } else if (class(peaks.object) == "SingleCellExperiment") {
-    peaks.object.tsne1 <- peaks.object@reducedDims$tsne[, 1]
-    peaks.object.tsne2 <- peaks.object@reducedDims$tsne[, 2]
+    peaks.object.tsne1 <- SingleCellExperiment::reducedDims(peaks.object)$tsne[, 1]
+    peaks.object.tsne2 <- SingleCellExperiment::reducedDims(peaks.object)$tsne[, 2]
   }
 
   names(peaks.object.tsne1) <- colnames(peaks.object)
@@ -514,8 +514,8 @@ PlotRelativeExpressionUMAP <- function(peaks.object,
     peaks.object.umap1 <- peaks.object@reductions$umap@cell.embeddings[, 1]
     peaks.object.umap2 <- peaks.object@reductions$umap@cell.embeddings[, 2]
   } else if (class(peaks.object) == "SingleCellExperiment") {
-    peaks.object.umap1 <- peaks.object@reducedDims$umap[, 1]
-    peaks.object.umap2 <- peaks.object@reducedDims$umap[, 2]
+    peaks.object.umap1 <- SingleCellExperiment::reducedDims(peaks.object)$umap[, 1]
+    peaks.object.umap2 <- SingleCellExperiment::reducedDims(peaks.object)$umap[, 2]
   }
 
   names(peaks.object.umap1) <- colnames(peaks.object)
@@ -644,8 +644,8 @@ PlotRelativeExpressionBox <- function(peaks.object,
       col.set = scales::hue_pal()(length(table(Seurat::Idents(peaks.object))))
     }
   } else if (class(peaks.object) == "SingleCellExperiment") {
-    peaks.object.tsne1 <- peaks.object@reducedDims$tsne[, 1]
-    peaks.object.tsne2 <- peaks.object@reducedDims$tsne[, 2]
+    peaks.object.tsne1 <- SingleCellExperiment::reducedDims(peaks.object)$tsne[, 1]
+    peaks.object.tsne2 <- SingleCellExperiment::reducedDims(peaks.object)$tsne[, 2]
     cell.idents <- colData(peaks.object)$CellIdent
     if (is.null(col.set)){
       col.set = scales::hue_pal()(length(table(colData(peaks.object)$CellIdent)))
@@ -759,8 +759,8 @@ PlotRelativeExpressionViolin <- function(peaks.object,
       col.set = scales::hue_pal()(length(table(Seurat::Idents(peaks.object))))
     }
   } else if (class(peaks.object) == "SingleCellExperiment") {
-    peaks.object.tsne1 <- peaks.object@reducedDims$tsne[, 1]
-    peaks.object.tsne2 <- peaks.object@reducedDims$tsne[, 2]
+    peaks.object.tsne1 <- SingleCellExperiment::reducedDims(peaks.object)$tsne[, 1]
+    peaks.object.tsne2 <- SingleCellExperiment::reducedDims(peaks.object)$tsne[, 2]
     cell.idents <- colData(peaks.object)$CellIdent
     if (is.null(col.set)){
       col.set = scales::hue_pal()(length(table(colData(peaks.object)$CellIdent)))

@@ -544,8 +544,12 @@ NewPeakSCE <- function(peak.data, annot.info, cell.idents = NULL,
   }
 
   ## Create an SCE object for peak counts
+  #peaks.sce <- SingleCellExperiment::SingleCellExperiment(assays = list(counts = peak.data,
+  #                                                                      lnorm_counts = peak.data.norm),
+  #                                                        reducedDims = dim.reductions.list)
+  
   peaks.sce <- SingleCellExperiment::SingleCellExperiment(assays = list(counts = peak.data,
-                                                                        lnorm_counts = peak.data.norm),
+                                                                        logcounts = peak.data.norm),
                                                           reducedDims = dim.reductions.list)
 
   ## Add peak annotations to the SCE object
