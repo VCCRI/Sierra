@@ -72,7 +72,7 @@ For this vignette, we will be using cardiac scRNA-seq from [Farbehi et al.](http
 
 
 ### BAM file
-BAM files should be created from CellRanger or an equivalent program. Sierra requires BAM files to include two meta-data field tags, unique molecular identifier (UMI tag ``UB:Z``) and cell barcode (tag ``CB:Z``), which enables cell type identification and peak quantification.
+BAM files should be created from CellRanger or an equivalent program. Sierra requires BAM files to include two meta-data field tags, unique molecular identifier (UMI tag ``UB:Z``) and cell barcode (tag ``CB:Z``), which enables cell type identification and peak quantification. If your BAM file utilizes different field tags, please see section [below](#BAM_field). 
 
 ### Splice junctions file
 A BED formatted file that represents splice junctions that occur within the BAM file. This file can be created using the regtools program which needs to be run from your system command line. We specify the strand of the reads using the option ``-s 1`` (first-strand/RF). Below is an example of command line syntax that will generate the required output file. Note for the purposes of this vignette this step can be skipped as both output files, ``Vignette_example_TIP_sham_junctions.bed`` and ``Vignette_example_TIP_MI_junctions.bed``, have already been precomputed.
@@ -89,7 +89,7 @@ regtools junctions extract -s 1 Vignette_example_TIP_MI.bam -o Vignette_example_
 
 ### Reference annotation file
 
-The Sierra pipeline requires a gene transfer formatted (GTF) file. Ideally this should be same GTF as provided in the alignment step. If CellRanger was used to align the data use the ``genes.gtf`` file contained within the CellRanger reference package.
+The Sierra pipeline requires a gene transfer formatted (GTF) file. Ideally this should be same GTF as provided in the alignment step. If CellRanger was used to align the data use the ``genes.gtf`` file contained within the CellRanger reference package. If you are using an alternative reference, please see the note [below](#Reference_tags).
 
 ### Cell barcodes whitelist file
 
@@ -586,6 +586,18 @@ res.table <- DetectAEU(peaks.object = peaks.seurat,
                        population.1 = "F-SL", 
                        population.2 = "EC1")
 ```
+
+# Variations to the standard pipeline
+
+While Sierra has been designed and tested on references from 10x Genomics and data sets processed through CellRanger, some parameters can be modified in order to utilise alternatively formatted data.
+
+## Non-standard reference GTF files {#Reference_tags}
+
+When processing a GTF file, Sierra expects a 'gene_name' tag within the attribute column, which contains the gene symbol that will be used to define the gene body for peak calling. This is required for running both the `FindPeaks` and `CountPeaks` functions. If this is not present, an error will be thrown by the program when running on default settings. If your reference file does not contain the correct tag, an alternative such as 'gene_ID' can be provided by setting the `gene.symbol.ref` paramter in the `FindPeaks` and `CountPeaks` functions.   
+
+## Alternative BAM fields {#BAM_field}
+
+Sierra by default requires BAM files to include two meta-data field tags, unique molecular identifier (UMI tag ``UB:Z``) and cell barcode (tag ``CB:Z``), which enables cell type identification and peak quantification within the `CountPeaks` function. If your BAM file utilizes different field tags, the cell barcode field can be set using the `CBtag` parameter, and the UMI barcode field can be set using the `UMItag` parameter. 
 
 # Session Information-----------------------------------
 

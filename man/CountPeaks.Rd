@@ -14,6 +14,7 @@ CountPeaks(
   ncores = 1,
   chr.names = NULL,
   filter.chr = FALSE,
+  gene.symbol.ref = "gene_name",
   CBtag = "CB",
   UMItag = "UB"
 )
@@ -36,6 +37,8 @@ CountPeaks(
 \item{chr.names}{names of chromosomes}
 
 \item{filter.chr}{names of chromosomes to filter}
+
+\item{gene.symbol.ref}{field in the GTF file containing the gene symbol}
 
 \item{CBtag}{cell barcode tag identifier present in BAM file. Default 'CB'.}
 

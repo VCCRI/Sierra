@@ -17,6 +17,7 @@
 #' @param ncores Number of cores for multithreading
 #' @param chr.names names of chromosomes
 #' @param filter.chr names of chromosomes to filter
+#' @param gene.symbol.ref field in the GTF file containing the gene symbol
 #' @param CBtag cell barcode tag identifier present in BAM file. Default 'CB'.
 #' @param UMItag UMI barcode tag identifier present in BAM file. Default 'UB'.
 #' @return NULL. Writes counts to file.
@@ -58,6 +59,7 @@ CountPeaks <- function(peak.sites.file,
 			                 ncores = 1, 
 			                 chr.names = NULL, 
 			                 filter.chr = FALSE, 
+			                 gene.symbol.ref = 'gene_name',
 			                 CBtag='CB', 
 			                 UMItag='UB') 
 {
@@ -71,7 +73,7 @@ CountPeaks <- function(peak.sites.file,
   n.columns <- n.bcs + 1
 
   # read in gene reference
-  genes.ref <- make_reference(gtf_file = gtf.file, chr.names = chr.names, filter.chr = filter.chr)
+  genes.ref <- make_reference(gtf_file = gtf.file, chr.names = chr.names, filter.chr = filter.chr, gene.symbol.ref = gene.symbol.ref)
   chr.names <- as.character(unique(genes.ref$chr))
   n.genes <- nrow(genes.ref)
 
@@ -95,7 +97,6 @@ CountPeaks <- function(peak.sites.file,
   }
   #print(chr.names)
   mat.to.write <- foreach::foreach(each.chr = chr.names, .combine = 'rbind', .packages=c("magrittr")) %dopar% {
-#  mat.to.write <- foreach::foreach(each.chr = chr.names, .combine = 'rbind', .packages=c("magrittr")) %do% {
       mat.per.chr <- c()
       message("Processing chr: ", each.chr)
       
@@ -119,15 +120,11 @@ CountPeaks <- function(peak.sites.file,
       isMinusStrand <- if(strand==1) FALSE else TRUE
       which <- GenomicRanges::GRanges(seqnames = each.chr, ranges = IRanges::IRanges(1, max(peak.sites.chr$Fit.end) ))
 
-#      param <- Rsamtools::ScanBamParam(tag=c("CB", "UB"),     # CBtag='CB', UMItag='UB')
       param <- Rsamtools::ScanBamParam(tag=c(CBtag, UMItag),
                             which = which,
                             flag=Rsamtools::scanBamFlag(isMinusStrand=isMinusStrand))
 
       aln <- GenomicAlignments::readGAlignments(bamfile, param=param)
-
-#      nobarcodes <- which(is.na(GenomicRanges::mcols(aln)$CB))
-#      noUMI <- which(is.na(GenomicRanges::mcols(aln)$UB))
       
       nobarcodes <- which(unlist(is.na(GenomicRanges::mcols(aln)[CBtag])))
       noUMI <- which(unlist(is.na(GenomicRanges::mcols(aln)[UMItag])))
@@ -137,21 +134,19 @@ CountPeaks <- function(peak.sites.file,
       if (length(to.remove) > 0) {
         aln <- aln[-to.remove]
       }
-#      whitelist.pos <- which(GenomicRanges::mcols(aln)$CB %in% whitelist.bc)
+
       whitelist.pos <- which(unlist(GenomicRanges::mcols(aln)[CBtag]) %in% whitelist.bc)
       aln <- aln[whitelist.pos]
 
       # For de-duplicating UMIs, let's just remove a random read
       # when there is a duplicate
       if(countUMI) {
- #        GenomicRanges::mcols(aln)$CB_UB <- paste0(GenomicRanges::mcols(aln)$CB, "_", GenomicRanges::mcols(aln)$UB)
         GenomicRanges::mcols(aln)$CB_UB <- paste0(unlist(GenomicRanges::mcols(aln)[CBtag]), 
                                                   "_", unlist(GenomicRanges::mcols(aln)[UMItag]))
          uniqUMIs <- which(!duplicated(GenomicRanges::mcols(aln)$CB_UB))
          aln <- aln[uniqUMIs]
       }
 
-#      aln <- GenomicRanges::split(aln, GenomicRanges::mcols(aln)$CB)
       aln <- GenomicRanges::split(aln, unlist(GenomicRanges::mcols(aln)[CBtag]))
 
       polyA.GR <- GenomicRanges::GRanges(seqnames = peak.sites.chr$Chr,
@@ -243,12 +238,16 @@ make_exons <- function(x) {
 #'
 #' @param gtf_file  gtf file
 #' @param chr.names a list of valid chromosome names to use
-#' @param whether to filter chromosomes in the GTF file
+#' @param filter.chr whether to filter chromosomes in the GTF file
+#' @param gene.symbol.ref field in the GTF file containing the gene symbol
 #'
 #' Takes a GTF file as input and creates a table of chromosome start-end
 #' positions for each gene. Works with GTF files downloaded from 10x Genomics website.
 #'
-make_reference <- function(gtf_file, chr.names = NULL, filter.chr = FALSE) {
+make_reference <- function(gtf_file, 
+                           chr.names = NULL, 
+                           filter.chr = FALSE,
+                           gene.symbol.ref = 'gene_name') {
   ## Read in the gtf file
   gtf_gr <- rtracklayer::import(gtf_file)
   gtf_TxDb <- GenomicFeatures::makeTxDbFromGFF(gtf_file, format="gtf")
@@ -260,7 +259,7 @@ make_reference <- function(gtf_file, chr.names = NULL, filter.chr = FALSE) {
   
   ## Build a unique map of Ensembl ID to gene symbol
   ensembl.symbol.map <- data.frame(EnsemblID = gtf_gr@elementMetadata@listData$gene_id,
-                                  GeneName = gtf_gr@elementMetadata@listData$gene_name, 
+                                  GeneName = gtf_gr@elementMetadata@listData[[gene.symbol.ref]], 
                                   stringsAsFactors = FALSE)
   
   ensembl.symbol.map %>% dplyr::distinct(EnsemblID, .keep_all = TRUE) -> ensembl.symbol.map.unique
@@ -377,6 +376,7 @@ fit_gaussian <- function(fit.data, maxval, fit.method, mu = 300) {
 #' @param ncores number of cores to use
 #' @param chr.names names of chromosomes
 #' @param filter.chr names of chromosomes to filter
+#' @param gene.symbol.ref field in the GTF file containing the gene symbol
 #' @return NULL. Writes counts to file.
 #' @examples
 #' 
@@ -412,6 +412,7 @@ FindPeaks <- function(output.file,
                       ncores = 1,
                       chr.names = NULL, 
                       filter.chr = FALSE, 
+                      gene.symbol.ref = 'gene_name',
                       fit.method = "NLS") {
   
   if(!fit.method %in% c("NLS", "MLE") ) { stop("fit.method needs to be either NLS or MLE. ")}
@@ -423,7 +424,7 @@ FindPeaks <- function(output.file,
   #genes.ref <- subset(genes.ref, chr %in% chr.names)
 
   ## Read in the gtf file
-  genes.ref = make_reference(gtf_file = gtf.file, chr.names = chr.names, filter.chr = filter.chr)
+  genes.ref = make_reference(gtf_file = gtf.file, chr.names = chr.names, filter.chr = filter.chr, gene.symbol.ref = gene.symbol.ref)
   n.genes = nrow(genes.ref)
   message(paste(n.genes, "gene entries to process"))
 

@@ -18,6 +18,7 @@ FindPeaks(
   ncores = 1,
   chr.names = NULL,
   filter.chr = FALSE,
+  gene.symbol.ref = "gene_name",
   fit.method = "NLS"
 )
 }
@@ -47,6 +48,8 @@ FindPeaks(
 \item{chr.names}{names of chromosomes}
 
 \item{filter.chr}{names of chromosomes to filter}
+
+\item{gene.symbol.ref}{field in the GTF file containing the gene symbol}
 }
 \value{
 NULL. Writes counts to file.

@@ -4,14 +4,21 @@
 \alias{make_reference}
 \title{Build gene start-end reference from a gtf file}
 \usage{
-make_reference(gtf_file, chr.names = NULL, filter.chr = FALSE)
+make_reference(
+  gtf_file,
+  chr.names = NULL,
+  filter.chr = FALSE,
+  gene.symbol.ref = "gene_name"
+)
 }
 \arguments{
 \item{gtf_file}{gtf file}
 
 \item{chr.names}{a list of valid chromosome names to use}
 
-\item{whether}{to filter chromosomes in the GTF file
+\item{filter.chr}{whether to filter chromosomes in the GTF file}
+
+\item{gene.symbol.ref}{field in the GTF file containing the gene symbol
 
 Takes a GTF file as input and creates a table of chromosome start-end
 positions for each gene. Works with GTF files downloaded from 10x Genomics website.}
