@@ -426,7 +426,7 @@ DetectAEU <- function(peaks.object, gtf_gr, gtf_TxDb, population.1, population.2
                                             stringsAsFactors = FALSE)
 
   transcripts.ref <- GenomicFeatures::transcripts(gtf_TxDb)
-  transcripts.ref <- unlist(transcripts.ref)
+  #transcripts.ref <- unlist(transcripts.ref)
 
   all_transcript_hits <- GenomicRanges::findOverlaps(peaks.gr , transcripts.ref, type = "any")
   transcript.mappings <- as.data.frame(all_transcript_hits)
