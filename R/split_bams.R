@@ -17,6 +17,7 @@
 #' @param exportFastqHeader If TRUE will generate a txt output file that has same prefix as bam file containing fastq header IDs
 #' @param genomicRegion Granges object of genomic region to extract. Only used if geneSymbol not defined.
 #' @param bamTags BAM field tag identifiers to extract. Default is c("CB", "UB").
+#' @param what  What BAM fields to copy into new file. Default is c('qname', 'flag', 'rname', 'strand', 'pos')
 #'
 #' @return a rleList of coverage for each cell type
 #'
@@ -59,9 +60,7 @@
 SplitBam <- function(bam, cellbc.df, outdir=NULL, yieldSize = 1000000,
                      gtf_gr = NULL, geneSymbol=NULL, gi_ext = 50,
                      rle_output=FALSE, exportFastqHeader=FALSE, genomicRegion=NULL,
-                     bamTags=c("CB", "UB")) {
- # require(GenomicAlignments)
-#  require(rtracklayer)
+                     bamTags=c("CB", "UB"),  what=c('qname', 'flag', 'rname', 'strand', 'pos')) {
 
   message("splitting bam file: ", bam)
 
@@ -74,7 +73,11 @@ SplitBam <- function(bam, cellbc.df, outdir=NULL, yieldSize = 1000000,
     { warning("Could not find gene name. Please check spelling (and case)")
       return(NULL)
     }
-    GenomeInfoDb::seqlevelsStyle(gtf_gr) <- "NCBI"
+    sls <-  GenomeInfoDb:seqlevelsStyle(Rsamtools::BamFile(bam))
+    if (sls == "UCSC")
+      GenomeInfoDb::seqlevelsStyle(gtf_gr) <- 'UCSC'
+    else
+      GenomeInfoDb::seqlevelsStyle(gtf_gr) <- "NCBI"
 
     # Work out the genomic range to extract from
     start <- min(start(ranges(gtf_gr[idx])))
@@ -82,13 +85,13 @@ SplitBam <- function(bam, cellbc.df, outdir=NULL, yieldSize = 1000000,
     chrom <- as.character(GenomicRanges::seqnames(gtf_gr[idx]))[1]  # should I check that all returned chromosomes are the same?
     gene_strand <- as.character(strand(gtf_gr[idx]))[1]
     toExtract_gr <- GenomicRanges::GRanges(seqnames=chrom, ranges=IRanges::IRanges(start-gi_ext , width=end-start+gi_ext), strand=gene_strand)
-    param <- Rsamtools::ScanBamParam(tag=bamTags, which = toExtract_gr, what=c('qname', 'flag', 'rname', 'strand', 'pos'))
+    param <- Rsamtools::ScanBamParam(tag=bamTags, which = toExtract_gr, what=what)
     gene.provided <- geneSymbol
   }
   else if (! is.null(genomicRegion))
   {
     tryCatch({
-      param <- Rsamtools::ScanBamParam(tag=bamTags, which = genomicRegion, what=c('qname', 'flag', 'rname', 'strand', 'pos'))
+      param <- Rsamtools::ScanBamParam(tag=bamTags, which = genomicRegion, what=what)
       geneSymbol <- gsub(pattern = ":",replacement = "_",x = as.character(genomicRegion))
     }, error = function(err) {
       stop(paste0("Problem detected with provided genomic region. Please ensure genomicRegion is a Granges object"))
