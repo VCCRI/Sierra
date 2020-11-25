@@ -1,5 +1,5 @@
 ---
-title: "Sierra: Discovery of differential transcript usage from polyA-captured single cell RNA-seq data"
+title: "Sierra: discovery of differential transcript usage from polyA-captured single cell RNA-seq data"
 author: 
   - name: Ralph Patrick
     affiliation: Developmental and Stem Cell Biology Division, Victor Chang Cardiac Research Institute
@@ -12,8 +12,8 @@ abstract: "This vignette provides a working example on how to use Sierra to disc
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 output: 
     BiocStyle::html_document:
-    highlight: pygments
-    toc: true
+      highlight: pygments
+      toc: true
     #number_sections: true  ## if you want number sections at each table header
     #theme: united 
 keywords: single cell RNASeq, scRNA-Seq, RNA-Sequencing, RNA-Seq, transcript isoform
@@ -22,23 +22,6 @@ vignette: >
   %\VignetteIndexEntry{Sierra}
   %\VignetteEncoding{UTF-8}
 ---
-
-```{r setup,echo=FALSE}
-library(knitr)
-library(BiocStyle)
-
-#Color Format
-colFmt = function(x,color){
-  outputFormat = knitr::opts_knit$get("rmarkdown.pandoc.to")
-  if(outputFormat == 'latex')
-    paste("\\textcolor{",color,"}{",x,"}",sep="")
-  else if(outputFormat == 'html')
-    paste("<font color='",color,"'>",x,"</font>",sep="")
-  else
-    x
-}
-
-```
 
 
 
@@ -140,17 +123,12 @@ FindPeaks(output.file = peak.output.file[2],   # output filename
 ```
 The FindPeaks function will print status updates as shown below as it progresses through the data file.
 
-`r colFmt("
-Import genomic features from the file as a GRanges object ... OK<br>
-Prepare the 'metadata' data frame ... OK<br>
-Make the TxDb object ... OK<br>
-15 gene entries to process<br>
-There are 202 unfiltered sites and 201 filtered sites<br>
-There are 201 sites following duplicate removal
-",'red')`
-
-
-
+$\color{red}{\text{Import genomic features from the file as a GRanges object ... OK}}$ \
+$\color{red}{\text{Prepare the 'metadata' data frame ... OK}}$ \
+$\color{red}{\text{Make the TxDb object ... OK}}$ \
+$\color{red}{\text{15 gene entries to process}}$ \
+$\color{red}{\text{There are 202 unfiltered sites and 201 filtered sites}}$ \
+$\color{red}{\text{There are 201 sites following duplicate removal}}$
 
 ## Peak merging
 
