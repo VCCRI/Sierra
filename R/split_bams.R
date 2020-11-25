@@ -73,7 +73,7 @@ SplitBam <- function(bam, cellbc.df, outdir=NULL, yieldSize = 1000000,
     { warning("Could not find gene name. Please check spelling (and case)")
       return(NULL)
     }
-    sls <-  GenomeInfoDb:seqlevelsStyle(Rsamtools::BamFile(bam))
+    sls <-  GenomeInfoDb::seqlevelsStyle(Rsamtools::BamFile(bam))
     if (sls == "UCSC")
       GenomeInfoDb::seqlevelsStyle(gtf_gr) <- 'UCSC'
     else
