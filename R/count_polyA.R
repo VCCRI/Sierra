@@ -366,7 +366,7 @@ fit_gaussian <- function(fit.data, maxval, fit.method, mu = 300) {
 #' @param output.file a file containing polyA sites
 #' @param gtf.file reference (GTF) file
 #' @param bamfile scRNA-seq BAM file
-#' @param junctions.file file of splice junctions (e.g. produced by regtools)
+#' @param junctions.file BED file (as produced by regtools) or SJ.out.tab file (STAR aligner) containing  splice junction coordinates
 #' @param min.jcutoff minimum number of spliced reads across a junction for it to be considered (default: 50). 
 #' @param min.jcutoff.prop minimum proportion of junction reads out of all junction reads for that gene (default: 0.05)
 #' @param min.cov.cutoff minimum number of reads to consider a peak (default: 500)
@@ -432,15 +432,37 @@ FindPeaks <- function(output.file,
   write("Gene\tChr\tStrand\tMaxPosition\tFit.max.pos\tFit.start\tFit.end\tmu\tsigma\tk\texon/intron\texon.pos\tLogLik", 
         file = output.file)
   
-  # Read in the junction information
+  ## Read in junctions from either bed file or SJ file from STAR aligner
+  # step1 determine file type by extension
+  
+  idx.star <- grep(pattern="SJ.out.tab(.gz|)", x=junctions.file)
+  idx.bed <- grep(pattern=".bed(.gz|)", x=junctions.file)
+  
   junctions <- read.table(junctions.file, sep = "\t",header = FALSE)
-  junctions <- cbind(junctions,
-                     reshape2::colsplit(junctions$V11, ",", c("blocks1","blocks2")))
-  junctions$start <- junctions$V2+junctions$blocks1
-  junctions$end <- junctions$V3-junctions$blocks2
-  junctions.GR <- GenomicRanges::GRanges(seqnames = junctions$V1,
-                          IRanges::IRanges(start = junctions$start,
-                                  end = junctions$end), counts = junctions$V5)
+  
+  if (length(idx.star) > 0)
+  {
+    junctions.GR <- GenomicRanges::GRanges(seqnames = junctions$V1, 
+                                           IRanges::IRanges(start =junctions$V2,  end = junctions$V3), 
+                                           counts = junctions$V8)
+  }    
+  else if(length(idx.bed) > 0)
+  {
+    junctions <- cbind(junctions,
+                       reshape2::colsplit(junctions$V11, ",", c("blocks1","blocks2")))
+    junctions$start <- junctions$V2+junctions$blocks1
+    junctions$end <- junctions$V3-junctions$blocks2
+    junctions.GR <- GenomicRanges::GRanges(seqnames = junctions$V1,
+                            IRanges::IRanges(start = junctions$start,
+                                    end = junctions$end), counts = junctions$V5)
+  }
+  else # unrecognisable format
+  {
+    warning(paste0("Unrecognisable junction file format.\n",
+            "File must have either bed or SJ.out.tab extension.\n",
+            "Cannot continue to findPeaks\n"))
+    return(NULL)
+  }
   
   # Set up multiple workers
   system.name <- Sys.info()['sysname']
