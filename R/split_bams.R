@@ -100,7 +100,7 @@ SplitBam <- function(bam, cellbc.df, outdir=NULL, yieldSize = 1000000,
   else
   {
 
-    param <- Rsamtools::ScanBamParam(tag=bamTags)
+    param <- Rsamtools::ScanBamParam(tag=bamTags, what=what)
     geneSymbol <- "all"   # This will be incorporated into filename
     gene.provided <- NULL
   }
