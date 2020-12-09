@@ -15,7 +15,8 @@ SplitBam(
   rle_output = FALSE,
   exportFastqHeader = FALSE,
   genomicRegion = NULL,
-  bamTags = c("CB", "UB")
+  bamTags = c("CB", "UB"),
+  what = c("qname", "flag", "rname", "strand", "pos")
 )
 }
 \arguments{
@@ -40,6 +41,8 @@ SplitBam(
 \item{genomicRegion}{Granges object of genomic region to extract. Only used if geneSymbol not defined.}
 
 \item{bamTags}{BAM field tag identifiers to extract. Default is c("CB", "UB").}
+
+\item{what}{What BAM fields to copy into new file. Default is c('qname', 'flag', 'rname', 'strand', 'pos')}
 }
 \value{
 a rleList of coverage for each cell type

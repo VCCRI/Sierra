@@ -32,6 +32,8 @@ PlotRelativeExpressionBox(
 \item{col.set}{col set (default NULL)}
 
 \item{txt.size}{sie of text (default 14)}
+
+\item{p.count}{Pseudo count}
 }
 \value{
 a ggplot2 object

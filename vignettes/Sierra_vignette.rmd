@@ -300,7 +300,6 @@ knitr::include_graphics('DimPlot.png')
 
 ### Testing for differential transcript usage
 
-
 Differential peak usage analysis is performed using the ``DUTest`` function. This utilises the DEXSeq package to test for differences in relative peak usage between cell populations, after creating pseudo-bulk profiles from the cells to define replicates. 
 
 ``DUTest`` takes in the peaks object and either a population ID or a list of cell barcode IDs. population.2 can be left unspecified and the function will test for population.1 vs everything else. For this test we'll compare the two biggest fibroblast and endothelial cell (EC) clusters, 'F-SL' and 'EC1', respectively.
@@ -470,7 +469,32 @@ PlotCoverage(genome_gr = gtf_gr,
              output_file_name = "Cxcl12_fibroblast_vs_ECs example.pdf")
 ```          
              
-             
+### Additional PlotCoverage options
+
+There are a few extra ways that `PlotCoverage` can be used. In order to visualise the location of specific peaks, the peak coordinates can be passed to the plotting function through the `peaks.annot` option. As an example, the below plot shows the total number of peaks identified from the Cxcl12 gene, ordered according to abosolute fold-change difference.
+
+```
+res.table <- res.table[order(abs(res.table$Log2_fold_change), decreasing = TRUE), ]
+peaks.to.plot <- rownames(subset(res.table, gene_name == "Cxcl12"))
+names(peaks.to.plot) <- c("Peak 1", "Peak 2", "Peak 3")
+PlotCoverage(genome_gr = gtf_gr, 
+             geneSymbol = "Cxcl12", 
+             genome = "mm10",
+             bamfiles = bam.files,
+             peaks.annot = peaks.to.plot,
+             bamfile.tracknames = c("Fibroblast", "EC"),
+             annotation.fontsize = 14)
+```
+
+```{r PlotCovAnnot, out.width='100%', fig.cap = 'PlotCoverage output with peak annotations',echo=FALSE}
+knitr::include_graphics('Cxcl12_coverage_annotated.png')
+```
+
+Some additional `PlotCoverage` parameters that can be handy:
+
+1. `label.transcripts`: when set to TRUE, adds transcript identifiers to the displayed gene model.
+2. `zoom_3UTR`: when set to TRUE, will generate a coverage plot specifically of the 3'UTR. This can be useful for looking at alternative polyadenylation sites on the 3'UTR.
+3. `wig_data`: if bulk RNA-seq data is available in wig format, this can be plotted on top on the single-cell data for a comparison of different data. 
 
 ## Working with the Single-Cell Experiment class
 

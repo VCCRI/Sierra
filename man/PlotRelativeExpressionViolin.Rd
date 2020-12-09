@@ -38,6 +38,8 @@ PlotRelativeExpressionViolin(
 \item{add.jitter}{whether to add a geom_jitter to the plot (default: TRUE)}
 
 \item{jitter.pt.size}{size of point for geom_jitter (default = 0.25)}
+
+\item{p.count}{Pseudo count}
 }
 \value{
 a ggplot2 object

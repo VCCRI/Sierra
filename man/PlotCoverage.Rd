@@ -9,13 +9,17 @@ PlotCoverage(
   geneSymbol = "",
   wig_data = NULL,
   bamfiles = NULL,
+  peaks.annot = NULL,
+  label.transcripts = FALSE,
   wig_same_strand = TRUE,
   genome = NULL,
   pdf_output = FALSE,
   wig_data.tracknames = NULL,
   bamfile.tracknames = NULL,
   output_file_name = "",
-  zoom_3UTR = FALSE
+  zoom_3UTR = FALSE,
+  annotation.fontsize = NULL,
+  axis.fontsize = NULL
 )
 }
 \arguments{
@@ -26,6 +30,10 @@ PlotCoverage(
 \item{wig_data}{can be a data frame or a genomic ranges object. Must be stranded.}
 
 \item{bamfiles}{: BAM filenames that are to be displayed as data tracks}
+
+\item{peaks.annot}{an optionally named vector of peaks to annotate on the plot.}
+
+\item{label.transcripts}{if set to TRUE, adds transcript identifiers to the gene model}
 
 \item{wig_same_strand}{Display same strand or opposing strand of wig data (compared to reference gene)}
 
@@ -40,6 +48,10 @@ PlotCoverage(
 \item{output_file_name}{: Used if pdf_output is true. Location of where files will be placed.}
 
 \item{zoom_3UTR}{: If TRUE will create a second figure which will zoom in on 3'UTR.}
+
+\item{annotation.fontsize}{font size for optional peak and transcript annotations}
+
+\item{axis.fontsize}{font size for the axis labels}
 }
 \value{
 NULL by default.
@@ -58,5 +70,13 @@ bam.files <- c(paste0(extdata_path,"/Vignette_example_TIP_mi.bam"),
 
 PlotCoverage(genome_gr = gtf_gr, geneSymbol = "Lrrc58", genome = "mm10", 
            bamfiles = bam.files, bamfile.tracknames=c("MI", "sham"))
+           
+## Alternatively, plot with annotated peaks
+peaks.annot <- c("Lrrc58:16:37888444-37888858:1", "Lrrc58:16:37883336-37883588:1")
+names(peaks.annot) <- c("Peak 1", "Peak 2")
+
+PlotCoverage(genome_gr = gtf_gr, geneSymbol = "Lrrc58", genome = "mm10", 
+          peaks.annot = peaks.annot, bamfiles = bam.files, 
+          bamfile.tracknames=c("MI", "sham"))
 
 }

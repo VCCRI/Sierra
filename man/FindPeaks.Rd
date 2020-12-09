@@ -29,7 +29,7 @@ FindPeaks(
 
 \item{bamfile}{scRNA-seq BAM file}
 
-\item{junctions.file}{file of splice junctions (e.g. produced by regtools)}
+\item{junctions.file}{BED file (as produced by regtools) or SJ.out.tab file (STAR aligner) containing  splice junction coordinates}
 
 \item{min.jcutoff}{minimum number of spliced reads across a junction for it to be considered (default: 50).}
 

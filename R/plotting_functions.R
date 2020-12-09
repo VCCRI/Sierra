@@ -590,6 +590,7 @@ PlotRelativeExpressionUMAP <- function(peaks.object,
 #' @param pt.size Size of the points on the t-SNE plot (default 0.5)
 #' @param col.set col set (default NULL)
 #' @param txt.size sie of text (default 14)
+#' @param p.count Pseudo count  
 #'
 #' @return a ggplot2 object
 #'
@@ -702,6 +703,7 @@ PlotRelativeExpressionBox <- function(peaks.object,
 #' @param txt.size size of text. Default 14
 #' @param add.jitter whether to add a geom_jitter to the plot (default: TRUE)
 #' @param jitter.pt.size size of point for geom_jitter (default = 0.25)
+#' @param p.count Pseudo count  
 #'
 #' @return a ggplot2 object
 #'
@@ -913,6 +915,8 @@ relative_location <- function(location, n) {
 #' @param geneSymbol : Name of gene symbol
 #' @param wig_data can be a data frame or a genomic ranges object. Must be stranded.
 #' @param bamfiles : BAM filenames that are to be displayed as data tracks
+#' @param peaks.annot an optionally named vector of peaks to annotate on the plot. 
+#' @param label.transcripts if set to TRUE, adds transcript identifiers to the gene model 
 #' @param wig_same_strand Display same strand or opposing strand of wig data (compared to reference gene)
 #' @param genome  : genome object
 #' @param bamfile.tracknames : BAM track display names. Assumed to be in same order as bamfiles.
@@ -920,6 +924,8 @@ relative_location <- function(location, n) {
 #' @param pdf_output : If true will create output pdf files
 #' @param output_file_name : Used if pdf_output is true. Location of where files will be placed.
 #' @param zoom_3UTR : If TRUE will create a second figure which will zoom in on 3'UTR.
+#' @param annotation.fontsize font size for optional peak and transcript annotations 
+#' @param axis.fontsize font size for the axis labels
 #' @return NULL by default.
 #' @examples
 #' 
@@ -932,12 +938,33 @@ relative_location <- function(location, n) {
 #' 
 #' PlotCoverage(genome_gr = gtf_gr, geneSymbol = "Lrrc58", genome = "mm10", 
 #'            bamfiles = bam.files, bamfile.tracknames=c("MI", "sham"))
+#'            
+#' ## Alternatively, plot with annotated peaks
+#' peaks.annot <- c("Lrrc58:16:37888444-37888858:1", "Lrrc58:16:37883336-37883588:1")
+#' names(peaks.annot) <- c("Peak 1", "Peak 2")
+#' 
+#' PlotCoverage(genome_gr = gtf_gr, geneSymbol = "Lrrc58", genome = "mm10", 
+#'           peaks.annot = peaks.annot, bamfiles = bam.files, 
+#'           bamfile.tracknames=c("MI", "sham"))
 #'
 #' @import Gviz
 #' @export
-PlotCoverage<-function(genome_gr, geneSymbol="", wig_data=NULL, bamfiles=NULL, wig_same_strand=TRUE, 
-                       genome=NULL, pdf_output = FALSE, wig_data.tracknames=NULL, bamfile.tracknames=NULL,
-                       output_file_name='', zoom_3UTR=FALSE)
+PlotCoverage<-function(genome_gr, 
+                       geneSymbol="", 
+                       wig_data=NULL, 
+                       bamfiles=NULL,
+                       peaks.annot = NULL,
+                       label.transcripts = FALSE,
+                       wig_same_strand=TRUE, 
+                       genome=NULL, 
+                       pdf_output = FALSE, 
+                       wig_data.tracknames=NULL, 
+                       bamfile.tracknames=NULL,
+                       output_file_name='', 
+                       zoom_3UTR=FALSE,
+                       annotation.fontsize=NULL,
+                       axis.fontsize=NULL
+                       )
 {
   # Check that gene_name field exists
   GenomeInfoDb::seqlevelsStyle(genome_gr) <- "UCSC"
@@ -969,8 +996,41 @@ PlotCoverage<-function(genome_gr, geneSymbol="", wig_data=NULL, bamfiles=NULL, w
 
   gene_txdb <- GenomicFeatures::makeTxDbFromGRanges(gene_gr)
 
-  gtrack <- Gviz::GeneRegionTrack(gene_txdb, start = start, end = end, chromosome=chrom, name= geneSymbol)
+  if (label.transcripts) {
+    transcript.fontsize = annotation.fontsize
+  } else {transcript.fontsize = 0}
+  gtrack <- Gviz::GeneRegionTrack(gene_txdb, 
+                                  start = start, 
+                                  end = end, 
+                                  chromosome=chrom, 
+                                  name= geneSymbol,
+                                  just.group = "above",
+                                  transcriptAnnotation = "symbol",
+                                  showId = FALSE,
+                                  fontsize.group = transcript.fontsize)
 
+  ### Add peaks annotations if provided
+  if (!is.null(peaks.annot)) {
+    start.sites <- as.numeric(sub(".*:.*:(.*)-.*:.*", "\\1", peaks.annot))
+    end.sites <- as.numeric(sub(".*:.*:.*-(.*):.*", "\\1", peaks.annot))
+    peak.widths <- end.sites - start.sites
+    peak.names <- names(peaks.annot)
+    if (is.null(peak.names)) peak.names <- peaks.annot
+    
+    atrack <- Gviz::AnnotationTrack(start=start.sites, 
+                                    width=peak.widths, 
+                                    chromosome=chrom, 
+                                    strand="*",
+                                    name="Peak",
+                                    group=peak.names, 
+                                    genome=genome, 
+                                    just.group="above",
+                                    showId = TRUE,
+                                    fontsize.group = annotation.fontsize,
+                                    rotation.title=90)
+    gtrack <- c(gtrack, atrack)
+  }
+  
   ##### Assemble data track(s)
   dtrack <- list()  # Add data tracks assembled on this list
 
@@ -1074,7 +1134,16 @@ PlotCoverage<-function(genome_gr, geneSymbol="", wig_data=NULL, bamfiles=NULL, w
     {  pdf(file=output_file_name,width = 24,height = 18)
     }
   }
-  Gviz::plotTracks(toPlot, from = start, to = end, chromosome= chrom, transcriptAnnotation = "gene")
+  extra.space = round( (end - start) * 0.02 )
+  Gviz::plotTracks(toPlot, 
+                   from = start,
+                   to = end,
+                   extend.left = extra.space,
+                   extend.right = extra.space,
+                   chromosome= chrom, 
+                   transcriptAnnotation = "transcript",
+                   showId = TRUE,
+                   fontsize = axis.fontsize)
 
   if (zoom_3UTR)
   {
@@ -1082,7 +1151,16 @@ PlotCoverage<-function(genome_gr, geneSymbol="", wig_data=NULL, bamfiles=NULL, w
     # Work out the genomic range of UTR
     start <- min(IRanges::start(IRanges::ranges(genome_gr[idx])))
     end <- max(IRanges::end(IRanges::ranges(genome_gr[idx])))
-    Gviz::plotTracks(toPlot, from = start, to = end, chromosome= chrom, transcriptAnnotation = "gene")
+    extra.space = round( (end - start) * 0.02 )
+    Gviz::plotTracks(toPlot, 
+                     from = start, 
+                     to = end, 
+                     extend.left = extra.space,
+                     extend.right = extra.space,
+                     chromosome= chrom, 
+                     transcriptAnnotation = "transcript",
+                     showId = FALSE,
+                     fontsize = axis.fontsize)
   }
 
 
