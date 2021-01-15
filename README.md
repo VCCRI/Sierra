@@ -18,6 +18,14 @@ library(Sierra)
 browseVignettes("Sierra")
 ```
 
+## Alternative installation
+
+If you have trouble building the vignette, an alternative is to view it on the [wiki](https://github.com/VCCRI/Sierra/wiki/Sierra-Vignette) and install the R package without it:
+
+```
+devtools::install_github("VCCRI/Sierra", build = TRUE)
+```
+
 ## Method overview
 
 The manuscript describing Sierra, including validation and example applications, is published in [Genome Biology](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-020-02071-7).
