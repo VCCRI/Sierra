@@ -12,45 +12,48 @@
 #' @param sites.file file containing peak coordinate names corresponding to rows in the matrix
 #' @return a sparseMatrix
 #' @examples
+#' # Following commands can be used to generate a new random sample data set
+#' # barcode_seq <- stringi::stri_rand_strings(12,14,pattern="[ACTG]")
+#' # barcode_seq <- paste0(barcode_seq,"-1")
+#' # Below is hard coded example
 #' 
+#' barcode_seq <- c("TCCCAGTACTGGGC-1", "CCAGAGAAAAACTT-1", "CGATAGGGGTAACA-1", 
+#' "GGCGGATGGAGATT-1", "ATCAGTACATCTAT-1", "TTTCCCGTACCACA-1", "TTGTGTACGGGATG-1", 
+#' "CAGGGCATAGTCTA-1", "GCTCTTTGGCTGAG-1", "AGTCGTATCACTAA-1", "CGGTTGGCTGGTAT-1", 
+#' "TGACCTGGAGCTGC-1")
 #' 
-#' library(Sierra)
-#' extdata_path <- system.file("extdata",package = "Sierra")
-#' reference.file <- paste0(extdata_path,"/Vignette_cellranger_genes_subset.gtf")
-#' junctions.file <- paste0(extdata_path,"/Vignette_example_TIP_sham_junctions.bed")
-#' bamfile <- paste0(extdata_path,"/Vignette_example_TIP_sham.bam")
+#' # Note: siteNames could be genes
+#' siteNames <- cbind( paste0("Gene_",letters[1:12]))
+#'                  
+#'  # For this working example set site_names to be peak coordinates                
+#' siteNames <- c("Sash1:10:8722219-8722812:-1", "Sash1:10:8813689-8814157:-1", 
+#'              "Lamp2:X:38419489-38419901:-1", "Lamp2:X:38405042-38405480:-1", 
+#'              "Lamp2:X:38455818-38456298:-1", "Pecam1:11:106654217-106654585:-1", 
+#'              "Ly6e:15:74958936-74959338:1", "Ly6e:15:74956076-74956512:1", 
+#'              "Pnkd:1:74285960-74287456:1", "Pdgfra:5:75197715-75198215:1", 
+#'              "Dlc1:8:36567751-36568049:-1", "Dlc1:8:36568379-36568865:-1")
 #' 
-#' whitelist.bc.file <- paste0(extdata_path,"/example_TIP_sham_whitelist_barcodes.tsv")
-#'
-#' ### Peak calling
-#' peak.output.file <- c("Vignette_example_TIP_sham_peaks.txt")
+#' # Randomly generate a matrix that contains a bunch of zeros.
+#' # Columns are cells, rows are 
+#' matrix_A <- matrix(round(rexp(144,rate = 1),digits = 0), nrow = 12,ncol = 12)
+#' matrix_B <- matrix(round(rexp(144,rate = 0.7),digits = 0), nrow = 12,ncol = 12)
+#' matrix_mtx <- matrix_A * matrix_B
+#' matrix_mtx <- Matrix::Matrix(matrix_mtx, sparse=TRUE)
 #' 
-#' FindPeaks(output.file = peak.output.file[1],   # output filename
-#'          gtf.file = reference.file,           # gene model as a GTF file
-#' bamfile = bamfile[1],                # BAM alignment filename.
-#'          junctions.file = junctions.file,     # BED filename of splice junctions exising in BAM file.
-#'          ncores = 1)                          # number of cores to use
-#'
-#'
-#' #### Peak merging
-#' peak.dataset.table = data.frame(Peak_file = peak.output.file,
-#'                                Identifier = c("TIP-example-Sham"),
-#'                                stringsAsFactors = FALSE)
-#'
-#' peak.merge.output.file = "TIP_merged_peaks.txt"
-#' \dontrun{
-#' MergePeakCoordinates(peak.dataset.table, output.file = peak.merge.output.file, ncores = 1)
+#' # Save example to appropriate named files in temporary location
+#' data.dir <- tempdir()
+#' barcodes.file <- paste0(data.dir,"/barcodes.tsv")
+#' writeLines(barcode_seq, barcodes.file)
+#' mm.file <- paste0(data.dir,"/matrix.mtx")
+#' Matrix::writeMM(matrix_mtx, mm.file)
+#' sites.file <- paste0(data.dir,"/sitenames.tsv")
+#' writeLines(siteNames,sites.file)
 #' 
-#' count.dir <- c("example_TIP_sham_counts")
-#' CountPeaks(peak.sites.file = peak.merge.output.file,  gtf.file = reference.file,
-#'           bamfile = bamfile[1], whitelist.file = whitelist.bc.file[1],
-#'           output.dir = count.dir,  countUMI = TRUE, ncores = 1)
-#'             
+#' # Now read in using Sierra ReadPeakCounts by passing just directory name
+#' count.matrix <- Sierra::ReadPeakCounts(data.dir=data.dir)  
 #' 
-#'  count.mat = ReadPeakCounts(count.dir)    # This will search directory and open required files
-#'  
-#'  
-#'  }
+#' # Or by passing full length file names
+#' count.matrix <- Sierra::ReadPeakCounts(barcodes.file=barcodes.file, mm.file=mm.file, sites.file=sites.file)   
 #'  
 #'  
 #' @export

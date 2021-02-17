@@ -85,13 +85,13 @@ SplitBam <- function(bam, cellbc.df, outdir=NULL, yieldSize = 1000000,
     chrom <- as.character(GenomicRanges::seqnames(gtf_gr[idx]))[1]  # should I check that all returned chromosomes are the same?
     gene_strand <- as.character(strand(gtf_gr[idx]))[1]
     toExtract_gr <- GenomicRanges::GRanges(seqnames=chrom, ranges=IRanges::IRanges(start-gi_ext , width=end-start+gi_ext), strand=gene_strand)
-    param <- Rsamtools::ScanBamParam(tag=bamTags, which = toExtract_gr, what=what)
+    param <- Rsamtools::ScanBamParam(tag=bamTags, which = toExtract_gr, what=what, tag=bamTags)
     gene.provided <- geneSymbol
   }
   else if (! is.null(genomicRegion))
   {
     tryCatch({
-      param <- Rsamtools::ScanBamParam(tag=bamTags, which = genomicRegion, what=what)
+      param <- Rsamtools::ScanBamParam(tag=bamTags, which = genomicRegion, what=what, tag=bamTags)
       geneSymbol <- gsub(pattern = ":",replacement = "_",x = as.character(genomicRegion))
     }, error = function(err) {
       stop(paste0("Problem detected with provided genomic region. Please ensure genomicRegion is a Granges object"))
@@ -100,7 +100,7 @@ SplitBam <- function(bam, cellbc.df, outdir=NULL, yieldSize = 1000000,
   else
   {
 
-    param <- Rsamtools::ScanBamParam(tag=bamTags, what=what)
+    param <- Rsamtools::ScanBamParam(tag=bamTags, what=what, tag=bamTags)
     geneSymbol <- "all"   # This will be incorporated into filename
     gene.provided <- NULL
   }
