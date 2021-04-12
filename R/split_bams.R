@@ -74,7 +74,7 @@ SplitBam <- function(bam, cellbc.df, outdir=NULL, yieldSize = 1000000,
       return(NULL)
     }
     sls <-  GenomeInfoDb::seqlevelsStyle(Rsamtools::BamFile(bam))
-    if (sls == "UCSC")
+    if (length(intersect(sls,"UCSC")) == 1)
       GenomeInfoDb::seqlevelsStyle(gtf_gr) <- 'UCSC'
     else
       GenomeInfoDb::seqlevelsStyle(gtf_gr) <- "NCBI"
