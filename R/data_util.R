@@ -93,8 +93,8 @@ ReadPeakCounts <- function(data.dir = NULL,
       stop("No directory provided, but an input file appears to be missing. Please check.")
     }
     
-    ## Individual files proivded - check if compressed
-    file.list <- c(mmfile, barcodes.file, sites.file)
+    ## Individual files provided - check if compressed
+    file.list <- c(mm.file, barcodes.file, sites.file)
     
     if (sum(endsWith(file.list, ".gz")) == 3) {
       gzipped = TRUE
