@@ -23,7 +23,13 @@
 #' @param do.MAPlot make an MA plot of results (FALSE by default)
 #' @param return.dexseq.res return the raw and unfiltered DEXSeq results object (FALSE by default)
 #' @param ncores number of cores to run DEXSeq with 
-#' @return a data-frame of results.
+#' @return The results are returned as a DataFrame where each row corresponds to a peak coordinate. 
+#'  The default table contains the following columns:
+#'  gene_name, genomic_feature(s), population1_pct, population2_pct, pvalue, padj and Log2_fold_change.
+#'  genomic_feature(s) indicates the genomic feature type(s) that the peak overlaps. population1_pct and 
+#'  population2_pct indicate the percentage of cell expressing the peak in the target and comparison population
+#'  of cells, respectively. The pvalue, padj and Log2_fold_change values are derived from the results table 
+#'  returned by the DEXSeq::DEXSeqResults function.  
 #' @examples
 #' 
 #' 
