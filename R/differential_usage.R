@@ -17,6 +17,10 @@
 #' @param num.splits the number of pseudo-bulk profiles to create per identity class (default: 6)
 #' @param seed.use seed to set the randomised assignment of cells to pseudo-bulk profiles
 #' @param feature.type genomic feature types to run analysis on (default: UTR3, exon)
+#' @param replicates.1 an optional list to define the cells used as replicates for population.1. 
+#' Will override anything set for the population.1 parameter. 
+#' @param replicates.2 an optional list to define the cells used as replicates for population.2. 
+#' Will override anything set for the population.2 parameter. 
 #' @param include.annotations whether to include junction, polyA motif and stretch annotations in output (default: FALSE)
 #' @param filter.pA.stretch whether to filter out peaks annotated as proximal to an A-rich region (default: FALSE)
 #' @param verbose whether to print outputs (TRUE by default)
@@ -52,7 +56,7 @@
 #' @export
 #'
 DUTest <- function(peaks.object, 
-                   population.1, 
+                   population.1 = NULL, 
                    population.2 = NULL, 
                    exp.thresh = 0.1,
                    fc.thresh=0.25, 
@@ -60,6 +64,8 @@ DUTest <- function(peaks.object,
                    num.splits = 6, 
                    seed.use = 1,
                    feature.type = c("UTR3", "exon"), 
+                   replicates.1 = NULL,
+                   replicates.2 = NULL,
                    include.annotations = FALSE,
                    filter.pA.stretch = FALSE,
                    verbose = TRUE, 
@@ -77,6 +83,8 @@ DUTest <- function(peaks.object,
                                           num.splits = num.splits,
                                           seed.use = seed.use, 
                                           feature.type = feature.type,
+                                          replicates.1,
+                                          replicates.2,
                                           include.annotations = include.annotations,
                                           filter.pA.stretch = filter.pA.stretch,
                                           verbose = verbose, 
@@ -95,6 +103,8 @@ DUTest <- function(peaks.object,
                                        num.splits = num.splits,
                                        seed.use = seed.use, 
                                        feature.type = feature.type,
+                                       replicates.1 = replicates.1,
+                                       replicates.2 = replicates.2,
                                        include.annotations = include.annotations,
                                        filter.pA.stretch = filter.pA.stretch,
                                        verbose = verbose, 
@@ -485,6 +495,10 @@ DetectAEU <- function(peaks.object, gtf_gr, gtf_TxDb, population.1, population.2
 #' @param num.splits the number of pseudo-bulk profiles to create per identity class (default: 6)
 #' @param seed.use seed
 #' @param feature.type genomic feature types to run analysis on (default: all)
+#' @param replicates.1 an optional list to define the cells used as replicates for population.1. 
+#' Will override anything set for the population.1 parameter. 
+#' @param replicates.2 an optional list to define the cells used as replicates for population.2. 
+#' Will override anything set for the population.2 parameter. 
 #' @param include.annotations whether to include junction, polyA motif and stretch annotations in output (default: FALSE)
 #' @param filter.pA.stretch whether to filter out peaks annotated as proximal to an A-rich region (default: FALSE)
 #' @param verbose whether to print outputs (TRUE by default)
@@ -499,7 +513,7 @@ DetectAEU <- function(peaks.object, gtf_gr, gtf_TxDb, population.1, population.2
 #'  }
 #'
 apply_DEXSeq_test_seurat <- function(apa.seurat.object, 
-                                     population.1, 
+                                     population.1 = NULL, 
                                      population.2 = NULL, 
                                      exp.thresh = 0.1,
                                      fc.thresh=0.25, 
@@ -507,6 +521,8 @@ apply_DEXSeq_test_seurat <- function(apa.seurat.object,
                                      num.splits = 6, 
                                      seed.use = 1,
                                      feature.type = c("UTR3", "UTR5", "exon", "intron"),
+                                     replicates.1 = NULL,
+                                     replicates.2 = NULL,
                                      include.annotations = FALSE,
                                      filter.pA.stretch = FALSE, 
                                      verbose = TRUE, 
@@ -518,11 +534,23 @@ apply_DEXSeq_test_seurat <- function(apa.seurat.object,
     stop("Please install DEXSeq before using this function
          (http://bioconductor.org/packages/release/bioc/html/DEXSeq.html)")
   }
+  
+  if (is.null(population.1) & is.null(replicates.1)) {
+    stop("Both population.1 and replicates.1 cannot be NULL")
+  }
+  
+  if (!is.null(population.1) & !is.null(replicates.1)) {
+    stop("Values for either population.1 OR replicates.1 should be provided - not both")
+  }
 
   ## reduce counts in a cluster to num.splits cells for genes with > 1 peak
-  high.expressed.peaks <- GetExpressedPeaks(apa.seurat.object, population.1, population.2, threshold = exp.thresh)
-  length(high.expressed.peaks)
-
+  if (is.null(replicates.1)) {
+    high.expressed.peaks <- GetExpressedPeaks(apa.seurat.object, population.1, population.2, threshold = exp.thresh)
+    length(high.expressed.peaks)
+  } else {
+    high.expressed.peaks <- GetExpressedPeaks(apa.seurat.object, unlist(replicates.1), unlist(replicates.2), threshold = exp.thresh)
+  }
+  
 
   ## Filter peaks according to feature type
   annot.subset <- Tool(apa.seurat.object, "Sierra")[high.expressed.peaks, ]
@@ -536,7 +564,7 @@ apply_DEXSeq_test_seurat <- function(apa.seurat.object,
   ## Check if A-rich peaks are to be filtered out
   if (filter.pA.stretch) {
     if (is.null(Tool(apa.seurat.object, "Sierra")$pA_stretch)) {
-      stop("pA_stretch not in annotation data: please run nnotate_gr_from_gtf with
+      stop("pA_stretch not in annotation data: please run annotate_gr_from_gtf with
            an input genome to provide required annotation.")
     } else{
       annot.subset <- Tool(apa.seurat.object, "Sierra")[high.expressed.peaks, ]
@@ -565,15 +593,21 @@ apply_DEXSeq_test_seurat <- function(apa.seurat.object,
   ## make pseudo-bulk profiles out of cells
   ## set a seed to allow replication of results
   set.seed(seed.use)
-  if (length(population.1) == 1) {
-    cells.1 <- names(Seurat::Idents(apa.seurat.object))[which(Seurat::Idents(apa.seurat.object) == population.1)]
-  } else{
+  if (is.null(replicates.1)) {
+    
+    if (length(population.1) == 1) {
+      cells.1 <- names(Seurat::Idents(apa.seurat.object))[which(Seurat::Idents(apa.seurat.object) == population.1)]
+    } else{
       cells.1 <- population.1
     }
-
-  cells.1 = sample(cells.1)
-  cell.sets1 <- split(cells.1, sort(1:length(cells.1)%%num.splits))
-
+    
+    cells.1 = sample(cells.1)
+    cell.sets1 <- split(cells.1, sort(1:length(cells.1)%%num.splits))
+  } else{
+    ## user has provided cells for replicates - use these instead
+    cell.sets1 <- replicates.1
+  }
+  
   ## create a profile set for first cluster
   profile.set1 = matrix(, nrow = length(peaks.use), ncol = length(cell.sets1))
   for (i in 1:length(cell.sets1)) {
@@ -590,18 +624,24 @@ apply_DEXSeq_test_seurat <- function(apa.seurat.object,
   colnames(profile.set1) <- paste0("Population1_", 1:length(cell.sets1))
 
   ## create a profile set for second cluster
-  if (is.null(population.2)) {
-    cells.2 <- setdiff(colnames(apa.seurat.object), cells.1)
-  } else {
-    if (length(population.2) == 1) {
-      cells.2 <- names(Seurat::Idents(apa.seurat.object))[which(Seurat::Idents(apa.seurat.object) == population.2)]
+  if (is.null(replicates.2)) {
+    if (is.null(population.2)) {
+      cells.2 <- setdiff(colnames(apa.seurat.object), cells.1)
     } else {
-      cells.2 <- population.2
+      if (length(population.2) == 1) {
+        cells.2 <- names(Seurat::Idents(apa.seurat.object))[which(Seurat::Idents(apa.seurat.object) == population.2)]
+      } else {
+        cells.2 <- population.2
+      }
     }
+    
+    cells.2 = sample(cells.2)
+    cell.sets2 <- split(cells.2, sort(1:length(cells.2)%%num.splits))
+  } else{
+    ## user has provided cells for replicates - use these instead
+    cell.sets2 <- replicates.2
   }
-
-  cells.2 = sample(cells.2)
-  cell.sets2 <- split(cells.2, sort(1:length(cells.2)%%num.splits))
+  
 
   profile.set2 = matrix(, nrow = length(peaks.use), ncol = length(cell.sets2))
   for (i in 1:length(cell.sets2)) {
@@ -671,12 +711,21 @@ apply_DEXSeq_test_seurat <- function(apa.seurat.object,
   peaks.to.add = dexseq.feature.table[rownames(dxrSig_subset), "Peak"]
   rownames(dxrSig_subset) = peaks.to.add
 
-  population.1.pct <- get_percent_expression(apa.seurat.object, population.1, remainder=FALSE, geneSet=rownames(dxrSig_subset))
-  if (is.null(population.2)) {
-    population.2.pct <- get_percent_expression(apa.seurat.object, population.1, remainder=TRUE, geneSet=rownames(dxrSig_subset))
-    population.2 <- "Remainder"
-  } else {
-    population.2.pct <- get_percent_expression(apa.seurat.object, population.2, remainder=FALSE, geneSet=rownames(dxrSig_subset))
+  if (is.null(replicates.1)) {
+    
+    population.1.pct <- get_percent_expression(apa.seurat.object, population.1, remainder=FALSE, geneSet=rownames(dxrSig_subset))
+    if (is.null(population.2)) {
+      population.2.pct <- get_percent_expression(apa.seurat.object, population.1, remainder=TRUE, geneSet=rownames(dxrSig_subset))
+      population.2 <- "Remainder"
+    } else {
+      population.2.pct <- get_percent_expression(apa.seurat.object, population.2, remainder=FALSE, geneSet=rownames(dxrSig_subset))
+    }
+    
+  } else{
+    
+    population.1.pct <- get_percent_expression(apa.seurat.object, unlist(replicates.1), remainder=FALSE, geneSet=rownames(dxrSig_subset))
+    population.2.pct <- get_percent_expression(apa.seurat.object, unlist(replicates.2), remainder=FALSE, geneSet=rownames(dxrSig_subset))
+    
   }
 
   dxrSig_subset$population1_pct <- population.1.pct
@@ -725,6 +774,10 @@ apply_DEXSeq_test_seurat <- function(apa.seurat.object,
 #' @param num.splits the number of pseudo-bulk profiles to create per identity class (default: 6)
 #' @param seed.use seed use
 #' @param feature.type genomic feature types to run analysis on (degault: all)
+#' @param replicates.1 an optional list to define the cells used as replicates for population.1. 
+#' Will override anything set for the population.1 parameter. 
+#' @param replicates.2 an optional list to define the cells used as replicates for population.2. 
+#' Will override anything set for the population.2 parameter. 
 #' @param include.annotations whether to include junction, polyA motif and stretch annotations in output (default: FALSE)
 #' @param filter.pA.stretch whether to filter out peaks annotated as proximal to an A-rich region (default: FALSE)
 #' @param verbose whether to print outputs (TRUE by default)
@@ -739,7 +792,7 @@ apply_DEXSeq_test_seurat <- function(apa.seurat.object,
 #' }
 #'
 apply_DEXSeq_test_sce <- function(peaks.sce.object, 
-                                  population.1, 
+                                  population.1 = NULL, 
                                   population.2 = NULL, 
                                   exp.thresh = 0.1,
                                   fc.thresh=0.25, 
@@ -747,6 +800,8 @@ apply_DEXSeq_test_sce <- function(peaks.sce.object,
                                   num.splits = 6, 
                                   seed.use = 1,
                                   feature.type = c("UTR3", "UTR5", "exon", "intron"),
+                                  replicates.1 = NULL,
+                                  replicates.2 = NULL,
                                   include.annotations = FALSE,
                                   filter.pA.stretch = FALSE, 
                                   verbose = TRUE,
@@ -758,10 +813,23 @@ apply_DEXSeq_test_sce <- function(peaks.sce.object,
     stop("Please install DEXSeq before using this function
          (http://bioconductor.org/packages/release/bioc/html/DEXSeq.html)")
   }
-
+  
+  if (is.null(population.1) & is.null(replicates.1)) {
+    stop("Both population.1 and replicates.1 cannot be NULL")
+  }
+  
+  if (!is.null(population.1) & !is.null(replicates.1)) {
+    stop("Values for either population.1 OR replicates.1 should be provided - not both")
+  }
+  
   ## reduce counts in a cluster to num.splits cells for genes with > 1 peak
-  high.expressed.peaks <- GetExpressedPeaks(peaks.sce.object, population.1, population.2, threshold = exp.thresh)
-  length(high.expressed.peaks)
+  if (is.null(replicates.1)) {
+    high.expressed.peaks <- GetExpressedPeaks(peaks.sce.object, population.1, population.2, threshold = exp.thresh)
+    length(high.expressed.peaks)
+  } else {
+    high.expressed.peaks <- GetExpressedPeaks(peaks.sce.object, unlist(replicates.1), unlist(replicates.2), threshold = exp.thresh)
+  }
+
 
   ## Filter peaks according to feature type
   annot.subset <- peaks.sce.object@metadata$Sierra[high.expressed.peaks, ]
@@ -804,14 +872,22 @@ apply_DEXSeq_test_sce <- function(peaks.sce.object,
   ## make pseudo-bulk profiles out of cells
   ## set a seed to allow replication of results
   set.seed(seed.use)
-  if (length(population.1) == 1) {
-    cells.1 <- names(colData(peaks.sce.object)$CellIdent)[which(colData(peaks.sce.object)$CellIdent == population.1)]
+  if (is.null(replicates.1)) {
+    
+    if (length(population.1) == 1) {
+      cells.1 <- names(colData(peaks.sce.object)$CellIdent)[which(colData(peaks.sce.object)$CellIdent == population.1)]
+    } else{
+      cells.1 <- population.1
+    }
+    
+    cells.1 = sample(cells.1)
+    cell.sets1 <- split(cells.1, sort(1:length(cells.1)%%num.splits))
   } else{
-    cells.1 <- population.1
+    ## user has provided cells for replicates - use these instead
+    cell.sets1 <- replicates.1
   }
-
-  cells.1 = sample(cells.1)
-  cell.sets1 <- split(cells.1, sort(1:length(cells.1)%%num.splits))
+  
+  
 
   ## create a profile set for first cluster
   profile.set1 = matrix(, nrow = length(peaks.use), ncol = length(cell.sets1))
@@ -827,21 +903,26 @@ apply_DEXSeq_test_sce <- function(peaks.sce.object,
   }
   rownames(profile.set1) <- peaks.use
   colnames(profile.set1) <- paste0("Population1_", 1:length(cell.sets1))
-
+  
   ## create a profile set for second cluster
-  if (is.null(population.2)) {
-    cells.2 <- setdiff(colnames(peaks.sce.object), cells.1)
-  } else {
-    if (length(population.2) == 1) {
-      cells.2 <- names(colData(peaks.sce.object)$CellIdent)[which(colData(peaks.sce.object)$CellIdent == population.2)]
+  if (is.null(replicates.2)) {
+    if (is.null(population.2)) {
+      cells.2 <- setdiff(colnames(apa.seurat.object), cells.1)
     } else {
-      cells.2 <- population.2
+      if (length(population.2) == 1) {
+        cells.2 <- names(colData(peaks.sce.object)$CellIdent)[which(colData(peaks.sce.object)$CellIdent == population.2)]
+      } else {
+        cells.2 <- population.2
+      }
     }
+    
+    cells.2 = sample(cells.2)
+    cell.sets2 <- split(cells.2, sort(1:length(cells.2)%%num.splits))
+  } else{
+    ## user has provided cells for replicates - use these instead
+    cell.sets2 <- replicates.2
   }
-
-  cells.2 = sample(cells.2)
-  cell.sets2 <- split(cells.2, sort(1:length(cells.2)%%num.splits))
-
+  
   profile.set2 = matrix(, nrow = length(peaks.use), ncol = length(cell.sets2))
   for (i in 1:length(cell.sets2)) {
     this.set <- cell.sets2[[i]]
@@ -909,15 +990,24 @@ apply_DEXSeq_test_sce <- function(peaks.sce.object,
   dxrSig_subset <- dxrSig[, c("groupID", "exonBaseMean", "pvalue", "padj", "log2fold_target_comparison")]
   peaks.to.add = dexseq.feature.table[rownames(dxrSig_subset), "Peak"]
   rownames(dxrSig_subset) = peaks.to.add
-
-  population.1.pct <- get_percent_expression(peaks.sce.object, population.1, remainder=FALSE, geneSet=rownames(dxrSig_subset))
-  if (is.null(population.2)) {
-    population.2.pct <- get_percent_expression(peaks.sce.object, population.1, remainder=TRUE, geneSet=rownames(dxrSig_subset))
-    population.2 <- "Remainder"
-  } else {
-    population.2.pct <- get_percent_expression(peaks.sce.object, population.2, remainder=FALSE, geneSet=rownames(dxrSig_subset))
+  
+  if (is.null(replicates.1)) {
+    
+    population.1.pct <- get_percent_expression(peaks.sce.object, population.1, remainder=FALSE, geneSet=rownames(dxrSig_subset))
+    if (is.null(population.2)) {
+      population.2.pct <- get_percent_expression(peaks.sce.object, population.1, remainder=TRUE, geneSet=rownames(dxrSig_subset))
+      population.2 <- "Remainder"
+    } else {
+      population.2.pct <- get_percent_expression(peaks.sce.object, population.2, remainder=FALSE, geneSet=rownames(dxrSig_subset))
+    }
+    
+  } else{
+    
+    population.1.pct <- get_percent_expression(peaks.sce.object, unlist(replicates.1), remainder=FALSE, geneSet=rownames(dxrSig_subset))
+    population.2.pct <- get_percent_expression(peaks.sce.object, unlist(replicates.2), remainder=FALSE, geneSet=rownames(dxrSig_subset))
+    
   }
-
+  
   dxrSig_subset$population1_pct <- population.1.pct
   dxrSig_subset$population2_pct <- population.2.pct
 

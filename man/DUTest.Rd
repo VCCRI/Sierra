@@ -6,7 +6,7 @@
 \usage{
 DUTest(
   peaks.object,
-  population.1,
+  population.1 = NULL,
   population.2 = NULL,
   exp.thresh = 0.1,
   fc.thresh = 0.25,
@@ -14,6 +14,8 @@ DUTest(
   num.splits = 6,
   seed.use = 1,
   feature.type = c("UTR3", "exon"),
+  replicates.1 = NULL,
+  replicates.2 = NULL,
   include.annotations = FALSE,
   filter.pA.stretch = FALSE,
   verbose = TRUE,
@@ -40,6 +42,12 @@ DUTest(
 \item{seed.use}{seed to set the randomised assignment of cells to pseudo-bulk profiles}
 
 \item{feature.type}{genomic feature types to run analysis on (default: UTR3, exon)}
+
+\item{replicates.1}{an optional list to define the cells used as replicates for population.1. 
+Will override anything set for the population.1 parameter.}
+
+\item{replicates.2}{an optional list to define the cells used as replicates for population.2. 
+Will override anything set for the population.2 parameter.}
 
 \item{include.annotations}{whether to include junction, polyA motif and stretch annotations in output (default: FALSE)}
 

@@ -6,7 +6,7 @@
 \usage{
 apply_DEXSeq_test_sce(
   peaks.sce.object,
-  population.1,
+  population.1 = NULL,
   population.2 = NULL,
   exp.thresh = 0.1,
   fc.thresh = 0.25,
@@ -14,6 +14,8 @@ apply_DEXSeq_test_sce(
   num.splits = 6,
   seed.use = 1,
   feature.type = c("UTR3", "UTR5", "exon", "intron"),
+  replicates.1 = NULL,
+  replicates.2 = NULL,
   include.annotations = FALSE,
   filter.pA.stretch = FALSE,
   verbose = TRUE,
@@ -40,6 +42,12 @@ apply_DEXSeq_test_sce(
 \item{seed.use}{seed use}
 
 \item{feature.type}{genomic feature types to run analysis on (degault: all)}
+
+\item{replicates.1}{an optional list to define the cells used as replicates for population.1. 
+Will override anything set for the population.1 parameter.}
+
+\item{replicates.2}{an optional list to define the cells used as replicates for population.2. 
+Will override anything set for the population.2 parameter.}
 
 \item{include.annotations}{whether to include junction, polyA motif and stretch annotations in output (default: FALSE)}
 
