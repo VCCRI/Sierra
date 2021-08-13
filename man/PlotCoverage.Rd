@@ -19,7 +19,8 @@ PlotCoverage(
   output_file_name = "",
   zoom_3UTR = FALSE,
   annotation.fontsize = NULL,
-  axis.fontsize = NULL
+  axis.fontsize = NULL,
+  ylims = NULL
 )
 }
 \arguments{
@@ -52,6 +53,8 @@ PlotCoverage(
 \item{annotation.fontsize}{font size for optional peak and transcript annotations}
 
 \item{axis.fontsize}{font size for the axis labels}
+
+\item{ylims}{manually set the y-axis scale}
 }
 \value{
 NULL by default.
