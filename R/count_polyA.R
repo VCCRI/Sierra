@@ -137,6 +137,11 @@ CountPeaks <- function(peak.sites.file,
 
       whitelist.pos <- which(unlist(GenomicRanges::mcols(aln)[CBtag]) %in% whitelist.bc)
       aln <- aln[whitelist.pos]
+      
+      # Check that at least one whitelisted barcode was identified. 
+      if (length(aln) == 0) {
+        next
+      }
 
       # For de-duplicating UMIs, let's just remove a random read
       # when there is a duplicate
