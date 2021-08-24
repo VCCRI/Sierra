@@ -62,7 +62,7 @@ AnnotatePeaksFromGTF <- function(peak.sites.file,
   gtf_TxDb <- GenomicFeatures::makeTxDbFromGFF(gtf.file, format="gtf")
 
   ## Read in the peaks
-  peak.table <- read.table(peak.sites.file, header = TRUE, sep="\t", stringsAsFactors = FALSE)
+  peak.table <- read.table(peak.sites.file, header = TRUE, sep="\t", stringsAsFactors = FALSE, quote = '')
   print(paste("Annotating ", nrow(peak.table), " peak coordinates."))
 
   ## First need to convert strand labels for compatibility with GenomicRanges
