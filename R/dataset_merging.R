@@ -569,8 +569,8 @@ MergePeakCoordinates <- function(peak.dataset.table, output.file, sim.thresh = 0
   peak.junctions.list = c()
   peak.dataset.list = c()
   for (i in 1:nrow(peak.dataset.table)) {
-    peak.table <- read.table(as.character(peak.dataset.table[i, "Peak_file"]),
-                             header = TRUE, stringsAsFactors = FALSE)
+    peak.table <- read.table(as.character(peak.dataset.table[i, "Peak_file"]), 
+                             quote = '', header = TRUE, stringsAsFactors = FALSE)
     ## list of unique peak IDs
     this.peak.list = unique(peak.table$polyA_ID)
     peak.dataset.list = c(peak.dataset.list, list(this.peak.list))
