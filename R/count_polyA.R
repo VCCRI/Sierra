@@ -721,7 +721,7 @@ FindPeaks <- function(output.file,
 
   ## As a final step, read in the peak file, filter, and add Peak IDs
   peak.sites.file = output.file
-  peak.sites <- read.table(peak.sites.file, header = T, sep = "\t",
+  peak.sites <- read.table(peak.sites.file, header = T, sep = "\t", quote = '',
                             stringsAsFactors = FALSE)
 
   ## Filter the polyA sites
