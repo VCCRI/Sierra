@@ -636,28 +636,18 @@ PlotRelativeExpressionBox <- function(peaks.object,
   ggData <- data.frame(Expression = as.vector(t(as.matrix(relative.exp.data))),
                        Peak = unlist(lapply(peaks.to.plot, function(x) rep(x, ncol(relative.exp.data)))))
 
-  # Pull out the t-SNE coordinates
+  # Define the colour scale
   if (class(peaks.object) == "Seurat") {
-    peaks.object.tsne1 <- peaks.object@reductions$tsne@cell.embeddings[, 1]
-    peaks.object.tsne2 <- peaks.object@reductions$tsne@cell.embeddings[, 2]
     cell.idents <- Seurat::Idents(peaks.object)
     if (is.null(col.set)){
       col.set = scales::hue_pal()(length(table(Seurat::Idents(peaks.object))))
     }
   } else if (class(peaks.object) == "SingleCellExperiment") {
-    peaks.object.tsne1 <- SingleCellExperiment::reducedDims(peaks.object)$tsne[, 1]
-    peaks.object.tsne2 <- SingleCellExperiment::reducedDims(peaks.object)$tsne[, 2]
     cell.idents <- colData(peaks.object)$CellIdent
     if (is.null(col.set)){
       col.set = scales::hue_pal()(length(table(colData(peaks.object)$CellIdent)))
     }
   }
-
-  names(peaks.object.tsne1) <- colnames(peaks.object)
-  names(peaks.object.tsne2) <- colnames(peaks.object)
-
-  ggData$tSNE_1 = rep(peaks.object.tsne1, length(peaks.to.plot))
-  ggData$tSNE_2 = rep(peaks.object.tsne2, length(peaks.to.plot))
 
   ggData$Cell_ID = rep(colnames(peaks.object), length(peaks.to.plot))
 
@@ -752,28 +742,18 @@ PlotRelativeExpressionViolin <- function(peaks.object,
   ggData <- data.frame(Expression = as.vector(t(as.matrix(relative.exp.data))),
                        Peak = unlist(lapply(peaks.to.plot, function(x) rep(x, ncol(relative.exp.data)))))
 
-  # Pull out the t-SNE coordinates
+  # Define the colour codes if not provided
   if (class(peaks.object) == "Seurat") {
-    peaks.object.tsne1 <- peaks.object@reductions$tsne@cell.embeddings[, 1]
-    peaks.object.tsne2 <- peaks.object@reductions$tsne@cell.embeddings[, 2]
     cell.idents <- Seurat::Idents(peaks.object)
     if (is.null(col.set)){
       col.set = scales::hue_pal()(length(table(Seurat::Idents(peaks.object))))
     }
   } else if (class(peaks.object) == "SingleCellExperiment") {
-    peaks.object.tsne1 <- SingleCellExperiment::reducedDims(peaks.object)$tsne[, 1]
-    peaks.object.tsne2 <- SingleCellExperiment::reducedDims(peaks.object)$tsne[, 2]
     cell.idents <- colData(peaks.object)$CellIdent
     if (is.null(col.set)){
       col.set = scales::hue_pal()(length(table(colData(peaks.object)$CellIdent)))
     }
   }
-
-  names(peaks.object.tsne1) <- colnames(peaks.object)
-  names(peaks.object.tsne2) <- colnames(peaks.object)
-
-  ggData$tSNE_1 = rep(peaks.object.tsne1, length(peaks.to.plot))
-  ggData$tSNE_2 = rep(peaks.object.tsne2, length(peaks.to.plot))
 
   ggData$Cell_ID = rep(colnames(peaks.object), length(peaks.to.plot))
 
