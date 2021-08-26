@@ -77,7 +77,7 @@ CountPeaks <- function(peak.sites.file,
   chr.names <- as.character(unique(genes.ref$chr))
   n.genes <- nrow(genes.ref)
 
-  peak.sites <- read.table(peak.sites.file, header = T, sep = "\t",
+  peak.sites <- read.table(peak.sites.file, header = T, sep = "\t", quote = '',
                             stringsAsFactors = FALSE)
 
   # Count the peaks
@@ -721,7 +721,7 @@ FindPeaks <- function(output.file,
 
   ## As a final step, read in the peak file, filter, and add Peak IDs
   peak.sites.file = output.file
-  peak.sites <- read.table(peak.sites.file, header = T, sep = "\t",
+  peak.sites <- read.table(peak.sites.file, header = T, sep = "\t", quote = '',
                             stringsAsFactors = FALSE)
 
   ## Filter the polyA sites
@@ -843,7 +843,7 @@ AggregatePeakCounts <- function(peak.sites.file,
     }
   }
 
-  peak.table <- read.table(peak.sites.file, sep="\t", header = TRUE, stringsAsFactors = FALSE)
+  peak.table <- read.table(peak.sites.file, sep="\t", quote = '', header = TRUE, stringsAsFactors = FALSE)
   all.peaks <- peak.table$polyA_ID
   peaks.use <- all.peaks
   
