@@ -668,9 +668,10 @@ apply_DEXSeq_test_seurat <- function(apa.seurat.object,
   dexseq.feature.table <- Tool(apa.seurat.object, "Sierra")[, c("Gene_name", "Gene_part", "Peak_number")]
   dexseq.feature.table$Peak <- rownames(dexseq.feature.table)
   dexseq.feature.table <- dexseq.feature.table[rownames(peak.matrix), ]
-  # removing colons and spaces to match output of DEXSeq                                     
+  
+  # removing potential colons and spaces from gene names to match output of DEXSeq                                     
   pid_gene_names <- gsub('[: ]', '', dexseq.feature.table$Gene_name)
-  rownames(dexseq.feature.table) <- paste0(pid_gene_names, ":", dexseq.feature.table$Peak_number)
+  rownames(dexseq.feature.table) <- paste0(pid_gene_names, ":", dexseq.feature.table$Peak_number) 
   rownames(peak.matrix) <- rownames(dexseq.feature.table)
 
   peak_ID_set = dexseq.feature.table[rownames(peak.matrix), "Peak_number"]
@@ -950,7 +951,10 @@ apply_DEXSeq_test_sce <- function(peaks.sce.object,
   dexseq.feature.table <- peaks.sce.object@metadata$Sierra[, c("Gene_name", "Gene_part", "Peak_number")]
   dexseq.feature.table$Peak <- rownames(dexseq.feature.table)
   dexseq.feature.table <- dexseq.feature.table[rownames(peak.matrix), ]
-  rownames(dexseq.feature.table) <- paste0(dexseq.feature.table$Gene_name, ":", dexseq.feature.table$Peak_number)
+  
+  # removing potential colons and spaces from gene names to match output of DEXSeq                                     
+  pid_gene_names <- gsub('[: ]', '', dexseq.feature.table$Gene_name)
+  rownames(dexseq.feature.table) <- paste0(pid_gene_names, ":", dexseq.feature.table$Peak_number) 
   rownames(peak.matrix) <- rownames(dexseq.feature.table)
 
   peak_ID_set = dexseq.feature.table[rownames(peak.matrix), "Peak_number"]
