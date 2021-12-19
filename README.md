@@ -60,7 +60,7 @@ Sierra is maintained by Ralph Patrick, David Humphreys and Kitty Lo. For questio
 
 ## Additional implementation
 
-For a command line version of Sierra see [this implementation](https://github.com/GeertvanGeest/Sierra-commands) by Geert VanGeest. 
+For a command line version of Sierra that can be used, for example, in a high performance computing environment, see [this implementation](https://github.com/GeertvanGeest/Sierra-commands) by Geert van Geest. 
 
 
 
