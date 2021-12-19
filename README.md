@@ -57,3 +57,10 @@ Sierra is maintained by Ralph Patrick, David Humphreys and Kitty Lo. For questio
 * David Humphreys: d.humphreys at victorchang dot edu dot au
 
 * Kitty Lo: kitty.lo at gmail dot com
+
+## Additional implementation
+
+For a command line version of Sierra see [this implementation](https://github.com/GeertvanGeest/Sierra-commands) by Geert VanGeest. 
+
+
+

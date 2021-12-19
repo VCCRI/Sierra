@@ -1235,7 +1235,7 @@ get_expressed_peaks_sce <- function(peaks.sce.object, population.1, population.2
 
 ############################################################
 
-get_percent_expression <- function(peaks.object, this.cluster, remainder=FALSE, geneSet = rownames(seurat.object)) {
+get_percent_expression <- function(peaks.object, this.cluster, remainder=FALSE, geneSet = rownames(peaks.object)) {
 
   if (class(peaks.object) == "Seurat") {
     if (length(this.cluster) == 1){ # cluster identity used as input

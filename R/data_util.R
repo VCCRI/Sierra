@@ -621,7 +621,6 @@ NewPeakSCE <- function(peak.data, annot.info, cell.idents = NULL,
     warning("Cell identities not provided. DU testing will not be possible without these")
   }
 
-
   return(peaks.sce)
 }
 
