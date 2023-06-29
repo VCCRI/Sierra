@@ -52,7 +52,7 @@ Patrick, R., Humphreys, D.T., Janbandhu, V., Oshlack A., Ho J.W.K., Harvey, R.P.
 
 Sierra is maintained by Ralph Patrick, David Humphreys and Kitty Lo. For questions or feedback you can contact them at:
 
-* Ralph Patrick: r.patrick at victorchang dot edu dot au
+* Ralph Patrick: ralph.patrick at imb dot uq dot edu dot au
 
 * David Humphreys: d.humphreys at victorchang dot edu dot au
 

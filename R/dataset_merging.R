@@ -516,6 +516,7 @@ generate_merged_peak_table <- function(dataset.1, peak.dataset.list, self.merged
 #' @param output.file file to write the set of merged peaks to
 #' @param sim.thresh The required similarity threshold for merging (default: 0.75)
 #' @param allow.match.var The allowance for deviation from the sim.thresh for comparison peaks (default: 0.25)
+#' @param max.iter The maximum number of iterations for final peak merging (default 10)
 #' @param ncores number of cores to use (default 1)
 #' @return NULL. writes out a set of merged peaks to output.file
 #' @examples
@@ -561,8 +562,12 @@ generate_merged_peak_table <- function(dataset.1, peak.dataset.list, self.merged
 #'
 #' @export
 #'
-MergePeakCoordinates <- function(peak.dataset.table, output.file, sim.thresh = 0.75,
-                            allow.match.var = 0.25, ncores = 1) {
+MergePeakCoordinates <- function(peak.dataset.table, 
+                                 output.file, 
+                                 sim.thresh = 0.75,
+                                 allow.match.var = 0.25, 
+                                 max.iter = 10,
+                                 ncores = 1) {
 
   ## Create a named list from the peaks
   ## While reading in the peak files retain information on junctions - will use this later
@@ -657,7 +662,8 @@ MergePeakCoordinates <- function(peak.dataset.table, output.file, sim.thresh = 0
   final.peaks.combined <- all.merged.peaks.retained
 
   ## Iteratively check for peak similarity and merge until all peaks are considered unique
-  while (nrow(peaks.to.merge) > 0) {
+  num.iter <- 0
+  while (nrow(peaks.to.merge) > 0 & num.iter < max.iter) {
     ## First update the peak names to the merged peak names
     peaks.to.remerge$Peak <- plyr::mapvalues(peaks.to.remerge$Peak,
                                              from = peaks.to.merge$Data1_Peak,
@@ -682,6 +688,8 @@ MergePeakCoordinates <- function(peak.dataset.table, output.file, sim.thresh = 0
 
     ## Peaks to remerge (if any)
     peaks.to.remerge <- peaks.to.remerge[peaks.merge.index, ]
+    
+    num.iter <- num.iter + 1
   }
 
   final.merged.peaks <- final.peaks.combined
