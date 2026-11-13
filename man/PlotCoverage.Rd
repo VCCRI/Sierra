@@ -20,7 +20,8 @@ PlotCoverage(
   zoom_3UTR = FALSE,
   annotation.fontsize = NULL,
   axis.fontsize = NULL,
-  ylims = NULL
+  ylims = NULL,
+  strandMode = 1L
 )
 }
 \arguments{
@@ -55,6 +56,8 @@ PlotCoverage(
 \item{axis.fontsize}{font size for the axis labels}
 
 \item{ylims}{manually set the y-axis scale}
+
+\item{strandMode}{library strandedness mode: 0 (unstranded), 1 (forward, default), or 2 (reverse).}
 }
 \value{
 NULL by default.

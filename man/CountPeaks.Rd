@@ -16,7 +16,8 @@ CountPeaks(
   filter.chr = FALSE,
   gene.symbol.ref = "gene_name",
   CBtag = "CB",
-  UMItag = "UB"
+  UMItag = "UB",
+  strandMode = 1L
 )
 }
 \arguments{
@@ -43,6 +44,8 @@ CountPeaks(
 \item{CBtag}{cell barcode tag identifier present in BAM file. Default 'CB'.}
 
 \item{UMItag}{UMI barcode tag identifier present in BAM file. Default 'UB'.}
+
+\item{strandMode}{library strandedness mode: 0 (unstranded), 1 (forward, default; e.g. 10x 3' v2/v3), or 2 (reverse; e.g. 10x 3' v1 / 5').}
 }
 \value{
 NULL. Writes counts to file.

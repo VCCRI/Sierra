@@ -1,5 +1,36 @@
 
 
+validate_strand_mode <- function(strandMode = 1L) {
+  if (!is.numeric(strandMode) || length(strandMode) != 1L || is.na(strandMode) ||
+      !(strandMode %in% c(0, 1, 2))) {
+    stop("strandMode must be 0 (unstranded), 1 (forward), or 2 (reverse)")
+  }
+  as.integer(strandMode)
+}
+
+sierra_scan_bam_flag <- function(gene_strand, strandMode = 1L) {
+  strandMode <- validate_strand_mode(strandMode)
+  if (strandMode == 0L) {
+    return(Rsamtools::scanBamFlag())
+  }
+  strand_chr <- as.character(gene_strand)
+  gene_is_minus <- identical(strand_chr, "-1") || identical(strand_chr, "-")
+  is_minus <- if (strandMode == 1L) gene_is_minus else !gene_is_minus
+  Rsamtools::scanBamFlag(isMinusStrand = is_minus)
+}
+
+sierra_filter_alignments_by_strand <- function(aln, gene_strand, strandMode = 1L) {
+  strandMode <- validate_strand_mode(strandMode)
+  if (strandMode == 0L) {
+    return(aln)
+  }
+  target_strand <- as.character(gene_strand)
+  if (strandMode == 2L) {
+    target_strand <- ifelse(target_strand == "+", "-", "+")
+  }
+  aln[as.character(BiocGenerics::strand(aln)) == target_strand]
+}
+
 ###################################################################
 #'
 #' Generate a peak x cell UMI count matrix
@@ -20,6 +51,7 @@
 #' @param gene.symbol.ref field in the GTF file containing the gene symbol
 #' @param CBtag cell barcode tag identifier present in BAM file. Default 'CB'.
 #' @param UMItag UMI barcode tag identifier present in BAM file. Default 'UB'.
+#' @param strandMode library strandedness mode: 0 (unstranded), 1 (forward, default; e.g. 10x 3' v2/v3), or 2 (reverse; e.g. 10x 3' v1 / 5').
 #' @return NULL. Writes counts to file.
 #' @examples
 #' 
@@ -61,9 +93,11 @@ CountPeaks <- function(peak.sites.file,
 			                 filter.chr = FALSE, 
 			                 gene.symbol.ref = 'gene_name',
 			                 CBtag='CB', 
-			                 UMItag='UB') 
+			                 UMItag='UB',
+			                 strandMode = 1L) 
 {
 
+  strandMode <- validate_strand_mode(strandMode)
   lock <- tempfile()
   whitelist.bc <- read.table(whitelist.file, stringsAsFactors = FALSE)
   whitelist.bc <- whitelist.bc[,1]
@@ -103,7 +137,6 @@ CountPeaks <- function(peak.sites.file,
 
       for(strand in c(1, -1) ) {
       message(" and strand ", strand)
-      isMinusStrand <- if(strand==1) FALSE else TRUE
      
       peak.sites.chr <- dplyr::filter(peak.sites, Chr == each.chr & Strand == strand) %>%
                            dplyr::select(Gene, Chr, Fit.start, Fit.end, Strand)
@@ -117,12 +150,11 @@ CountPeaks <- function(peak.sites.file,
 	      next
       }
 
-      isMinusStrand <- if(strand==1) FALSE else TRUE
       which <- GenomicRanges::GRanges(seqnames = each.chr, ranges = IRanges::IRanges(1, max(peak.sites.chr$Fit.end) ))
 
       param <- Rsamtools::ScanBamParam(tag=c(CBtag, UMItag),
                             which = which,
-                            flag=Rsamtools::scanBamFlag(isMinusStrand=isMinusStrand))
+                            flag=sierra_scan_bam_flag(strand, strandMode = strandMode))
 
       aln <- GenomicAlignments::readGAlignments(bamfile, param=param)
       
@@ -192,11 +224,18 @@ CountPeaks <- function(peak.sites.file,
   }
 
   if (!dir.exists(output.dir)){
-    dir.create(output.dir)
+    dir.create(output.dir, recursive = TRUE)
+  }
+  if (is.null(mat.to.write)) {
+    mat.to.write <- Matrix::Matrix(0, nrow = 0, ncol = n.bcs, sparse = TRUE)
+  }
+  sitenames <- rownames(mat.to.write)
+  if (is.null(sitenames)) {
+    sitenames <- character(0)
   }
   Matrix::writeMM(mat.to.write, file = paste0(output.dir, "/matrix.mtx"))
   write.table(whitelist.bc, file = paste0(output.dir, "/barcodes.tsv"), quote = FALSE, row.names = FALSE, col.names = FALSE)
-  write.table(rownames(mat.to.write), file = paste0(output.dir, "/sitenames.tsv"), quote = FALSE, row.names = FALSE, col.names = FALSE)
+  write.table(sitenames, file = paste0(output.dir, "/sitenames.tsv"), quote = FALSE, row.names = FALSE, col.names = FALSE)
   
   ## Compress the output files
   R.utils::gzip(paste0(output.dir, "/matrix.mtx"), overwrite = TRUE)
@@ -382,6 +421,8 @@ fit_gaussian <- function(fit.data, maxval, fit.method, mu = 300) {
 #' @param chr.names names of chromosomes
 #' @param filter.chr names of chromosomes to filter
 #' @param gene.symbol.ref field in the GTF file containing the gene symbol
+#' @param fit.method peak fitting method ("NLS" or "MLE", default: "NLS")
+#' @param strandMode library strandedness mode: 0 (unstranded), 1 (forward, default; e.g. 10x 3' v2/v3), or 2 (reverse; e.g. 10x 3' v1 / 5').
 #' @return NULL. Writes counts to file.
 #' @examples
 #' 
@@ -418,8 +459,10 @@ FindPeaks <- function(output.file,
                       chr.names = NULL, 
                       filter.chr = FALSE, 
                       gene.symbol.ref = 'gene_name',
-                      fit.method = "NLS") {
+                      fit.method = "NLS",
+                      strandMode = 1L) {
   
+  strandMode <- validate_strand_mode(strandMode)
   if(!fit.method %in% c("NLS", "MLE") ) { stop("fit.method needs to be either NLS or MLE. ")}
 
   lock <- tempfile()
@@ -488,10 +531,9 @@ FindPeaks <- function(output.file,
     strand <- genes.ref[i,"strand"]
 
     #message(i, " :", gene.name)
-    isMinusStrand <- if(strand==1) FALSE else TRUE
     which <- GenomicRanges::GRanges(seqnames = seq.name, ranges = IRanges::IRanges(gene.start, gene.end))
     param <- Rsamtools::ScanBamParam(which = which,
-                          flag=Rsamtools::scanBamFlag(isMinusStrand=isMinusStrand))
+                          flag=sierra_scan_bam_flag(strand, strandMode = strandMode))
 
     aln <- GenomicAlignments::readGAlignments(bamfile, param=param)
     aln_cov <- GenomicRanges::coverage(aln)[seq.name][[1]]

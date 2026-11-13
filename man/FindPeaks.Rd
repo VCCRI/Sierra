@@ -19,7 +19,8 @@ FindPeaks(
   chr.names = NULL,
   filter.chr = FALSE,
   gene.symbol.ref = "gene_name",
-  fit.method = "NLS"
+  fit.method = "NLS",
+  strandMode = 1L
 )
 }
 \arguments{
@@ -50,6 +51,8 @@ FindPeaks(
 \item{filter.chr}{names of chromosomes to filter}
 
 \item{gene.symbol.ref}{field in the GTF file containing the gene symbol}
+
+\item{strandMode}{library strandedness mode: 0 (unstranded), 1 (forward, default; e.g. 10x 3' v2/v3), or 2 (reverse; e.g. 10x 3' v1 / 5').}
 }
 \value{
 NULL. Writes counts to file.

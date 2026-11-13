@@ -18,6 +18,7 @@
 #' @param genomicRegion Granges object of genomic region to extract. Only used if geneSymbol not defined.
 #' @param bamTags BAM field tag identifiers to extract. Default is c("CB", "UB").
 #' @param what  What BAM fields to copy into new file. Default is c('qname', 'flag', 'rname', 'strand', 'pos')
+#' @param strandMode library strandedness mode: 0 (unstranded), 1 (forward, default), or 2 (reverse).
 #'
 #' @return a rleList of coverage for each cell type
 #'
@@ -60,8 +61,10 @@
 SplitBam <- function(bam, cellbc.df, outdir=NULL, yieldSize = 1000000,
                      gtf_gr = NULL, geneSymbol=NULL, gi_ext = 50,
                      rle_output=FALSE, exportFastqHeader=FALSE, genomicRegion=NULL,
-                     bamTags=c("CB", "UB"),  what=c('qname', 'flag', 'rname', 'strand', 'pos')) {
+                     bamTags=c("CB", "UB"),  what=c('qname', 'flag', 'rname', 'strand', 'pos'),
+                     strandMode = 1L) {
 
+  strandMode <- validate_strand_mode(strandMode)
   message("splitting bam file: ", bam)
 
 
@@ -117,9 +120,8 @@ SplitBam <- function(bam, cellbc.df, outdir=NULL, yieldSize = 1000000,
       open(bamfile)
       while (length(chunk0 <- GenomicAlignments::readGAlignments(bamfile,param=param))) {
         if (! is.null(gene.provided))
-        { # Only want to reads that are same strand as gene
-          idx <- which(as.character(strand(chunk0)) == gene_strand)
-          chunk0 <- chunk0[idx]
+        { # Filter reads according to gene strand and strandMode
+          chunk0 <- sierra_filter_alignments_by_strand(chunk0, gene_strand, strandMode = strandMode)
         }
         cat("chunk0:", length(chunk0), "length of aln: ", length(aln.per.type), "\n")
 

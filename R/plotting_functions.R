@@ -907,6 +907,7 @@ relative_location <- function(location, n) {
 #' @param annotation.fontsize font size for optional peak and transcript annotations 
 #' @param axis.fontsize font size for the axis labels
 #' @param ylims manually set the y-axis scale
+#' @param strandMode library strandedness mode: 0 (unstranded), 1 (forward, default), or 2 (reverse).
 #' @return NULL by default.
 #' @examples
 #' 
@@ -945,9 +946,11 @@ PlotCoverage<-function(genome_gr,
                        zoom_3UTR=FALSE,
                        annotation.fontsize=NULL,
                        axis.fontsize=NULL,
-                       ylims = NULL
+                       ylims = NULL,
+                       strandMode = 1L
                        )
 {
+  strandMode <- validate_strand_mode(strandMode)
   # Check that gene_name field exists
   GenomeInfoDb::seqlevelsStyle(genome_gr) <- "UCSC"
   idx <-which(genome_gr$gene_name == geneSymbol)
@@ -1078,10 +1081,10 @@ PlotCoverage<-function(genome_gr,
       chunk0 <- GenomicAlignments::readGAlignments(bf,param=param)
       GenomeInfoDb::seqlevelsStyle(chunk0) <- "UCSC"
       close(bf)
-      idx <- which(as.character(BiocGenerics::strand(chunk0)) == gene_strand)
-      if (length(idx) == 0) {        
+      chunk0 <- sierra_filter_alignments_by_strand(chunk0, gene_strand, strandMode = strandMode)
+      if (length(chunk0) == 0) {        
         next; }
-      tmp <-GenomicRanges::coverage(chunk0[idx])
+      tmp <-GenomicRanges::coverage(chunk0)
       
       gr <- GenomicRanges::GRanges(seqnames=chrom, ranges=IRanges::IRanges(start:end, width=1), strand=gene_strand)
       S4Vectors::mcols(gr) <- as.numeric(tmp[[chrom]])[start:end]
