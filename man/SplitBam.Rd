@@ -16,7 +16,8 @@ SplitBam(
   exportFastqHeader = FALSE,
   genomicRegion = NULL,
   bamTags = c("CB", "UB"),
-  what = c("qname", "flag", "rname", "strand", "pos")
+  what = c("qname", "flag", "rname", "strand", "pos"),
+  strandMode = 1L
 )
 }
 \arguments{
@@ -43,6 +44,8 @@ SplitBam(
 \item{bamTags}{BAM field tag identifiers to extract. Default is c("CB", "UB").}
 
 \item{what}{What BAM fields to copy into new file. Default is c('qname', 'flag', 'rname', 'strand', 'pos')}
+
+\item{strandMode}{library strandedness mode: 0 (unstranded), 1 (forward, default), or 2 (reverse).}
 }
 \value{
 a rleList of coverage for each cell type
